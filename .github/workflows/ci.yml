@@ -31,6 +31,41 @@ jobs:
       - name: Test
         run: dotnet test VioLens.sln --no-build --configuration Release --verbosity normal
 
+      # h2spec, the HTTP/2 conformance suite, run against the HTTP/2 server
+      # (see H2SpecTests). Pinned to v2.6.0 by SHA-256, since its releases
+      # publish no checksums. There's no Apple silicon build, so macOS runs
+      # the Intel one under Rosetta.
+      - name: Download h2spec
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'h2spec'
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          if ($IsWindows) {
+            $name = 'h2spec_windows_amd64.zip'
+            $sha256 = '57B608578BD9C8C3B6B821C2AB64925A6CAEE16185B356FFF611A7A86FE8E697'
+          } else {
+            $name = 'h2spec_darwin_amd64.tar.gz'
+            $sha256 = '981CB9F90A6F5E36300063022BD4EB7438D3DCF66D63A146A8541359697D1601'
+          }
+          $archive = Join-Path $dir $name
+          Invoke-WebRequest "https://github.com/summerwind/h2spec/releases/download/v2.6.0/$name" -OutFile $archive
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne $sha256) {
+            throw "$name doesn't match its pinned SHA-256."
+          }
+          if ($IsWindows) {
+            Expand-Archive $archive -DestinationPath $dir
+            $h2spec = Join-Path $dir 'h2spec.exe'
+          } else {
+            tar -xzf $archive -C $dir
+            $h2spec = Join-Path $dir 'h2spec'
+          }
+          & $h2spec --version
+          if ($LASTEXITCODE -ne 0) { throw "h2spec didn't run." }
+          "VIOLENS_H2SPEC=$h2spec" >> $env:GITHUB_ENV
+
+      - name: HTTP/2 conformance (h2spec)
+        run: dotnet test tests/Violens.ProxyCore.Tests/Violens.ProxyCore.Tests.csproj --no-build --configuration Release --filter "FullyQualifiedName~H2SpecTests" --logger "console;verbosity=detailed"
+
       - name: Fetch and port upstream extensions
         shell: pwsh
         run: ./tests/ExtensionPorts/port.ps1

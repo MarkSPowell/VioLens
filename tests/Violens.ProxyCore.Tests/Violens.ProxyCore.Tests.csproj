@@ -18,4 +18,9 @@
     <ProjectReference Include="..\..\src\Violens.ProxyCore\Violens.ProxyCore.csproj" />
   </ItemGroup>
 
+  <!-- Kestrel, as a real HTTP/2 server for the HTTP/2 client tests. Tests only. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
 </Project>
