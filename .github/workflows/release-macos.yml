@@ -5,11 +5,39 @@ name: Release macOS Installer
 # installer/macos/build-installer.sh, and attaches it to the GitHub Release
 # for the pushed tag. ci.yml already tests on macOS.
 #
-#   - Ad-hoc signed, not notarized (see build-installer.sh).
+#   - Developer ID signed and notarized when the signing secrets below are
+#     set; otherwise ad-hoc signed and not notarized, as forks and test
+#     builds are (see build-installer.sh).
 #   - A .dmg, for the usual drag-to-Applications install.
 #   - arm64 only.
 #
 # Can also be run by hand (workflow_dispatch) for a test build.
+#
+# Signing runs only when all five of these repository secrets are set
+# (Settings > Secrets and variables > Actions > Secrets); with none of
+# them the build is ad-hoc signed, and with only some it fails, so a
+# half-configured release can't go out unsigned by accident:
+#   MACOS_CERTIFICATE_P12_BASE64  the Developer ID Application certificate
+#                                 and its private key, as a base64 .p12
+#   MACOS_CERTIFICATE_PASSWORD    the password the .p12 was exported with
+#   APPLE_API_KEY_ID              App Store Connect API key ID
+#   APPLE_API_ISSUER_ID           its issuer ID
+#   APPLE_API_KEY_P8              the key's .p8 file, pasted as text
+#
+# One-time setup, by the Apple Developer account holder:
+#   1. Certificate. On a Mac: Xcode > Settings > Accounts > (the team) >
+#      Manage Certificates > + > Developer ID Application. (Or on
+#      developer.apple.com > Certificates > +, with a signing request from
+#      Keychain Access.) Then in Keychain Access > login > My
+#      Certificates, right-click "Developer ID Application: ..." > Export,
+#      as a .p12 with a strong password, and copy it for the secret with
+#      `base64 -i VioLens-DeveloperID.p12 | pbcopy`. Keep the .p12
+#      somewhere safe, off the repository.
+#   2. API key. App Store Connect > Users and Access > Integrations > App
+#      Store Connect API > Team Keys > +, access "Developer" (enough to
+#      notarize). Download the .p8 (it can only be downloaded once) and
+#      note the key ID beside it and the issuer ID above the list.
+#   3. Add the five secrets above.
 
 on:
   push:
@@ -92,7 +120,92 @@ jobs:
         shell: pwsh
         run: ./installer/build-extensions.ps1 -OutputDir publish/extensions
 
+      - name: Check for signing secrets
+        id: signing
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          names=(MACOS_CERTIFICATE_P12_BASE64 MACOS_CERTIFICATE_PASSWORD APPLE_API_KEY_ID APPLE_API_ISSUER_ID APPLE_API_KEY_P8)
+          missing=()
+          for name in "${names[@]}"; do
+            [[ -n "${!name}" ]] || missing+=("$name")
+          done
+          if [[ ${#missing[@]} -eq 0 ]]; then
+            echo "Signing secrets are set: Developer ID signing and notarization"
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          elif [[ ${#missing[@]} -eq ${#names[@]} ]]; then
+            echo "No signing secrets: ad-hoc signing"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Some macOS signing secrets are set but not these: ${missing[*]}"
+            exit 1
+          fi
+
+      # A keychain of its own for the certificate, unlocked for this job
+      # and deleted at the end, so the private key never lands in the
+      # runner's login keychain. Its password is random and thrown away.
+      - name: Set up signing keychain
+        id: keychain
+        if: steps.signing.outputs.enabled == 'true'
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          keychain="$RUNNER_TEMP/violens-signing.keychain-db"
+          keychain_password="$(openssl rand -base64 32)"
+          echo "::add-mask::$keychain_password"
+
+          certificate="$RUNNER_TEMP/violens-certificate.p12"
+          echo "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$certificate"
+
+          security create-keychain -p "$keychain_password" "$keychain"
+          # Straight away, so the clean-up step finds it even if this one fails.
+          echo "keychain=$keychain" >> "$GITHUB_OUTPUT"
+          # Stays unlocked for six hours, longer than the job can run.
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$certificate" -k "$keychain" -P "$MACOS_CERTIFICATE_PASSWORD" -f pkcs12 -T /usr/bin/codesign
+          rm -f "$certificate"
+          # The Developer ID intermediate, in case the runner image lacks
+          # it: without it codesign can't build the certificate chain.
+          if curl -fsSL https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o "$RUNNER_TEMP/DeveloperIDG2CA.cer"; then
+            security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$keychain" || true
+          fi
+          # Lets codesign use the key without the "allow access" prompt a
+          # runner has no one to click.
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain" > /dev/null
+          # Searched before the login keychain, so codesign finds it.
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+
+          # The identity by its SHA-1 hash, which can't be ambiguous.
+          identity="$(security find-identity -v -p codesigning "$keychain" | awk '/"Developer ID Application: / { print $2; exit }')"
+          if [[ -z "$identity" ]]; then
+            echo "::error::No Developer ID Application identity in MACOS_CERTIFICATE_P12_BASE64"
+            security find-identity -v -p codesigning "$keychain"
+            exit 1
+          fi
+          security find-identity -v -p codesigning "$keychain" | grep "$identity"
+          echo "identity=$identity" >> "$GITHUB_OUTPUT"
+
+          api_key="$RUNNER_TEMP/violens-notary-key.p8"
+          printf '%s\n' "$APPLE_API_KEY_P8" > "$api_key"
+          echo "api-key-path=$api_key" >> "$GITHUB_OUTPUT"
+
+      # Signs and notarizes when the keychain step ran (the identity is
+      # empty otherwise, which means ad-hoc). Notarization usually takes a
+      # few minutes per submission, and there are two: the app, then the
+      # .dmg.
       - name: Build .app bundle and .dmg
+        env:
+          MACOS_SIGNING_IDENTITY: ${{ steps.keychain.outputs.identity }}
+          NOTARY_API_KEY_PATH: ${{ steps.keychain.outputs.api-key-path }}
+          NOTARY_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          NOTARY_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: >-
           bash installer/macos/build-installer.sh
           "${{ steps.version.outputs.version }}"
@@ -102,11 +215,21 @@ jobs:
           "${{ github.workspace }}/publish/extensions"
 
       # Checks the finished .dmg: signature, contents, and that the app
-      # launches -- see the script for what it can't check.
+      # launches -- see the script for what it can't check. Told which
+      # signature to expect, so a signed build that came out ad-hoc fails.
       - name: Smoke-test the .dmg
         run: >-
           bash installer/macos/smoke-test.sh
-          "${{ github.workspace }}/installer/Output/VioLens-${{ steps.version.outputs.version }}-macos-arm64.dmg"          
+          "${{ github.workspace }}/installer/Output/VioLens-${{ steps.version.outputs.version }}-macos-arm64.dmg"
+          "${{ steps.signing.outputs.enabled == 'true' && 'developer-id' || 'adhoc' }}"
+
+      # Even when an earlier step failed. Hosted runners are thrown away
+      # after the job anyway; this matters on a self-hosted one.
+      - name: Remove signing keychain
+        if: always() && steps.keychain.outputs.keychain != ''
+        run: |
+          security delete-keychain "${{ steps.keychain.outputs.keychain }}" || true
+          rm -f "$RUNNER_TEMP/violens-certificate.p12" "$RUNNER_TEMP/violens-notary-key.p8"
 
       - name: Upload installer as a build artifact
         uses: actions/upload-artifact@v7

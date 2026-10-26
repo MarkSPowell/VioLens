@@ -5,10 +5,14 @@
 # .github/workflows/release-macos.yml, and runs the same on a Mac by hand.
 #
 #   - arm64 only.
-#   - Ad-hoc signed, not notarized: there's no Apple Developer account.
+#   - Signed with a Developer ID and notarized when MACOS_SIGNING_IDENTITY
+#     is set (see "Signing" below): the app with the hardened runtime and
+#     VioLens.entitlements, then the .dmg, and Apple's notarization ticket
+#     stapled to both, so Gatekeeper opens it without asking.
+#   - Otherwise ad-hoc signed and not notarized, for forks and test builds.
 #     Copying the SDK-signed executable into a hand-built bundle breaks its
 #     signature, and macOS calls such a downloaded app "damaged", so the
-#     whole bundle is ad-hoc signed below. Gatekeeper then asks once
+#     whole bundle is ad-hoc signed instead. Gatekeeper then asks once
 #     (System Settings > Privacy & Security > Open Anyway, or
 #     `xattr -dr com.apple.quarantine /Applications/VioLens.app`).
 #   - The icon (VioLens.icns) is made at build time with sips and iconutil
@@ -25,6 +29,17 @@
 #   outputDmgPath  Where to write the .dmg.
 #   extensionsDir  Optional: installer/build-extensions.ps1's output, put in
 #                   the .dmg as an "Optional Extensions" folder with a README.
+#
+# Signing, from environment variables (all unset means ad-hoc):
+#   MACOS_SIGNING_IDENTITY  A "Developer ID Application" identity in the
+#                            keychain search list, by name or SHA-1 hash.
+#   and for notarization, which is required with it, either
+#   NOTARY_KEYCHAIN_PROFILE A profile saved with
+#                            `xcrun notarytool store-credentials` (handy on
+#                            your own Mac), or all three of
+#   NOTARY_API_KEY_PATH     the App Store Connect API key's .p8 file,
+#   NOTARY_API_KEY_ID       its key ID, and
+#   NOTARY_API_ISSUER_ID    its issuer ID (what release-macos.yml uses).
 
 set -euo pipefail
 
@@ -46,10 +61,51 @@ EXECUTABLE_NAME="Violens.DesktopUi"
 # app; its settings are carried over by the app itself, not by macOS.
 BUNDLE_IDENTIFIER="dev.violens.desktopui"
 
-ICON_SOURCE="$(cd "$(dirname "$0")" && pwd)/violens-icon-1024.png"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ICON_SOURCE="$SCRIPT_DIR/violens-icon-1024.png"
 if [[ ! -f "$ICON_SOURCE" ]]; then
   echo "error: app icon artwork not found at '$ICON_SOURCE'" >&2
   exit 1
+fi
+
+# The hardened runtime exceptions the Developer ID signed app gets. They're
+# the ones the .NET runtime's own host has (dotnet/runtime
+# eng/native/entitlements.plist), less those only for debugging .NET
+# itself (debugger, get-task-allow, allow-dyld-environment-variables):
+#   allow-jit                   The JIT writes managed code into MAP_JIT
+#                               memory. Since .NET 7 that's all it needs;
+#                               allow-unsigned-executable-memory isn't.
+#   disable-library-validation  The native libraries (libAvaloniaNative,
+#                               libSkiaSharp, libHarfBuzzSharp) are packed
+#                               in the single-file executable and extracted
+#                               on first launch with the signatures they
+#                               came with: Microsoft's Developer ID for
+#                               Skia and HarfBuzz, ad-hoc for Avalonia.
+#                               Library validation loads only libraries
+#                               signed by our own team.
+ENTITLEMENTS="$SCRIPT_DIR/VioLens.entitlements"
+
+SIGNING_IDENTITY="${MACOS_SIGNING_IDENTITY:-}"
+NOTARY_AUTH=()
+if [[ -n "$SIGNING_IDENTITY" ]]; then
+  if [[ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ]]; then
+    NOTARY_AUTH=(--keychain-profile "$NOTARY_KEYCHAIN_PROFILE")
+  elif [[ -n "${NOTARY_API_KEY_PATH:-}" && -n "${NOTARY_API_KEY_ID:-}" && -n "${NOTARY_API_ISSUER_ID:-}" ]]; then
+    NOTARY_AUTH=(--key "$NOTARY_API_KEY_PATH" --key-id "$NOTARY_API_KEY_ID" --issuer "$NOTARY_API_ISSUER_ID")
+  else
+    # A Developer ID app that isn't notarized is blocked outright by
+    # Gatekeeper, which is worse than ad-hoc, so don't build one.
+    echo "error: MACOS_SIGNING_IDENTITY is set but notarization credentials aren't:" >&2
+    echo "  set NOTARY_KEYCHAIN_PROFILE, or NOTARY_API_KEY_PATH, NOTARY_API_KEY_ID and NOTARY_API_ISSUER_ID" >&2
+    exit 1
+  fi
+  if [[ ! -f "$ENTITLEMENTS" ]]; then
+    echo "error: entitlements not found at '$ENTITLEMENTS'" >&2
+    exit 1
+  fi
+  echo "Signing with Developer ID identity '$SIGNING_IDENTITY', and notarizing"
+else
+  echo "MACOS_SIGNING_IDENTITY isn't set: ad-hoc signing, no notarization"
 fi
 
 EXECUTABLE_PATH="$PUBLISH_DIR/$EXECUTABLE_NAME"
@@ -137,22 +193,82 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# Ad-hoc sign the whole bundle ("-" means no identity: free, no account),
-# so its signature covers Info.plist and every file in it (Contents/MacOS
-# holds only the executable; everything else is in Resources, sealed as
-# the bundle's resources). Verify straight away, so a bad bundle fails the
-# build rather than reaching users.
-codesign --force --sign - "$APP_BUNDLE"
-codesign --verify --verbose=2 "$APP_BUNDLE"
+# Prints one string field of notarytool's JSON output. grep rather than a
+# JSON parser, which a stock Mac doesn't have from the shell.
+json_field() {
+  grep -o "\"$1\" *: *\"[^\"]*\"" "$2" | head -1 | sed 's/.*"\([^"]*\)"$/\1/'
+}
+
+# Submits a file to Apple's notary service, waits for the verdict (usually
+# a few minutes), and staples the ticket to the given target so Gatekeeper
+# can check it offline. The verdict is read from notarytool's output rather
+# than its exit status, and on a rejection Apple's log, which says what was
+# wrong, is printed before failing.
+notarize_and_staple() {
+  local submission="$1" staple_target="$2"
+  local result="$WORK_DIR/notary-result.json"
+  echo "Notarizing $(basename "$submission")"
+  xcrun notarytool submit "$submission" "${NOTARY_AUTH[@]}" --wait --output-format json > "$result" || true
+  cat "$result"
+  echo
+  local id status
+  id="$(json_field id "$result")"
+  status="$(json_field status "$result")"
+  if [[ "$status" != "Accepted" ]]; then
+    echo "error: notarization of $(basename "$submission") finished with status '${status:-none}'" >&2
+    if [[ -n "$id" ]]; then
+      xcrun notarytool log "$id" "${NOTARY_AUTH[@]}" >&2 || true
+    fi
+    exit 1
+  fi
+  xcrun stapler staple "$staple_target"
+  xcrun stapler validate "$staple_target"
+}
+
+if [[ -n "$SIGNING_IDENTITY" ]]; then
+  # Each Mach-O on its own, inside out, then the bundle, which signs the
+  # main executable with the entitlements and seals everything else.
+  # codesign --deep would sign nested code without the hardened runtime or
+  # a timestamp, which notarization rejects. Today the executable is the
+  # only Mach-O (the native libraries are packed inside it), but anything
+  # native that's left beside it in future is covered too.
+  developer_id_sign() {
+    codesign --force --sign "$SIGNING_IDENTITY" --timestamp --options runtime "$@"
+  }
+  while IFS= read -r -d '' file; do
+    if [[ "$file" != "$MACOS_DIR/$EXECUTABLE_NAME" ]] && [[ "$(file -b "$file")" == *Mach-O* ]]; then
+      developer_id_sign "$file"
+    fi
+  done < <(find "$APP_BUNDLE" -depth -type f -print0)
+  developer_id_sign --entitlements "$ENTITLEMENTS" "$APP_BUNDLE"
+else
+  # Ad-hoc ("-" means no identity: free, no account), over the whole bundle
+  # so its signature covers Info.plist and every file in it.
+  codesign --force --sign - "$APP_BUNDLE"
+fi
+# Verify straight away, so a bad bundle fails the build rather than
+# reaching users.
+codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+
+# The app is notarized on its own before it goes in the .dmg, so its own
+# ticket can be stapled to it: once it's copied to Applications it no
+# longer has the .dmg's, and without one Gatekeeper has to look it up
+# online on first launch.
+if [[ -n "$SIGNING_IDENTITY" ]]; then
+  APP_ZIP="$WORK_DIR/$APP_NAME.zip"
+  ditto -c -k --keepParent "$APP_BUNDLE" "$APP_ZIP"
+  notarize_and_staple "$APP_ZIP" "$APP_BUNDLE"
+fi
 
 mkdir -p "$(dirname "$OUTPUT_DMG_PATH")"
 rm -f "$OUTPUT_DMG_PATH"
 
 # A compressed, read-only .dmg with an Applications link beside the app,
-# for the usual drag-to-install window.
+# for the usual drag-to-install window. ditto keeps the stapled ticket and
+# the signature intact.
 DMG_STAGING_DIR="$WORK_DIR/dmg-staging"
 mkdir -p "$DMG_STAGING_DIR"
-cp -R "$APP_BUNDLE" "$DMG_STAGING_DIR/"
+ditto "$APP_BUNDLE" "$DMG_STAGING_DIR/$APP_NAME.app"
 ln -s /Applications "$DMG_STAGING_DIR/Applications"
 
 if [[ -n "$EXTENSIONS_DIR" ]]; then
@@ -194,5 +310,13 @@ hdiutil create \
   -ov \
   -format UDZO \
   "$OUTPUT_DMG_PATH"
+
+# The .dmg gets its own signature and ticket, so Gatekeeper accepts it when
+# it's opened, before anything is copied out of it.
+if [[ -n "$SIGNING_IDENTITY" ]]; then
+  codesign --force --sign "$SIGNING_IDENTITY" --timestamp "$OUTPUT_DMG_PATH"
+  codesign --verify --verbose=2 "$OUTPUT_DMG_PATH"
+  notarize_and_staple "$OUTPUT_DMG_PATH" "$OUTPUT_DMG_PATH"
+fi
 
 echo "Built $OUTPUT_DMG_PATH"

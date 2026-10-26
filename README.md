@@ -255,7 +255,7 @@ way:
 - **macOS support is built, but has had little testing on a real Mac.**
   The first real install found the `.dmg`'s app reported as "damaged",
   because the hand-built app bundle wasn't signed as a whole; it's now
-  ad-hoc signed (see below), and CI checks the signature and that the app
+  signed as a whole (see below), and CI checks the signature and that the app
   launches after every macOS build; a hands-on check on a Mac is still to
   come. Certificate
   trust (via the `security` CLI, into the login keychain, behind
@@ -271,10 +271,13 @@ way:
   `networksetup` invocation) rather than live integration tests.
   `.github/workflows/release-macos.yml` builds an installable `.dmg` from
   every tagged release the same way `release-windows.yml` builds the
-  Windows one. It's only **ad-hoc signed**, not Developer ID signed or
-  notarized (no Apple Developer account available to this project), so
-  macOS asks you to allow it once, in System Settings > Privacy & Security;
-  see `installer/macos/build-installer.sh`'s own remarks.
+  Windows one. Once the repository's signing secrets are set up (listed
+  in `release-macos.yml`'s header), the app and the `.dmg` are **Developer
+  ID signed and notarized**, so macOS opens them without asking. Without
+  those secrets, as in a fork or a test build, the app is only ad-hoc
+  signed, and macOS asks you to allow it once, in System Settings >
+  Privacy & Security > Open Anyway; see
+  `installer/macos/build-installer.sh`'s own remarks.
 - **No Preferences/`about:config` editor yet.** Settings, the window's
   size and position, and AutoResponder rules are remembered between runs,
   but changed only through the app's own controls. Breakpoints and the

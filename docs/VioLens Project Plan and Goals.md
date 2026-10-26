@@ -132,10 +132,16 @@ with semicolon-separated values, read through `GetListPref`/`SetListPref`.
 
 `.github/workflows/release-macos.yml` builds an arm64 `.dmg`:
 
-- **Ad-hoc signed, not notarized**, as there's no Apple Developer account.
-  Gatekeeper asks once on first launch; System Settings > Privacy & Security
-  > Open Anyway gets past it. `installer/macos/smoke-test.sh` checks the
-  signature, the `.dmg` contents and that the app launches.
+- **Developer ID signed and notarized**, when the repository's signing
+  secrets are set: the app with the hardened runtime, then the `.dmg`, and
+  Apple's ticket stapled to both. The secrets, and the one-time steps to
+  make the certificate and the App Store Connect API key, are in the
+  workflow's header comment. Without the secrets (forks, test builds) the
+  app is ad-hoc signed instead, and Gatekeeper asks once on first launch;
+  System Settings > Privacy & Security > Open Anyway gets past it.
+  `installer/macos/smoke-test.sh` checks the signature (and for a signed
+  build, the hardened runtime, the stapled tickets and Gatekeeper's
+  verdict), the `.dmg` contents and that the app launches.
 - **A `.dmg`**, for the usual drag-to-Applications install.
 - **arm64 only.** An Intel or universal build is a small addition if it's
   wanted.

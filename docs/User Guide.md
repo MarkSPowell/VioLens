@@ -64,9 +64,11 @@ HTTPS interception works on both Windows and macOS, but the Mac build is
 newer and less tested. See the Known limitations section of
 [README.md](../README.md) for details.
 
-The macOS app isn't notarized, so when you first open it macOS says it
-can't verify the developer. Open it anyway from **System Settings >
-Privacy & Security > Open Anyway**. You only need to do this once.
+A macOS build that's signed and notarized opens like any other app. One
+that isn't (one you built yourself, or a test build) makes macOS say it
+can't verify the developer the first time you open it. Open it anyway
+from **System Settings > Privacy & Security > Open Anyway**. You only
+need to do this once.
 
 ## The session list and inspectors
 
