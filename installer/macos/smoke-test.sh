@@ -6,7 +6,11 @@
 #   1. The .dmg mounts, and holds VioLens.app and an Applications link.
 #   2. The app's signature verifies the way macOS checks it (strict, and
 #      every nested file sealed), and Contents/MacOS holds only the
-#      executable (anything else there breaks the signature).
+#      executable (anything else there breaks the signature). For a
+#      Developer ID build, also: every Mach-O in the app is signed by the
+#      same team with the hardened runtime and a timestamp, the executable
+#      has the JIT entitlement, the app and the .dmg have stapled
+#      notarization tickets, and Gatekeeper accepts both.
 #   3. The User Guide is in the bundle (Help > Documentation), and so is
 #      the app icon Info.plist names.
 #   4. The Optional Extensions folder has each extension, its licence, the
@@ -18,16 +22,24 @@
 # app gets, the certificate and system proxy prompts, and anything visual.
 # Those still need a person on a real Mac.
 #
-# Usage: smoke-test.sh <dmgPath>
+# Usage: smoke-test.sh <dmgPath> [developer-id|adhoc]
+#   The signature to expect. Without it, whichever the app has is checked,
+#   which is fine by hand; CI says which, so that a build meant to be
+#   signed can't pass as ad-hoc.
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <dmgPath>" >&2
+if [[ $# -ne 1 && $# -ne 2 ]]; then
+  echo "Usage: $0 <dmgPath> [developer-id|adhoc]" >&2
   exit 1
 fi
 
 DMG_PATH="$1"
+EXPECTED_SIGNATURE="${2:-}"
+if [[ -n "$EXPECTED_SIGNATURE" && "$EXPECTED_SIGNATURE" != "developer-id" && "$EXPECTED_SIGNATURE" != "adhoc" ]]; then
+  echo "error: expected signature must be 'developer-id' or 'adhoc', not '$EXPECTED_SIGNATURE'" >&2
+  exit 1
+fi
 APP_NAME="VioLens"
 EXECUTABLE_NAME="Violens.DesktopUi"
 LAUNCH_WAIT_SECONDS=20
@@ -70,11 +82,71 @@ if [[ "$macos_entries" == "$EXECUTABLE_NAME" ]]; then
 else
   fail "Contents/MacOS holds more than the executable: $(echo "$macos_entries" | tr '\n' ' ')"
 fi
-# Informational only: an ad-hoc signed app is expected to be rejected here
-# (it isn't Developer ID signed or notarized). Printed so a change in what
-# Gatekeeper says shows up in the log.
-echo "  (Gatekeeper's view, expected to reject an ad-hoc signed app:)"
-spctl --assess --type execute --verbose=2 "$APP" 2>&1 | sed 's/^/    /' || true
+
+signature_info="$(codesign --display --verbose=2 "$APP" 2>&1 || true)"
+if grep -q '^Authority=Developer ID Application: ' <<< "$signature_info"; then
+  actual_signature="developer-id"
+elif grep -q '^Signature=adhoc' <<< "$signature_info"; then
+  actual_signature="adhoc"
+else
+  actual_signature="unknown"
+fi
+if [[ -z "$EXPECTED_SIGNATURE" ]]; then
+  EXPECTED_SIGNATURE="$actual_signature"
+fi
+if [[ "$actual_signature" == "$EXPECTED_SIGNATURE" ]]; then
+  pass "signed $actual_signature"
+else
+  fail "signed $actual_signature, expected $EXPECTED_SIGNATURE"
+  echo "$signature_info" | sed 's/^/    /'
+fi
+
+if [[ "$EXPECTED_SIGNATURE" == "developer-id" ]]; then
+  team="$(sed -n 's/^TeamIdentifier=//p' <<< "$signature_info")"
+  # Every Mach-O, not just the executable: notarization rejects nested
+  # code without the hardened runtime or a secure timestamp.
+  while IFS= read -r -d '' file; do
+    [[ "$(file -b "$file")" == *Mach-O* ]] || continue
+    name="${file#"$APP"/}"
+    info="$(codesign --display --verbose=2 "$file" 2>&1 || true)"
+    problems=()
+    [[ "$(sed -n 's/^TeamIdentifier=//p' <<< "$info")" == "$team" ]] || problems+=("not signed by team $team")
+    grep -Eq '^CodeDirectory .*flags=0x[0-9a-f]+\([^)]*runtime' <<< "$info" || problems+=("no hardened runtime")
+    grep -q '^Timestamp=' <<< "$info" || problems+=("no secure timestamp")
+    if [[ ${#problems[@]} -eq 0 ]]; then
+      pass "$name: team $team, hardened runtime, timestamp"
+    else
+      fail "$name: $(IFS=,; echo "${problems[*]}" | sed "s/,/, /g")"
+    fi
+  done < <(find "$APP" -type f -print0)
+
+  if codesign --display --entitlements - --xml "$APP" 2>/dev/null | grep -q 'com.apple.security.cs.allow-jit'; then
+    pass "executable has the allow-jit entitlement"
+  else
+    fail "executable lacks the allow-jit entitlement (the JIT can't run under the hardened runtime)"
+  fi
+
+  for target in "$APP" "$DMG_PATH"; do
+    if xcrun stapler validate "$target" > /dev/null 2>&1; then
+      pass "notarization ticket is stapled to $(basename "$target")"
+    else
+      fail "no valid notarization ticket stapled to $(basename "$target")"
+    fi
+  done
+
+  # What a double-click does: execute for the app, open for the .dmg.
+  gatekeeper_app="$(spctl --assess --type execute --verbose=2 "$APP" 2>&1)" \
+    && pass "Gatekeeper accepts the app ($(sed -n 's/^source=//p' <<< "$gatekeeper_app"))" \
+    || { fail "Gatekeeper rejects the app"; echo "$gatekeeper_app" | sed 's/^/    /'; }
+  gatekeeper_dmg="$(spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG_PATH" 2>&1)" \
+    && pass "Gatekeeper accepts the .dmg ($(sed -n 's/^source=//p' <<< "$gatekeeper_dmg"))" \
+    || { fail "Gatekeeper rejects the .dmg"; echo "$gatekeeper_dmg" | sed 's/^/    /'; }
+else
+  # Informational only: Gatekeeper is expected to reject an ad-hoc signed
+  # app. Printed so a change in what it says shows up in the log.
+  echo "  (Gatekeeper's view, expected to reject an ad-hoc signed app:)"
+  spctl --assess --type execute --verbose=2 "$APP" 2>&1 | sed 's/^/    /' || true
+fi
 
 echo "3. Documentation and icon"
 [[ -f "$APP/Contents/Resources/Documentation/User Guide.md" ]] \
