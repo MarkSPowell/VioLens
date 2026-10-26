@@ -13,7 +13,9 @@ runs (see the User Guide's "Upgrading from CLeARINET").
 
 ![VioLens capturing a request to example.com, then showing its headers, the Composer and the Timing tab](https://violens.dev/assets/demo.gif)
 
-Downloads, the User Guide and more are at [violens.dev](https://violens.dev).
+Downloads, the User Guide and more are at [violens.dev](https://violens.dev). Questions
+and ideas are welcome on [Discord](https://discord.gg/NJfnGnn4PT); bugs go in
+[issues](https://github.com/MarkSPowell/VioLens/issues).
 
 ## Status
 

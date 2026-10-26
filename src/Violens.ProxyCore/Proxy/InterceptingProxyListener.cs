@@ -529,16 +529,12 @@ public sealed class InterceptingProxyListener
     }
 
     /// <summary>
-    /// Handles the requests on one connection. The server connection is opened
-    /// only when a request actually needs it, so AutoResponder can answer every
-    /// request with no route to the server at all.
-    ///
-    /// Per request, before it's forwarded: FiddlerScript's OnBeforeRequest,
-    /// then VioLens extensions' AutoTamperRequestBefore, then ported
-    /// extensions', then the request breakpoint. Fiddler runs the script before
-    /// breakpoints; the extension order is assumed. Responses follow the same
-    /// order. Requests AutoResponder answers skip all of these. The After hooks
-    /// run once each message is sent, whether buffered or relayed.
+    /// Handles the HTTP/1.1 requests on one connection, one after another:
+    /// reads each request's headers, runs it through an
+    /// <see cref="ExchangePipeline"/>, then decides whether the connection
+    /// can carry another. The server connection is opened only when a
+    /// request actually needs it, so AutoResponder can answer every request
+    /// with no route to the server at all.
     /// </summary>
     private static async Task PumpSessionsAsync(
         bool isTls,
@@ -566,558 +562,92 @@ public sealed class InterceptingProxyListener
         // connection for http:// requests. A plain connection can carry
         // requests for different servers, so the target is set per request.
         var scheme = isTls ? "https" : "http";
-        TcpClient? upstreamClient = null;
-        Stream? upstreamTls = null;
-        string? upstreamKey = null;
-        var sendAbsoluteForm = false;
-        UpstreamProxy? upstreamRoute = null;
-        var upstreamConnectionId = 0;
-        UpstreamTlsProbe? upstreamTlsProbe = null;
-        SessionTimingRecorder? currentTiming = null;
+        var pipeline = new ExchangePipeline(new ExchangeServices(
+            sessionStore, breakpointManager, autoResponderRules, scriptRunner, extensionHost, sessionHost, proxyUrl, maxCapturedBodyBytes));
+        var client = new Http1ClientExchange(clientConnection, clientTls);
+        using var upstream = new Http1Upstream(isTls, targetHost, targetPort, chooseRoutes, proxyCredential);
         var pendingRequest = firstRequest;
 
-        // Opened the first time a request has to reach the server, then reused.
-        async Task<Stream> EnsureUpstreamAsync(string target)
+        while (true)
         {
-            var key = $"{targetHost}:{targetPort}";
-            if (upstreamTls is not null && upstreamKey != key)
+            var requestPreamble = pendingRequest ?? await ReadRequestPreambleWithinAsync(clientTls, idleTimeout, cancellationToken);
+            pendingRequest = null;
+            if (requestPreamble is null)
             {
-                // A plain HTTP client moved on to a different server.
-                upstreamTls.Dispose();
-                upstreamClient?.Dispose();
-                upstreamTls = null;
-                upstreamClient = null;
+                // The client closed the connection between requests, or
+                // left it idle past ClientIdleTimeout.
+                return;
             }
 
-            if (upstreamTls is not null && currentTiming is not null)
-            {
-                currentTiming.ConnectionReused = true;
-                currentTiming.ConnectionId = upstreamConnectionId;
-                currentTiming.Proxy = upstreamRoute?.ToString();
-                currentTiming.TlsProbe = upstreamTlsProbe;
-            }
+            // Timed from the request's arrival, not keep-alive idle time.
+            var startedAt = DateTimeOffset.Now;
+            var timing = new SessionTimingRecorder();
+            upstream.Timing = timing;
 
-            if (upstreamTls is null)
+            if (!isTls)
             {
-                // Trying the next route when one can't be reached, as browsers do.
-                upstreamClient?.Dispose(); // left over from a failed TLS handshake
-                upstreamClient = null;
-                upstreamTlsProbe = null;
-                var routes = await chooseRoutes(isTls, targetHost, targetPort, target, cancellationToken);
-                currentTiming?.ConnectStarted();
-                UpstreamProxy? route = null;
-                for (var i = 0; upstreamClient is null; i++)
+                // Plain HTTP is stored like HTTPS: a path-only target plus a Host header
+                // (see PlainHttpRequest).
+                if (ProxyHomePage.IsRequestForProxy(requestPreamble.Target, ownPort) && !requestPreamble.Target.StartsWith('/'))
                 {
-                    route = routes[i];
-                    try
-                    {
-                        upstreamClient = await ConnectAsync(route);
-                    }
-                    catch (SocketException ex) when (i + 1 < routes.Count)
-                    {
-                        ProxyEngine.Log("proxy",
-                            $"{targetHost}: couldn't reach {DescribeRoute(route)} ({ex.Message}); trying {DescribeRoute(routes[i + 1])}.");
-                    }
-                }
-
-                currentTiming?.Connected();
-                upstreamConnectionId = Interlocked.Increment(ref s_connectionCounter);
-                if (currentTiming is not null)
-                {
-                    currentTiming.ConnectionId = upstreamConnectionId;
-                    currentTiming.Proxy = route?.ToString();
-                }
-
-                if (isTls)
-                {
-                    var tls = new SslStream(upstreamClient!.GetStream(), leaveInnerStreamOpen: false);
-
-                    // The probe records a client-certificate request on the session.
-                    // Default certificate validation: a real upstream certificate problem
-                    // should show, not be hidden.
-                    upstreamTlsProbe = new UpstreamTlsProbe();
-                    upstreamTlsProbe.Attach(tls);
-                    if (currentTiming is not null)
-                    {
-                        currentTiming.TlsProbe = upstreamTlsProbe;
-                    }
-
-                    await tls.AuthenticateAsClientAsync(upstreamTlsProbe.CreateOptions(targetHost), cancellationToken);
-                    currentTiming?.TlsDone();
-                    upstreamTls = new ReadBufferedStream(tls);
-                    sendAbsoluteForm = false;
-                }
-                else
-                {
-                    // Plain HTTP goes to a proxy as an ordinary proxy
-                    // request (full URL in the request line).
-                    upstreamTls = new ReadBufferedStream(upstreamClient!.GetStream());
-                    sendAbsoluteForm = route is not null;
-                }
-
-                upstreamRoute = route;
-
-                upstreamKey = key;
-            }
-
-            return upstreamTls;
-        }
-
-        // One route: a CONNECT tunnel through a proxy for HTTPS, a plain
-        // connection to the proxy for HTTP, or straight to the server.
-        async Task<TcpClient> ConnectAsync(UpstreamProxy? route)
-        {
-            if (route is not null && isTls)
-            {
-                return await route.ConnectTunnelAsync(targetHost, targetPort, proxyCredential(), cancellationToken);
-            }
-
-            var client = new TcpClient();
-            try
-            {
-                // The address is looked up first, on its own, so the
-                // waterfall can show DNS time apart from connecting.
-                var (host, port) = route is null ? (targetHost, targetPort) : (route.Host, route.Port);
-                var addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
-                currentTiming?.DnsDone();
-                await client.ConnectAsync(addresses, port, cancellationToken);
-                return client;
-            }
-            catch
-            {
-                client.Dispose();
-                throw;
-            }
-        }
-
-        // A plain HTTP request sent through a proxy that answered 407:
-        // sign in (see ProxyAuthenticator) and send the request again, on
-        // the same connection when the proxy keeps it open. Returns the
-        // answer to pass on: the real response, or the last 407 when
-        // signing in didn't work. Null if the proxy closed the connection.
-        async Task<CapturedResponse?> SignInToProxyAsync(CapturedRequest request, CapturedResponse challenge)
-        {
-            var proxy = upstreamRoute!;
-            var credential = proxyCredential();
-            using var authenticator = new ProxyAuthenticator(proxy.Host, credential);
-            var reply = challenge;
-            while (reply.StatusCode == 407)
-            {
-                var authorization = authenticator.Respond(reply.Headers);
-                if (authorization is null)
-                {
-                    ProxyEngine.Log("proxy", $"{proxy}: {UpstreamProxy.SignInFailedMessage(authenticator, credential)}");
-                    return reply;
-                }
-
-                if (UpstreamProxy.KeepsConnection(reply))
-                {
-                    await Http1MessageReader.ReadBodyAsync(upstreamTls!, reply.Headers, cancellationToken);
-                }
-                else
-                {
-                    upstreamTls?.Dispose();
-                    upstreamClient?.Dispose();
-                    upstreamTls = null;
-                    upstreamClient = new TcpClient();
-                    await upstreamClient.ConnectAsync(proxy.Host, proxy.Port, cancellationToken);
-                    upstreamTls = new ReadBufferedStream(upstreamClient.GetStream());
-                }
-
-                var stream = upstreamTls!;
-                var outgoing = ForUpstream(request);
-                outgoing = outgoing with { Headers = [.. outgoing.Headers, ("Proxy-Authorization", authorization)] };
-                await HttpMessageWriter.WriteRequestAsync(stream, outgoing, cancellationToken);
-                var next = await Http1MessageReader.ReadResponsePreambleAsync(stream, cancellationToken);
-                if (next is null)
-                {
-                    return null;
-                }
-
-                reply = next;
-            }
-
-            return reply;
-        }
-
-        // What actually goes to the server (or the network's proxy) for a
-        // request: unchanged for HTTPS; for plain HTTP, without the
-        // proxy-only headers, and with the full URL when going via a proxy.
-        CapturedRequest ForUpstream(CapturedRequest outgoing) =>
-            isTls ? outgoing : PlainHttpRequest.ForUpstream(outgoing, sendAbsoluteForm);
-
-        // For plain HTTP, the server a request goes to comes from its Host
-        // header, which a script, extension or breakpoint may have changed.
-        void RouteFrom(CapturedRequest outgoing)
-        {
-            if (!isTls && PlainHttpRequest.TryGetRoute(outgoing.Headers, out var host, out var port))
-            {
-                targetHost = host;
-                targetPort = port;
-            }
-        }
-
-        // Opens the server connection, or answers 502 Bad Gateway, records it,
-        // and returns null.
-        async Task<Stream?> TryEnsureUpstreamAsync(CapturedRequest outgoing, DateTimeOffset startedAt)
-        {
-            try
-            {
-                return await EnsureUpstreamAsync(outgoing.Target);
-            }
-            catch (Exception ex) when (ex is SocketException or IOException or AuthenticationException)
-            {
-                var askedForCertificate = upstreamTlsProbe?.ClientCertificateRequested == true;
-                var failure = BadGateway(
-                    targetHost,
-                    targetPort,
-                    ex,
-                    askedForCertificate
-                        ? $"The server asked for a client certificate (mutual TLS), and {ProxyEngine.Identity.ProductName} doesn't send one yet, so the server may have refused the connection for that reason."
-                        : null);
-                await HttpMessageWriter.WriteResponseAsync(clientTls, failure, cancellationToken);
-                currentTiming?.Done();
-                var failedTimings = currentTiming?.Build();
-                var failed = sessionStore.Add(
-                    targetHost, startedAt, outgoing, failure, WithTlsFlags(null, failedTimings), scheme, failedTimings);
-                ProxyEngine.Log("session",
-                    $"#{failed.Id} 502 {outgoing.Method} {scheme}://{targetHost}{outgoing.Target} -- {ex.Message}");
-                return null;
-            }
-        }
-
-        try
-        {
-            while (true)
-            {
-                var requestPreamble = pendingRequest ?? await ReadRequestPreambleWithinAsync(clientTls, idleTimeout, cancellationToken);
-                pendingRequest = null;
-                if (requestPreamble is null)
-                {
-                    // The client closed the connection between requests, or
-                    // left it idle past ClientIdleTimeout.
+                    await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.Build(requestPreamble.Target, rootCertificateDer()), cancellationToken);
                     return;
                 }
 
-                // Timed from the request's arrival, not keep-alive idle time.
-                var startedAt = DateTimeOffset.Now;
-                var timing = new SessionTimingRecorder();
-                currentTiming = timing;
-
-                if (!isTls)
+                if (!PlainHttpRequest.TryNormalize(requestPreamble, out var normalized, out var plainHost, out var plainPort))
                 {
-                    // Plain HTTP is stored like HTTPS: a path-only target plus a Host header
-                    // (see PlainHttpRequest).
-                    if (ProxyHomePage.IsRequestForProxy(requestPreamble.Target, ownPort) && !requestPreamble.Target.StartsWith('/'))
-                    {
-                        await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.Build(requestPreamble.Target, rootCertificateDer()), cancellationToken);
-                        return;
-                    }
-
-                    if (!PlainHttpRequest.TryNormalize(requestPreamble, out var normalized, out var plainHost, out var plainPort))
-                    {
-                        await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.NotForwarded(requestPreamble.Method, requestPreamble.Target), cancellationToken);
-                        return;
-                    }
-
-                    requestPreamble = normalized;
-                    targetHost = plainHost;
-                    targetPort = plainPort;
-                }
-
-                // AutoResponder only looks at the method and URL, so it can decide from
-                // the preamble.
-                var url = isTls
-                    ? $"https://{targetHost}{requestPreamble.Target}"
-                    : $"http://{ContentDecoder.FindHeader(requestPreamble.Headers, "Host") ?? targetHost}{requestPreamble.Target}";
-                var outcome = autoResponderRules.AnyActive
-                    ? autoResponderRules.Evaluate(requestPreamble.Method, url)
-                    : AutoResponderOutcome.PassThrough;
-
-                if (outcome.DelayMilliseconds > 0)
-                {
-                    // Applies whether the request is answered locally or forwarded.
-                    await Task.Delay(outcome.DelayMilliseconds, cancellationToken);
-                }
-
-                var isAnsweredLocally = outcome.FinalActionKind is
-                    AutoResponderActionKind.ServeFile or AutoResponderActionKind.ProxyUrl or AutoResponderActionKind.Redirect or
-                    AutoResponderActionKind.Reset or AutoResponderActionKind.Drop or AutoResponderActionKind.CorsPreflightAllow;
-
-                if (isAnsweredLocally)
-                {
-                    // Answered locally, so there's nothing to relay.
-                    var localRequestBody = await Http1MessageReader.ReadBodyAsync(clientTls, requestPreamble.Headers, cancellationToken);
-                    var localRequest = requestPreamble with { Body = localRequestBody };
-
-                    if (outcome.FinalActionKind == AutoResponderActionKind.Reset)
-                    {
-                        RecordAutoRespondedSession(sessionStore, targetHost, scheme, startedAt, localRequest, "Connection Reset (AutoResponder *reset)", timing.Build(answeredLocally: true));
-                        // A TCP RST needs a zero linger time.
-                        clientConnection.Client.LingerState = new LingerOption(true, 0);
-                        clientConnection.Close();
-                        return;
-                    }
-
-                    if (outcome.FinalActionKind == AutoResponderActionKind.Drop)
-                    {
-                        RecordAutoRespondedSession(sessionStore, targetHost, scheme, startedAt, localRequest, "Connection Dropped (AutoResponder *drop)", timing.Build(answeredLocally: true));
-                        // No response; the connection just closes.
-                        return;
-                    }
-
-                    var localResponse = await BuildMockResponseAsync(outcome, localRequest, proxyUrl, cancellationToken);
-                    await HttpMessageWriter.WriteResponseAsync(clientTls, localResponse, cancellationToken);
-                    timing.Done();
-                    var localSession = sessionStore.Add(targetHost, startedAt, localRequest, localResponse, flags: null, scheme, timing.Build(answeredLocally: true));
-                    ProxyEngine.Log("session",
-                        $"#{localSession.Id} {localResponse.StatusCode} {localRequest.Method} {url} " +
-                        $"(AutoResponder: {outcome.FinalActionKind})");
-                    continue;
-                }
-
-                // Not answered by AutoResponder. The server connection waits until no
-                // ported extension answers the request either.
-                var outgoingPreamble = outcome.HeadersToSet.Count > 0
-                    ? requestPreamble with { Headers = MergeHeaders(requestPreamble.Headers, outcome.HeadersToSet) }
-                    : requestPreamble;
-
-                // Ported extensions get one session object for the whole request (see
-                // IExtensionSessionHost).
-                var extensionSession = sessionHost is { IsActive: true }
-                    ? sessionHost.BeginSession(sessionStore.PeekNextId(), targetHost, scheme)
-                    : null;
-                extensionSession?.PeekAtRequestHeaders(outgoingPreamble);
-
-                // Breakpoint rules only look at the method and target, so this is
-                // decided before reading the body: buffer it only if something will
-                // act on it, otherwise relay it.
-                var mustBufferRequestForScript = scriptRunner?.HasOnBeforeRequest ?? false;
-                var mustBufferRequestForExtensions = extensionHost?.HasAnyRequestBeforeHandlers ?? false;
-                CapturedRequest request;
-                CapturedResponse? extensionLocalResponse = null;
-                Http1MessageReader.RelayedBody? relayedRequestBody = null;
-                Http1MessageReader.RelayedBody? relayedResponseBody = null;
-                if (breakpointManager.WouldBreakBeforeRequest(outgoingPreamble) || outcome.ForceBreakpointBeforeRequest ||
-                    mustBufferRequestForScript || mustBufferRequestForExtensions || extensionSession is not null)
-                {
-                    var requestBody = await Http1MessageReader.ReadBodyAsync(clientTls, outgoingPreamble.Headers, cancellationToken);
-                    request = outgoingPreamble with { Body = requestBody };
-
-                    if (mustBufferRequestForScript)
-                    {
-                        var peekedSessionId = sessionStore.PeekNextId();
-                        request = scriptRunner!.RunOnBeforeRequest(peekedSessionId, targetHost, request).Request;
-                    }
-
-                    if (mustBufferRequestForExtensions)
-                    {
-                        var peekedSessionId = sessionStore.PeekNextId();
-                        request = extensionHost!.RunRequestBefore(peekedSessionId, targetHost, request);
-                    }
-
-                    // Ported extensions may answer the request themselves, in which case it
-                    // never reaches the server or a breakpoint.
-                    if (extensionSession is not null)
-                    {
-                        var result = extensionSession.RequestBefore(request);
-                        request = result.Request;
-                        extensionLocalResponse = result.LocalResponse;
-                    }
-
-                    if (extensionLocalResponse is null)
-                    {
-                        // May pause here for editing.
-                        var requestPauseStart = SessionTimingRecorder.Now();
-                        request = await breakpointManager.ApplyRequestBreakpointAsync(targetHost, request, cancellationToken);
-                        timing.AddPause(requestPauseStart, SessionTimingRecorder.Now());
-                        RouteFrom(request);
-                        var bufferedUpstream = await TryEnsureUpstreamAsync(request, startedAt);
-                        if (bufferedUpstream is null)
-                        {
-                            return;
-                        }
-
-                        timing.SendStarted();
-                        await HttpMessageWriter.WriteRequestAsync(bufferedUpstream, ForUpstream(request), cancellationToken);
-                        timing.SendDone();
-                    }
-                }
-                else
-                {
-                    RouteFrom(outgoingPreamble);
-                    var upstream = await TryEnsureUpstreamAsync(outgoingPreamble, startedAt);
-                    if (upstream is null)
-                    {
-                        return;
-                    }
-
-                    timing.SendStarted();
-                    await HttpMessageWriter.WriteRequestPreambleAsync(upstream, ForUpstream(outgoingPreamble), cancellationToken);
-                    var requestBody = await Http1MessageReader.RelayBodyAsync(
-                        clientTls, upstream, outgoingPreamble.Headers, cancellationToken, maxCapturedBodyBytes);
-                    timing.SendDone();
-                    request = outgoingPreamble with { Body = requestBody.Captured };
-                    relayedRequestBody = requestBody;
-                }
-
-                if (extensionLocalResponse is not null)
-                {
-                    // An extension answered (utilCreateResponseAndBypassServer). Nothing was
-                    // sent, so the request-after hooks don't run; the response hooks do.
-                    var localResponse = extensionSession!.ResponseBefore(request, extensionLocalResponse);
-                    await HttpMessageWriter.WriteResponseAsync(clientTls, localResponse, cancellationToken);
-                    extensionSession.ResponseAfter(request, localResponse);
-
-                    timing.Done();
-                    var answeredSession = sessionStore.Add(
-                        targetHost, startedAt, request, localResponse, extensionSession.Flags, scheme, timing.Build(answeredLocally: true));
-                    ProxyEngine.Log("session",
-                        $"#{answeredSession.Id} {localResponse.StatusCode} {request.Method} {url} (answered by an extension)");
-                    continue;
-                }
-
-                extensionHost?.RunRequestAfter(sessionStore.PeekNextId(), targetHost, request);
-                extensionSession?.RequestAfter(request);
-
-                // Every path above that didn't return has sent the request
-                // upstream, so the connection exists.
-                var upstreamStream = upstreamTls!;
-
-                var isHeadRequest = string.Equals(request.Method, "HEAD", StringComparison.OrdinalIgnoreCase);
-                var responsePreamble = await Http1MessageReader.ReadResponsePreambleAsync(upstreamStream, cancellationToken);
-                timing.FirstByte();
-
-                // Interim responses (100 Continue, 102 Processing, 103 Early
-                // Hints) come before the real one, on the same request. Pass
-                // each on and keep reading: treating one as the answer would
-                // leave the real response unread while the client waits for
-                // it. 101 is final -- the connection switches protocols.
-                while (responsePreamble is { StatusCode: >= 100 and < 200 and not 101 } interim)
-                {
-                    await HttpMessageWriter.WriteResponsePreambleAsync(clientTls, interim, cancellationToken);
-                    responsePreamble = await Http1MessageReader.ReadResponsePreambleAsync(upstreamStream, cancellationToken);
-                }
-
-                if (responsePreamble is { StatusCode: 407 } && !isTls && upstreamRoute is not null)
-                {
-                    // The network's proxy wants a sign-in for plain HTTP.
-                    // (For HTTPS that happened when the tunnel was opened.)
-                    responsePreamble = await SignInToProxyAsync(request, responsePreamble);
-                    upstreamStream = upstreamTls!;
-                }
-
-                if (responsePreamble is null)
-                {
-                    ProxyEngine.Log("proxy",
-                        $"{targetHost}: upstream closed the connection before answering {request.Method} {request.Target}.");
+                    await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.NotForwarded(requestPreamble.Method, requestPreamble.Target), cancellationToken);
                     return;
                 }
 
-                var responseHasNoBody = Http1MessageReader.ResponseHasNoBody(responsePreamble.StatusCode, isHeadRequest);
-                extensionSession?.PeekAtResponseHeaders(request, responsePreamble);
-
-                // Same fork as the request side above, for OnBeforeResponse.
-                var mustBufferResponseForScript = scriptRunner?.HasOnBeforeResponse ?? false;
-                var mustBufferResponseForExtensions = extensionHost?.HasAnyResponseBeforeHandlers ?? false;
-                CapturedResponse response;
-                if (breakpointManager.WouldBreakBeforeResponse(request, responsePreamble) || outcome.ForceBreakpointAfterResponse ||
-                    mustBufferResponseForScript || mustBufferResponseForExtensions || extensionSession is not null)
-                {
-                    var responseBody = responseHasNoBody
-                        ? Array.Empty<byte>()
-                        : await Http1MessageReader.ReadResponseBodyAsync(upstreamStream, responsePreamble.Headers, cancellationToken);
-                    response = responsePreamble with { Body = responseBody };
-
-                    if (mustBufferResponseForScript)
-                    {
-                        var peekedSessionId = sessionStore.PeekNextId();
-                        response = scriptRunner!.RunOnBeforeResponse(peekedSessionId, targetHost, request, response).Response;
-                    }
-
-                    if (mustBufferResponseForExtensions)
-                    {
-                        var peekedSessionId = sessionStore.PeekNextId();
-                        response = extensionHost!.RunResponseBefore(peekedSessionId, targetHost, request, response);
-                    }
-
-                    // Ported extensions' AutoTamperResponseBefore, on the
-                    // same session object as their request hooks.
-                    if (extensionSession is not null)
-                    {
-                        response = extensionSession.ResponseBefore(request, response);
-                    }
-
-                    var responsePauseStart = SessionTimingRecorder.Now();
-                    response = await breakpointManager.ApplyResponseBreakpointAsync(
-                        targetHost, request, response, cancellationToken);
-                    timing.AddPause(responsePauseStart, SessionTimingRecorder.Now());
-                    await HttpMessageWriter.WriteResponseAsync(clientTls, response, cancellationToken);
-                }
-                else
-                {
-                    // Relayed live, so a streamed response reaches the client as it's
-                    // generated.
-                    await HttpMessageWriter.WriteResponsePreambleAsync(clientTls, responsePreamble, cancellationToken);
-                    var responseBody = responseHasNoBody
-                        ? Http1MessageReader.RelayedBody.Empty
-                        : await Http1MessageReader.RelayResponseBodyAsync(
-                            upstreamStream, clientTls, responsePreamble.Headers, cancellationToken, maxCapturedBodyBytes);
-                    response = responsePreamble with { Body = responseBody.Captured };
-                    relayedResponseBody = responseBody;
-                }
-
-                extensionHost?.RunResponseAfter(sessionStore.PeekNextId(), targetHost, request, response);
-                extensionSession?.ResponseAfter(request, response);
-
-                timing.Done();
-                var timings = timing.Build();
-
-                // A WebSocket handshake: the session gets a log its messages
-                // are added to as they pass (see the 101 handling below).
-                var webSocket = response.StatusCode == 101 && IsWebSocketUpgrade(response.Headers)
-                    ? new WebSocketLog(DateTimeOffset.Now, ContentDecoder.FindHeader(response.Headers, "Sec-WebSocket-Extensions"))
-                    : null;
-                var flags = WithTruncationFlags(WithTlsFlags(extensionSession?.Flags, timings), relayedRequestBody, relayedResponseBody);
-                var session = sessionStore.Add(
-                    targetHost, startedAt, request, response, flags, scheme, timings, webSocket);
-                ProxyEngine.Log("session",
-                    $"#{session.Id} {response.StatusCode} {request.Method} {scheme}://{targetHost}{request.Target} " +
-                    $"({request.Body.Length} B req, {response.Body.Length} B resp)");
-
-                if (response.StatusCode == 101)
-                {
-                    // 101 Switching Protocols: no longer HTTP/1.1, so relay both directions
-                    // raw for the rest of the connection, reading WebSocket messages on the
-                    // way through.
-                    if (webSocket is not null)
-                    {
-                        await WebSocketRelay.RelayAsync(
-                            clientTls, upstreamStream, webSocket, WebSocketCompression.FromHeader(webSocket.Extensions), cancellationToken);
-                    }
-                    else
-                    {
-                        await RelayRawBytesUntilClosedAsync(clientTls, upstreamStream, cancellationToken);
-                    }
-
-                    return;
-                }
-
-                // A response whose body ran until the server closed the
-                // connection, or either side asking to close, ends this
-                // connection too: the client can't tell where a further
-                // response would start.
-                if ((!responseHasNoBody && Http1MessageReader.IsCloseDelimited(responsePreamble.Headers)) ||
-                    AsksToClose(request.HttpVersion, request.Headers) || AsksToClose(responsePreamble.HttpVersion, responsePreamble.Headers))
-                {
-                    return;
-                }
+                requestPreamble = normalized;
+                upstream.SetTarget(plainHost, plainPort);
             }
-        }
-        finally
-        {
-            upstreamTls?.Dispose();
-            upstreamClient?.Dispose();
+
+            var url = isTls
+                ? $"https://{upstream.TargetHost}{requestPreamble.Target}"
+                : $"http://{ContentDecoder.FindHeader(requestPreamble.Headers, "Host") ?? upstream.TargetHost}{requestPreamble.Target}";
+
+            var result = await pipeline.RunAsync(client, upstream, requestPreamble, url, scheme, startedAt, timing, cancellationToken);
+            if (result.End == ExchangeEnd.CloseConnection)
+            {
+                return;
+            }
+
+            if (result.End == ExchangeEnd.AnsweredLocally)
+            {
+                continue;
+            }
+
+            var request = result.Request!;
+            var responsePreamble = result.ResponsePreamble!;
+            if (result.Response!.StatusCode == 101)
+            {
+                // 101 Switching Protocols: no longer HTTP/1.1, so relay both directions
+                // raw for the rest of the connection, reading WebSocket messages on the
+                // way through.
+                if (result.WebSocket is { } webSocket)
+                {
+                    await WebSocketRelay.RelayAsync(
+                        clientTls, upstream.Stream, webSocket, WebSocketCompression.FromHeader(webSocket.Extensions), cancellationToken);
+                }
+                else
+                {
+                    await RelayRawBytesUntilClosedAsync(clientTls, upstream.Stream, cancellationToken);
+                }
+
+                return;
+            }
+
+            // A response whose body ran until the server closed the
+            // connection, or either side asking to close, ends this
+            // connection too: the client can't tell where a further
+            // response would start.
+            if ((!result.ResponseHasNoBody && Http1MessageReader.IsCloseDelimited(responsePreamble.Headers)) ||
+                AsksToClose(request.HttpVersion, request.Headers) || AsksToClose(responsePreamble.HttpVersion, responsePreamble.Headers))
+            {
+                return;
+            }
         }
     }
 
@@ -1126,7 +656,7 @@ public sealed class InterceptingProxyListener
     /// <c>*drop</c>, so it still shows in the list. Status 0 means no response
     /// was sent.
     /// </summary>
-    private static void RecordAutoRespondedSession(
+    internal static void RecordAutoRespondedSession(
         SessionStore sessionStore, string targetHost, string scheme, DateTimeOffset startedAt, CapturedRequest request, string reason,
         SessionTimings timings)
     {
@@ -1135,7 +665,10 @@ public sealed class InterceptingProxyListener
         ProxyEngine.Log("session", $"#{session.Id} {request.Method} {scheme}://{targetHost}{request.Target} -- {reason}");
     }
 
-    private static string DescribeRoute(UpstreamProxy? route) =>
+    /// <summary>The next number for a connection VioLens opens to a server or upstream proxy.</summary>
+    internal static int NextConnectionId() => Interlocked.Increment(ref s_connectionCounter);
+
+    internal static string DescribeRoute(UpstreamProxy? route) =>
         route is null ? "a direct connection" : $"the proxy {route}";
 
     /// <summary>
@@ -1143,7 +676,7 @@ public sealed class InterceptingProxyListener
     /// certificate, <see cref="ServerTlsInfo.ClientCertificateRequestedFlag"/>
     /// (which the Notes tab shows).
     /// </summary>
-    private static IReadOnlyDictionary<string, string>? WithTlsFlags(IReadOnlyDictionary<string, string>? flags, SessionTimings? timings)
+    internal static IReadOnlyDictionary<string, string>? WithTlsFlags(IReadOnlyDictionary<string, string>? flags, SessionTimings? timings)
     {
         if (timings?.Tls is not { ClientCertificateRequested: true } tls)
         {
@@ -1192,7 +725,7 @@ public sealed class InterceptingProxyListener
             $"kept the first {body.Captured.Length:N0} of {body.Length:N0} bytes");
 
     /// <summary>The response sent when VioLens can't reach the server, with an optional explanation.</summary>
-    private static CapturedResponse BadGateway(string host, int port, Exception ex, string? explanation = null)
+    internal static CapturedResponse BadGateway(string host, int port, Exception ex, string? explanation = null)
     {
         var body = Encoding.UTF8.GetBytes(
             $"{ProxyEngine.Identity.ProductName} couldn't connect to {host}:{port}: {ex.Message}" + (explanation is null ? string.Empty : $"\r\n\r\n{explanation}"));
@@ -1234,7 +767,7 @@ public sealed class InterceptingProxyListener
     }
 
     /// <summary>Applies AutoResponder <c>*header:</c> overrides: replace by name, or append.</summary>
-    private static IReadOnlyList<(string Name, string Value)> MergeHeaders(
+    internal static IReadOnlyList<(string Name, string Value)> MergeHeaders(
         IReadOnlyList<(string Name, string Value)> original, IReadOnlyList<(string Name, string Value)> overrides)
     {
         var merged = new List<(string Name, string Value)>(original);
@@ -1254,7 +787,7 @@ public sealed class InterceptingProxyListener
         return merged;
     }
 
-    private static Task<CapturedResponse> BuildMockResponseAsync(
+    internal static Task<CapturedResponse> BuildMockResponseAsync(
         AutoResponderOutcome outcome, CapturedRequest request, UpstreamWebProxy proxyUrl, CancellationToken cancellationToken) => outcome.FinalActionKind switch
     {
         AutoResponderActionKind.ServeFile => BuildServeFileResponseAsync(outcome.Text!, cancellationToken),
@@ -1372,7 +905,7 @@ public sealed class InterceptingProxyListener
     }
 
     /// <summary>Whether a 101 response switched to WebSocket (Upgrade: websocket).</summary>
-    private static bool IsWebSocketUpgrade(IReadOnlyList<(string Name, string Value)> headers) =>
+    internal static bool IsWebSocketUpgrade(IReadOnlyList<(string Name, string Value)> headers) =>
         ContentDecoder.FindHeader(headers, "Upgrade")?.Split(',').Any(p => string.Equals(p.Trim(), "websocket", StringComparison.OrdinalIgnoreCase)) == true;
 
     /// <summary>
