@@ -90,16 +90,14 @@ public class Http2ConnectionTests
         await using var server = new Http2TestServer(
             async stream =>
             {
-                var now = Interlocked.Increment(ref active);
-                InterlockedMax(ref peak, now);
-                try
-                {
-                    await Http2TestServer.EchoAsync(stream);
-                }
-                finally
-                {
-                    Interlocked.Decrement(ref active);
-                }
+                // Counted from when the stream is handed over until just before
+                // the frame that ends it, which is when its slot is freed.
+                InterlockedMax(ref peak, Interlocked.Increment(ref active));
+                await stream.ReadHeadersAsync(CancellationToken.None);
+                var body = await stream.ReadAllDataAsync(CancellationToken.None);
+                await stream.WriteHeadersAsync([(":status", "200")], endStream: false, CancellationToken.None);
+                Interlocked.Decrement(ref active);
+                await stream.WriteDataAsync(body, endStream: true, CancellationToken.None);
             },
             new Http2Settings { MaxConcurrentStreams = 10 });
         var (client, socket) = await ConnectAsync(server.Port);

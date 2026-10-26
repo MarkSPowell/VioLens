@@ -280,7 +280,7 @@ internal sealed class Http2Connection : IAsyncDisposable
                 ThrowIfCantSend(stream);
                 if (endStream)
                 {
-                    stream.LocalClosed = true;
+                    EndLocalSide(stream);
                 }
             }
 
@@ -290,14 +290,6 @@ internal sealed class Http2Connection : IAsyncDisposable
         finally
         {
             _writeLock.Release();
-        }
-
-        if (endStream)
-        {
-            lock (_sync)
-            {
-                RemoveIfDone(stream);
-            }
         }
     }
 
@@ -351,7 +343,7 @@ internal sealed class Http2Connection : IAsyncDisposable
                     lock (_sync)
                     {
                         ThrowIfCantSend(stream);
-                        stream.LocalClosed = true;
+                        EndLocalSide(stream);
                     }
                 }
 
@@ -366,14 +358,6 @@ internal sealed class Http2Connection : IAsyncDisposable
             remaining = remaining[chunkLength..];
             if (isLast)
             {
-                if (endStream)
-                {
-                    lock (_sync)
-                    {
-                        RemoveIfDone(stream);
-                    }
-                }
-
                 return;
             }
         }
@@ -1203,6 +1187,18 @@ internal sealed class Http2Connection : IAsyncDisposable
                 _resetByUs.Remove(_resetOrder.Dequeue());
             }
         }
+    }
+
+    /// <summary>
+    /// Marks our side ended, just before the frame that ends it is written.
+    /// A stream that's then done frees its slot now rather than after the
+    /// write: once the frame is out, the peer may open another stream
+    /// straight away, and has to find the slot free. Call under the lock.
+    /// </summary>
+    private void EndLocalSide(Http2Stream stream)
+    {
+        stream.LocalClosed = true;
+        RemoveIfDone(stream);
     }
 
     private void RemoveIfDone(Http2Stream stream)
