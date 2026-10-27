@@ -53,7 +53,10 @@ session's `HttpVersion` is `HTTP/2`, and response trailers are in
 For a long-running host, set `SessionStore.MaxSessions` to keep only the
 newest sessions (evictions raise `SessionsRemoved`), and
 `InterceptingProxyListener.SkipDecryptionHosts` to tunnel hosts that pin
-their certificates without decrypting them.
+their certificates without decrypting them. For servers that ask for a
+client certificate (mutual TLS), set `ClientCertificate` (with its private
+key) and the `ClientCertificateHosts` it may be sent to; a session's
+`Timings.Tls.ClientCertificateSent` says what was sent.
 
 ## Requirements
 

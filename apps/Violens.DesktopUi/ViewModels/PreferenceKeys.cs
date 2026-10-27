@@ -37,6 +37,15 @@ internal static class PreferenceKeys
     /// </summary>
     public const string SkipDecryptionHosts = "violens.config.https.skipdecryption";
 
+    /// <summary>The thumbprint of the client certificate (mutual TLS) to send, from the personal store. Empty sends none.</summary>
+    public const string ClientCertificate = "violens.proxy.clientcertificate";
+
+    /// <summary>The hosts the client certificate is sent to (a list preference, <c>*</c> wildcards).</summary>
+    public const string ClientCertificateHosts = "violens.config.https.clientcertificatehosts";
+
+    /// <summary>Whether VioLens checks for a newer release at start-up.</summary>
+    public const string CheckForUpdates = "violens.update.check";
+
     /// <summary>The user name for an upstream proxy that asks for a sign-in. The password is never saved.</summary>
     public const string UpstreamProxyUserName = "violens.proxy.upstream.username";
 

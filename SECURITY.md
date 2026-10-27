@@ -57,7 +57,14 @@ valid for 7 days. Their keys are never saved to disk for good: each is
 deleted when its certificate is released.
 
 **Real servers.** VioLens checks each server's certificate the normal way
-and doesn't hide a failure. It doesn't turn certificate checks off.
+and doesn't hide a failure. It doesn't turn certificate checks off. A
+client certificate you choose is sent only to the hosts you list for it,
+never to every server that asks.
+
+**Update check.** At start-up VioLens asks GitHub's public releases list
+whether a newer version is out; you can turn it off in the Help menu. It
+opens only release pages it builds itself on github.com, and never
+downloads or runs anything.
 
 **Listening.**
 - VioLens listens on 127.0.0.1 only, unless you turn on **Allow remote

@@ -304,10 +304,10 @@ way:
   proxied traffic; it's not part of the main app's own build, but the
   Windows installer can include it as an unchecked-by-default optional
   component.
-- **No client certificates (mutual TLS) yet.** When a server asks for
-  one, VioLens records that on the session (Timing and Notes tabs), but
-  doesn't send a certificate, so a server that requires one refuses the
-  connection.
+- **One client certificate (mutual TLS) at a time.** It's sent to the
+  hosts you list under **Tools > Connections**. Fiddler Classic's
+  `ClientCertificate.cer` file and the `https-Client-Certificate` script
+  flag aren't supported.
 - **No headless/CLI mode.** Left out of this milestone by design, not by
   oversight.
 - **Bodies are kept in memory.** Each is capped at 64 MB, and the **Keep**

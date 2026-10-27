@@ -535,6 +535,23 @@ requests inside it. Changes apply to new connections straight away. The
 list is saved as `violens.config.https.skipdecryption` in
 `preferences.json`.
 
+**Client certificate.** Some servers ask the browser for a certificate of
+its own (mutual TLS), often on company sites. Through VioLens, that
+request reaches VioLens, not the browser, so VioLens answers it.
+- Choose the certificate from the drop-down. It lists your personal
+  certificates that have a private key and may be used to sign in to
+  servers; on Windows that's the Personal store, on macOS your login
+  keychain.
+- In the box after **for**, list the hosts to send it to, in the same
+  format as above. `*` on its own means every server that asks. Leave it
+  empty and the certificate is sent nowhere, so it isn't shown to servers
+  it wasn't meant for.
+- The Timing tab and Notes say whether the server asked, and which
+  certificate VioLens sent.
+- VioLens sends one certificate. Fiddler Classic's `ClientCertificate.cer`
+  file and FiddlerScript's `https-Client-Certificate` flag aren't
+  supported.
+
 ## FiddlerScript
 
 FiddlerScript lets a script hook into every request and response, and add
@@ -700,8 +717,9 @@ and macOS:
 - Which Tools-menu panels are shown (FiddlerScript, Extensions, Legacy
   Extension Host, Also Break On, Connections)
 - The upstream proxy setting, the proxy sign-in user name (not the
-  password), whether remote computers may connect, HTTP/2 and the
-  skip-decryption hosts
+  password), whether remote computers may connect, HTTP/2, the
+  skip-decryption hosts, and the client certificate and its hosts
+- Whether to check for updates at start-up
 - How many sessions to keep
 - The window's size and position, and whether it was maximized
 - The session list's columns: which are shown, their order and widths
@@ -743,6 +761,14 @@ had is lost. To reset every setting, quit VioLens and delete the file.
   variables are set, not what they're set to. Paste it into the
   **Diagnostic info** box of a
   [bug report](https://github.com/MarkSPowell/VioLens/issues/new?template=bug_report.yml).
+- **Checking for updates.** At start-up VioLens asks GitHub whether a
+  newer release is out. If one is, a button beside the title says so and
+  opens the release's page. If you're running a preview you're offered
+  newer previews too; otherwise only full releases. **Help > Check for
+  Updates** asks straight away. To stop the start-up check, untick **Help
+  > Check for Updates at Start-up**. The check is one request to GitHub's
+  public releases list and sends nothing about you or your traffic.
+  VioLens never downloads or installs anything itself.
 - **Help > About VioLens** shows which build you're running. That's
   useful when you report an issue or want to check you're on the latest
   preview.

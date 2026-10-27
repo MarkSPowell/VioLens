@@ -180,10 +180,14 @@ Must have:
 
 Should have:
 
-7. **Client certificates (mutual TLS).** Today a server's request for one
-   is only recorded.
-8. **Update notice.** A check at start-up that says when a newer release
-   is out.
+7. **Client certificates (mutual TLS).** Done: one certificate from the
+   personal store, sent only to the listed hosts
+   (`InterceptingProxyListener.ClientCertificate` and
+   `ClientCertificateHosts`). Fiddler's `ClientCertificate.cer` and
+   `https-Client-Certificate` flag could follow.
+8. **Update notice.** Done: a start-up check of GitHub's releases (Help
+   menu to check now or turn it off), offering previews only to preview
+   users.
 9. **Docs brought up to date.** Done: the README's Known limitations and
    the Interception Certificate Design now match what's built. Revisit
    after the macOS test.

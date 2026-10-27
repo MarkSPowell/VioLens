@@ -723,6 +723,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             ? "Not started. Pick a port and click Start."
             : "This build only implements the certificate trust-store path for Windows and macOS so far " +
               "-- see the Interception Certificate Design doc's open risks.";
+
+        InitializeUpdates();
     }
 
     /// <summary>
@@ -887,6 +889,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 allowRemoteClients: AllowRemoteClients);
             _proxy.Http2Enabled = Http2Enabled;
             _proxy.SkipDecryptionHosts = SkipDecryptionHosts;
+            ApplyClientCertificate();
             IsRunning = true;
             ShowBoundPort(_proxy.Port);
 

@@ -183,6 +183,11 @@
         <MenuItem Header="_Documentation" Command="{Binding OpenDocumentationCommand}" />
         <MenuItem Header="Copy Diagnostic _Info" Click="CopyDiagnosticInfoMenuItem_Click" />
         <Separator />
+        <MenuItem Header="Check for _Updates" Command="{Binding CheckForUpdatesNowCommand}" />
+        <MenuItem Header="Check for Updates at _Start-up"
+                  ToggleType="CheckBox"
+                  IsChecked="{Binding CheckForUpdatesAtStartup, Mode=TwoWay}" />
+        <Separator />
         <MenuItem Header="_About VioLens" Click="AboutMenuItem_Click" />
       </MenuItem>
     </Menu>
@@ -197,6 +202,14 @@
                  FontSize="13"
                  Foreground="{DynamicResource AppMutedTextBrush}"
                  VerticalAlignment="Center" />
+      <!-- The update notice (see MainWindowViewModel.Updates.cs). -->
+      <Button Content="{Binding UpdateNotice}"
+              Command="{Binding OpenUpdatePageCommand}"
+              IsVisible="{Binding HasUpdate}"
+              Classes="accent"
+              ToolTip.Tip="Opens the release's page on GitHub, with its notes and downloads."
+              VerticalAlignment="Center"
+              Margin="12,0,0,0" />
     </StackPanel>
 
     <Border DockPanel.Dock="Top"
@@ -336,6 +349,22 @@
                      ToolTip.Tip="HTTPS traffic to these hosts passes through VioLens without being decrypted, so apps that only accept their server's own certificate keep working. Each shows as a single CONNECT session. Separate hosts with semicolons; * matches any part of a name. Applies to new connections straight away."
                      VerticalAlignment="Center"
                      Width="360" />
+          </StackPanel>
+          <!-- Mutual TLS: the certificate VioLens sends when a server asks,
+               to the listed hosts only. -->
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Client certificate:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
+            <ComboBox ItemsSource="{Binding ClientCertificateLabels}"
+                      SelectedIndex="{Binding ClientCertificateIndex, Mode=TwoWay}"
+                      ToolTip.Tip="The certificate VioLens sends to a server that asks for one (mutual TLS). The list shows your personal certificates that have a private key and can be used to sign in to servers."
+                      VerticalAlignment="Center"
+                      MaxWidth="420" />
+            <TextBlock Text="for" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
+            <TextBox Text="{Binding ClientCertificateHostsText, Mode=TwoWay}"
+                     PlaceholderText="*.corp.example; api.example.com"
+                     ToolTip.Tip="The hosts the certificate is sent to when they ask for one. Separate hosts with semicolons; * matches any part of a name, and * on its own means every server that asks. Leave it empty to send it nowhere."
+                     VerticalAlignment="Center"
+                     Width="260" />
           </StackPanel>
         </StackPanel>
       </Grid>

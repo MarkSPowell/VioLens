@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Violens.ProxyCore.AutoResponder;
 using Violens.ProxyCore.Breakpoints;
@@ -220,6 +221,47 @@ public sealed class InterceptingProxyListener
         get => Volatile.Read(ref _skipDecryptionHosts);
         set => Volatile.Write(ref _skipDecryptionHosts, [.. value ?? throw new ArgumentNullException(nameof(value))]);
     }
+
+    private X509Certificate2? _clientCertificate;
+    private IReadOnlyList<string> _clientCertificateHosts = [];
+
+    /// <summary>
+    /// The certificate VioLens sends when a server asks for one (mutual
+    /// TLS), to the hosts in <see cref="ClientCertificateHosts"/> only. It
+    /// needs its private key (one from the user's personal certificate
+    /// store, say). Null, the default, sends none. The session records what
+    /// was sent (<see cref="ServerTlsInfo.ClientCertificateSent"/>). Read
+    /// when each server connection's handshake asks, so it can change while
+    /// running.
+    /// </summary>
+    public X509Certificate2? ClientCertificate
+    {
+        get => Volatile.Read(ref _clientCertificate);
+        set
+        {
+            if (value is { HasPrivateKey: false })
+            {
+                throw new ArgumentException("A client certificate needs its private key.", nameof(value));
+            }
+
+            Volatile.Write(ref _clientCertificate, value);
+        }
+    }
+
+    /// <summary>
+    /// The hosts <see cref="ClientCertificate"/> is sent to, in
+    /// <see cref="UpstreamProxy.BypassList"/>'s format (<c>*</c> for every
+    /// server that asks). Empty, the default, sends it to none, so it
+    /// isn't shown to servers it wasn't meant for.
+    /// </summary>
+    public IReadOnlyList<string> ClientCertificateHosts
+    {
+        get => Volatile.Read(ref _clientCertificateHosts);
+        set => Volatile.Write(ref _clientCertificateHosts, [.. value ?? throw new ArgumentNullException(nameof(value))]);
+    }
+
+    private X509Certificate2? ChooseClientCertificate(string host) =>
+        ClientCertificate is { } certificate && UpstreamProxy.MatchesHostList(host, ClientCertificateHosts) ? certificate : null;
 
     /// <summary>Fiddler's flag for a tunnel left encrypted; on the CONNECT session of a host in <see cref="SkipDecryptionHosts"/>.</summary>
     public const string NoDecryptFlag = "x-no-decrypt";
@@ -503,7 +545,8 @@ public sealed class InterceptingProxyListener
                 await PumpSessionsAsync(
                     isTls: false, string.Empty, PlainHttpRequest.DefaultPort, client, clientStream, first, _sessionStore,
                     _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
-                    () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient, cancellationToken);
+                    () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient,
+                    ChooseClientCertificate, cancellationToken);
                 return;
             }
 
@@ -513,6 +556,7 @@ public sealed class InterceptingProxyListener
                 await AnswerAsync(clientStream, first, ProxyHomePage.NotForThisComputer(first.Target), cancellationToken);
                 return;
             }
+
             if (UpstreamProxy.MatchesHostList(targetHost, SkipDecryptionHosts))
             {
                 await TunnelWithoutDecryptingAsync(clientStream, first, targetHost, targetPort, cancellationToken);
@@ -557,7 +601,8 @@ public sealed class InterceptingProxyListener
             await PumpSessionsAsync(
                 isTls: true, targetHost, targetPort, client, new ReadBufferedStream(clientTls), firstRequest: null, _sessionStore, _breakpointManager,
                 _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
-                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient: false, cancellationToken);
+                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient: false,
+                ChooseClientCertificate, cancellationToken);
         }
         catch (BreakpointAbortedException ex)
         {
@@ -731,6 +776,7 @@ public sealed class InterceptingProxyListener
         TimeSpan idleTimeout,
         RemoteCertificateValidationCallback? validateServer,
         bool isRemoteClient,
+        Func<string, X509Certificate2?> chooseClientCertificate,
         CancellationToken cancellationToken)
     {
         // isRemoteClient: a plain connection from another computer, whose
@@ -744,7 +790,8 @@ public sealed class InterceptingProxyListener
         var pipeline = new ExchangePipeline(new ExchangeServices(
             sessionStore, breakpointManager, autoResponderRules, scriptRunner, extensionHost, sessionHost, proxyUrl, maxCapturedBodyBytes));
         var client = new Http1ClientExchange(clientConnection, clientTls);
-        using var upstream = new Http1Upstream(isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer);
+        using var upstream = new Http1Upstream(
+            isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer, chooseClientCertificate: chooseClientCertificate);
         var pendingRequest = firstRequest;
 
         while (true)
@@ -854,7 +901,8 @@ public sealed class InterceptingProxyListener
         await using var tunnel = new Http2TunnelUpstreams(
             targetHost,
             targetPort,
-            offerHttp2 => new Http1Upstream(isTls: true, targetHost, targetPort, ChooseRoutesAsync, () => ProxyCredential, validateServer, offerHttp2));
+            offerHttp2 => new Http1Upstream(
+                isTls: true, targetHost, targetPort, ChooseRoutesAsync, () => ProxyCredential, validateServer, offerHttp2, ChooseClientCertificate));
 
         var exchanges = new List<Task>();
         var inProgress = 0;
@@ -998,6 +1046,10 @@ public sealed class InterceptingProxyListener
             ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, string>(flags, StringComparer.OrdinalIgnoreCase);
         combined[ServerTlsInfo.ClientCertificateRequestedFlag] = tls.DescribeAcceptableIssuers();
+        if (tls.ClientCertificateSent is { } sent)
+        {
+            combined[ServerTlsInfo.ClientCertificateSentFlag] = sent;
+        }
         return combined;
     }
 

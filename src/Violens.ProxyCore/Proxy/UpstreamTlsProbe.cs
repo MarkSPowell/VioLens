@@ -15,16 +15,18 @@ namespace Violens.ProxyCore.Proxy;
 /// <see cref="SslClientAuthenticationOptions.LocalCertificateSelectionCallback"/>.
 /// On some platforms that's also called once before the handshake starts,
 /// with no server certificate yet; only a call made after the server's
-/// certificate has arrived is the server actually asking. No certificate is
-/// sent (the callback returns null), so the handshake goes on as it did
-/// before; a server that insists then refuses the connection.
+/// certificate has arrived is the server actually asking. The certificate
+/// sent is whatever <c>chooseClientCertificate</c> picks for the host (see
+/// <see cref="InterceptingProxyListener.ClientCertificate"/>); with none, a
+/// server that insists refuses the connection.
 /// </summary>
-internal sealed class UpstreamTlsProbe
+internal sealed class UpstreamTlsProbe(Func<string, X509Certificate2?>? chooseClientCertificate = null)
 {
     private readonly object _gate = new();
     private SslStream? _stream;
     private bool _requested;
     private string[] _issuers = [];
+    private string? _sent;
 
     /// <summary>True once the server has asked for a client certificate.</summary>
     public bool ClientCertificateRequested
@@ -50,16 +52,20 @@ internal sealed class UpstreamTlsProbe
         RemoteCertificateValidationCallback = validateServer,
         LocalCertificateSelectionCallback = (_, _, _, remoteCertificate, acceptableIssuers) =>
         {
-            if (remoteCertificate is not null)
+            if (remoteCertificate is null)
             {
-                lock (_gate)
-                {
-                    _requested = true;
-                    _issuers = acceptableIssuers;
-                }
+                return null!; // not the server asking yet
             }
 
-            return null!; // no client certificate
+            var chosen = chooseClientCertificate?.Invoke(targetHost);
+            lock (_gate)
+            {
+                _requested = true;
+                _issuers = acceptableIssuers;
+                _sent = chosen?.Subject;
+            }
+
+            return chosen!; // null: no client certificate
         },
     };
 
@@ -103,6 +109,7 @@ internal sealed class UpstreamTlsProbe
                 CertificateIssuer = issuer,
                 CertificateNotAfter = notAfter,
                 ClientCertificateRequested = _requested,
+                ClientCertificateSent = _sent,
                 AcceptableIssuers = _issuers.Where(i => !string.IsNullOrWhiteSpace(i)).ToArray(),
             };
         }
