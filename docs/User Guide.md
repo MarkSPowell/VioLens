@@ -464,7 +464,8 @@ return true has handled it.
 
 ## Connections: upstream proxy and other devices
 
-**Tools > Connections** shows two settings.
+**Tools > Connections** shows how VioLens connects: the upstream proxy and
+its sign-in, whether other devices may use VioLens, and HTTP/2.
 
 **Upstream proxy.** On a network where the internet is only reachable
 through a proxy (common at work), VioLens has to send its own connections
@@ -504,6 +505,16 @@ proxy set, open `http://violens/` to download VioLens's root
 certificate, and follow the instructions on that page to install and trust
 it. Anyone on your network can use the proxy while this is on, so turn it
 off when you've finished, and remove the certificate from the other device.
+
+**Use HTTP/2 with browsers (preview).** Lets browsers use HTTP/2 with
+VioLens for HTTPS sites, as they would with the site itself. VioLens then
+uses HTTP/2 with each site that offers it, with all that site's requests
+sharing one connection, and HTTP/1.1 with sites that don't. It's off by
+default while it's a preview. Changes apply straight away to new
+connections, so reload the page (or restart the browser) to move off
+connections it already has open. The session list's **Version** column
+shows which version each side used. WebSockets still use HTTP/1.1, and
+plain `http://` sites are unaffected.
 
 ## FiddlerScript
 
