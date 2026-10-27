@@ -55,7 +55,8 @@ newest sessions (evictions raise `SessionsRemoved`), and
 `InterceptingProxyListener.SkipDecryptionHosts` to tunnel hosts that pin
 their certificates without decrypting them. For servers that ask for a
 client certificate (mutual TLS), set `ClientCertificate` (with its private
-key) and the `ClientCertificateHosts` it may be sent to; a session's
+key), and optionally `ClientCertificateHosts` to limit which servers get
+it (empty means every server that asks); a session's
 `Timings.Tls.ClientCertificateSent` says what was sent.
 
 ## Requirements

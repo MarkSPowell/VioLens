@@ -227,7 +227,7 @@ public sealed class InterceptingProxyListener
 
     /// <summary>
     /// The certificate VioLens sends when a server asks for one (mutual
-    /// TLS), to the hosts in <see cref="ClientCertificateHosts"/> only. It
+    /// TLS), limited to <see cref="ClientCertificateHosts"/> when that's set. It
     /// needs its private key (one from the user's personal certificate
     /// store, say). Null, the default, sends none. The session records what
     /// was sent (<see cref="ServerTlsInfo.ClientCertificateSent"/>). Read
@@ -250,9 +250,9 @@ public sealed class InterceptingProxyListener
 
     /// <summary>
     /// The hosts <see cref="ClientCertificate"/> is sent to, in
-    /// <see cref="UpstreamProxy.BypassList"/>'s format (<c>*</c> for every
-    /// server that asks). Empty, the default, sends it to none, so it
-    /// isn't shown to servers it wasn't meant for.
+    /// <see cref="UpstreamProxy.BypassList"/>'s format. Empty, the default,
+    /// sends it to every server that asks, as a browser offers its
+    /// certificate; list hosts to keep it from servers it isn't meant for.
     /// </summary>
     public IReadOnlyList<string> ClientCertificateHosts
     {
@@ -261,7 +261,10 @@ public sealed class InterceptingProxyListener
     }
 
     private X509Certificate2? ChooseClientCertificate(string host) =>
-        ClientCertificate is { } certificate && UpstreamProxy.MatchesHostList(host, ClientCertificateHosts) ? certificate : null;
+        ClientCertificate is { } certificate &&
+        (ClientCertificateHosts.Count == 0 || UpstreamProxy.MatchesHostList(host, ClientCertificateHosts))
+            ? certificate
+            : null;
 
     /// <summary>Fiddler's flag for a tunnel left encrypted; on the CONNECT session of a host in <see cref="SkipDecryptionHosts"/>.</summary>
     public const string NoDecryptFlag = "x-no-decrypt";

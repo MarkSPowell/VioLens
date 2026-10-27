@@ -350,8 +350,8 @@
                      VerticalAlignment="Center"
                      Width="360" />
           </StackPanel>
-          <!-- Mutual TLS: the certificate VioLens sends when a server asks,
-               to the listed hosts only. -->
+          <!-- Mutual TLS: the certificate VioLens sends when a server asks;
+               to every server, or only the listed hosts. -->
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="Client certificate:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
             <ComboBox ItemsSource="{Binding ClientCertificateLabels}"
@@ -361,8 +361,8 @@
                       MaxWidth="420" />
             <TextBlock Text="for" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
             <TextBox Text="{Binding ClientCertificateHostsText, Mode=TwoWay}"
-                     PlaceholderText="*.corp.example; api.example.com"
-                     ToolTip.Tip="The hosts the certificate is sent to when they ask for one. Separate hosts with semicolons; * matches any part of a name, and * on its own means every server that asks. Leave it empty to send it nowhere."
+                     PlaceholderText="every server that asks"
+                     ToolTip.Tip="Leave empty to send the certificate to every server that asks for one. To limit it, list hosts separated by semicolons; * matches any part of a name, as in *.corp.example."
                      VerticalAlignment="Center"
                      Width="260" />
           </StackPanel>

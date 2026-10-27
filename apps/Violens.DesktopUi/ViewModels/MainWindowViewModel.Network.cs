@@ -179,8 +179,9 @@ public sealed partial class MainWindowViewModel
         ["None", .. _clientCertificateChoices.Select(c => c.Description)];
 
     /// <summary>
-    /// Which client certificate is sent to <see cref="ClientCertificateHostsText"/>'s
-    /// hosts when they ask for one (mutual TLS); 0 is none. Applies straight away.
+    /// Which client certificate is sent when a server asks for one (mutual
+    /// TLS), limited by <see cref="ClientCertificateHostsText"/>; 0 is none.
+    /// Applies straight away.
     /// </summary>
     public int ClientCertificateIndex
     {
@@ -199,8 +200,8 @@ public sealed partial class MainWindowViewModel
     }
 
     /// <summary>
-    /// The hosts the client certificate is sent to, as typed (* for every
-    /// server that asks). Empty sends it to none.
+    /// The hosts the client certificate is sent to, as typed. Empty sends it
+    /// to every server that asks.
     /// </summary>
     public string ClientCertificateHostsText
     {

@@ -542,10 +542,10 @@ request reaches VioLens, not the browser, so VioLens answers it.
   certificates that have a private key and may be used to sign in to
   servers; on Windows that's the Personal store, on macOS your login
   keychain.
-- In the box after **for**, list the hosts to send it to, in the same
-  format as above. `*` on its own means every server that asks. Leave it
-  empty and the certificate is sent nowhere, so it isn't shown to servers
-  it wasn't meant for.
+- With the box after **for** left empty, the certificate goes to every
+  server that asks for one, as a browser would offer it. To keep it from
+  other servers, list the hosts it's for there, in the same format as
+  above.
 - The Timing tab and Notes say whether the server asked, and which
   certificate VioLens sent.
 - VioLens sends one certificate. Fiddler Classic's `ClientCertificate.cer`

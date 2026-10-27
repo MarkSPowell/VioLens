@@ -304,8 +304,9 @@ way:
   proxied traffic; it's not part of the main app's own build, but the
   Windows installer can include it as an unchecked-by-default optional
   component.
-- **One client certificate (mutual TLS) at a time.** It's sent to the
-  hosts you list under **Tools > Connections**. Fiddler Classic's
+- **One client certificate (mutual TLS) at a time.** Chosen under
+  **Tools > Connections**, it's sent to every server that asks, or only to
+  the hosts you list. Fiddler Classic's
   `ClientCertificate.cer` file and the `https-Client-Certificate` script
   flag aren't supported.
 - **No headless/CLI mode.** Left out of this milestone by design, not by

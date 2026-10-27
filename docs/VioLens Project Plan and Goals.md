@@ -181,7 +181,7 @@ Must have:
 Should have:
 
 7. **Client certificates (mutual TLS).** Done: one certificate from the
-   personal store, sent only to the listed hosts
+   personal store, sent to every server that asks or only to listed hosts
    (`InterceptingProxyListener.ClientCertificate` and
    `ClientCertificateHosts`). Fiddler's `ClientCertificate.cer` and
    `https-Client-Certificate` flag could follow.
