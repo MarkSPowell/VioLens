@@ -44,7 +44,11 @@ the rest of the solution, so it always matches the real API.
 | Settings | `PreferenceStore`, `IPreferenceStore` |
 
 It speaks HTTP/1.1 to clients and servers, including WebSockets (messages
-are recorded, permessage-deflate included). I haven't added HTTP/2 yet.
+are recorded, permessage-deflate included). HTTP/2 is a preview: set
+`InterceptingProxyListener.Http2Enabled` to let clients use it over TLS,
+and the listener then uses it with servers that offer it. An HTTP/2
+session's `HttpVersion` is `HTTP/2`, and response trailers are in
+`CapturedResponse.Trailers`.
 
 ## Requirements
 

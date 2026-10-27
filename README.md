@@ -43,6 +43,12 @@ here yet. Feedback and issues are welcome.
   for the selected session, a request summary, and a Statistics tab
   (totals, by type, status and host, slowest requests, easy wins). Timings
   are kept in SAZ and HAR files, and read from browsers' HAR exports.
+- HTTP/2 (preview, off by default; **Tools > Connections**): browsers use
+  HTTP/2 with VioLens for HTTPS sites, and VioLens uses it with sites that
+  offer it, falling back to HTTP/1.1 for those that don't. Requests share
+  one connection per site, trailers (gRPC's `grpc-status`) come through,
+  and a Version column shows which version each side used. The Composer
+  can send HTTP/2 too.
 - A WebSocket tab showing each message sent and received on a WebSocket
   connection, live, with compressed and fragmented messages put back
   together; kept in HAR files.
@@ -285,8 +291,12 @@ way:
   Preferences Design doc.
 - **No built-in Chromium NetLog import.** NetLog import works through
   Eric Lawrence's ported NetLog importer extension (see above), an
-  optional extension in the installers. No explicit HTTP/2 or TLS 1.3
-  handling yet.
+  optional extension in the installers.
+- **HTTP/2 is a preview, off by default.** Turn it on with **Use HTTP/2
+  with browsers** under **Tools > Connections**. WebSockets stay on
+  HTTP/1.1 connections (browsers arrange that themselves), and HTTP/3
+  isn't supported: browsers don't send it through a proxy, so they use
+  HTTP/2 instead.
 - **Upstream proxies: plain HTTP proxies only.** A SOCKS proxy can't be
   used yet (a PAC script's SOCKS entries are skipped). Proxy sign-in
   supports Negotiate (Kerberos), NTLM and Basic, not Digest. Automatic proxy detection on macOS looks only in

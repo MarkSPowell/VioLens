@@ -57,7 +57,8 @@ of this doc is filled in.
 | Plain HTTP (non-TLS) capture | Shipped: captured and forwarded like HTTPS (directly or through the upstream proxy); an unreachable server gets a 502 Bad Gateway session |
 | Chromium Netlog import | Not built in; available through the ported NetLog importer extension, an optional extension in the installers |
 | Traffic replay / Autorespond | Shipped — full Fiddler Classic AutoResponder syntax (`EXACT:`/`regex:`/`NOT:`/`METHOD:` matches; `*redir:`/`*delay:`/`*header:`/`*flag:`/`*reset`/`*drop`/`*CORSPreflightAllow`/`*exit`/`*bpu`/`*bpafter` actions; serve-file and fetch-URL actions), see `AutoResponderRules` |
-| Explicit HTTP/2 or TLS 1.3 handling | Not shipped |
+| HTTP/2 | Preview, off by default: browser↔VioLens and VioLens↔server over TLS, with fallback to HTTP/1.1, trailers, a Version column, SAZ/HAR and the Composer |
+| Explicit TLS 1.3 handling | Not shipped |
 | Headless / CLI mode | Out of scope for the MVP by design |
 
 > **Needs your input:** the actual point of this document — going
