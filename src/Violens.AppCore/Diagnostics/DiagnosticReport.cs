@@ -1,4 +1,6 @@
+using System.Net;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -137,14 +139,21 @@ public static class DiagnosticReport
         return $"{trust}, thumbprint {root.Thumbprint}, expires {root.NotAfter.ToUniversalTime():yyyy-MM-dd}";
     }
 
-    /// <summary>Names and types, which show a VPN, Docker or WSL adapter. Loopback is left out.</summary>
+    /// <summary>
+    /// Names and types, which show a VPN, Docker or WSL adapter. Only
+    /// adapters with an address beyond link-local: Windows also reports
+    /// each adapter's filter drivers ("Wi-Fi-QoS Packet Scheduler-0000"),
+    /// and idle Wi-Fi Direct adapters, as interfaces that are up. Loopback
+    /// is left out. Addresses aren't listed.
+    /// </summary>
     public static IReadOnlyList<string> DescribeNetworkInterfaces()
     {
         try
         {
             return NetworkInterface.GetAllNetworkInterfaces()
                 .Where(n => n.OperationalStatus == OperationalStatus.Up &&
-                            n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                            n.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                            HasUsableAddress(n.GetIPProperties().UnicastAddresses.Select(a => a.Address)))
                 .Select(n => $"{n.Name} ({n.NetworkInterfaceType})")
                 .ToList();
         }
@@ -153,6 +162,12 @@ public static class DiagnosticReport
             return [$"couldn't list them ({ex.Message})"];
         }
     }
+
+    /// <summary>Whether any address is more than loopback or link-local (169.254.x.x, fe80::).</summary>
+    internal static bool HasUsableAddress(IEnumerable<IPAddress> addresses) =>
+        addresses.Any(a => !IPAddress.IsLoopback(a) &&
+                           !a.IsIPv6LinkLocal &&
+                           !(a.AddressFamily == AddressFamily.InterNetwork && a.GetAddressBytes() is [169, 254, ..]));
 
     /// <summary>Which of the usual proxy variables are set. Never their values.</summary>
     public static string DescribeProxyEnvironment()

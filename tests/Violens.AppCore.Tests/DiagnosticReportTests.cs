@@ -49,6 +49,16 @@ public class DiagnosticReportTests
         Assert.DoesNotContain(Environment.MachineName, text, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(new[] { "192.168.1.20" }, true)]
+    [InlineData(new[] { "fe80::1", "10.8.0.2" }, true)]
+    [InlineData(new[] { "2001:db8::5" }, true)]
+    [InlineData(new[] { "fe80::1" }, false)]
+    [InlineData(new[] { "169.254.10.4", "fe80::2" }, false)]
+    [InlineData(new string[0], false)]
+    public void ListsOnlyAdaptersWithAUsableAddress(string[] addresses, bool listed) =>
+        Assert.Equal(listed, DiagnosticReport.HasUsableAddress(addresses.Select(System.Net.IPAddress.Parse)));
+
     [Fact]
     public void AnUntrustedRootSaysSo()
     {
