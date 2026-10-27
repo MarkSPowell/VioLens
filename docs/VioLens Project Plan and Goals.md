@@ -116,8 +116,8 @@ shaped several decisions:
   large bodies to disk are still to do.
 
 One repeat is deliberate: the core type is called `Session`, which he
-regrets, because tenet 1 matters more here. HTTP/2 isn't supported yet, but
-that's a scoping choice; `SslStream` now exposes ALPN, which was his blocker.
+regrets, because tenet 1 matters more here. HTTP/2 is now in preview
+(off by default): `SslStream` exposes ALPN, which was his blocker.
 
 ## Extensible config lists
 
@@ -148,6 +148,56 @@ with semicolon-separated values, read through `GetListPref`/`SetListPref`.
 
 `installer/macos/build-installer.sh` assembles the `.app` bundle and the
 `.dmg` and runs fine outside CI.
+
+## Road to 1.0
+
+Written up on 27 October 2026, after HTTP/2 went into preview
+(0.3.0-preview.1). 1.0 is the point where the app should hold up to
+all-day use on both platforms and ProxyCore's public API stops changing.
+
+Must have:
+
+1. **HTTP/2 out of preview.** On by default after real browsing on Windows
+   and macOS, with ProxyCore's representation of HTTP/2 requests settled
+   (the Embedding guide still warns it may change).
+2. **ProxyCore's public API frozen.** One review of everything public;
+   anything not ready becomes internal. From 1.0, semantic versioning:
+   breaking changes wait for 2.0.
+3. **A full hands-on macOS test.** Certificate trust and removal, the
+   system proxy (and whether `networksetup` needs admin rights), restoring
+   proxy settings after a crash, and the notarized install. Then update the
+   README's macOS limitation.
+4. **Memory over long captures.** Bodies are capped at 64 MB each, but the
+   session list never trims itself. Add a "keep only the newest N
+   sessions" setting, as Fiddler Classic had.
+5. **Skip decryption for chosen hosts.** Apps that pin certificates break
+   through any decrypting proxy, so users need to tunnel those hosts
+   without decrypting them. Fiddler Classic had this; it should be a
+   `violens.config.*` list (see above).
+6. **Diagnostics for bug reports.** A GitHub issue form asking for OS,
+   VioLens version, browser or app, proxy setup (system, PAC, VPN,
+   Docker, localhost), certificate trust and the error, plus Help > Copy
+   diagnostic info to fill most of it in.
+
+Should have:
+
+7. **Client certificates (mutual TLS).** Today a server's request for one
+   is only recorded.
+8. **Update notice.** A check at start-up that says when a newer release
+   is out.
+9. **Docs brought up to date.** The README's Known limitations and the
+   design docs still describe some finished work as missing (root
+   removal, HTTP/2, leaf key cleanup).
+10. **A security review.** Root key protection, loopback-only listening by
+    default, and ProxyHost's pipe authentication.
+
+Fine after 1.0: an about:config editor, SOCKS and Digest proxy sign-in,
+DHCP proxy discovery on macOS, built-in NetLog import, `CustomRules.cs`,
+a headless/CLI mode, and spilling large bodies to disk.
+
+Suggested order: 6, 4 and 5 first (small to medium, and users will
+notice), then the macOS test and the docs, then HTTP/2 and the API freeze
+together so the API is frozen once it's stable.
 
 ## Still undecided
 
