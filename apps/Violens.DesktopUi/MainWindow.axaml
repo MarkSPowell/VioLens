@@ -233,10 +233,12 @@
           <Button Content="Stop" Command="{Binding StopCommand}" />
           <!-- Fiddler Classic's "Keep: N sessions", so a long capture doesn't
                grow without limit. Oldest sessions go first. -->
-          <TextBlock Text="Keep:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" Margin="8,0,0,0" />
+          <!-- The entries say what they do ("Keep newest 1,000"), so there's
+               no separate label to miss. -->
           <ComboBox ItemsSource="{Binding SessionsToKeepLabels}"
                     SelectedIndex="{Binding SessionsToKeepIndex, Mode=TwoWay}"
                     ToolTip.Tip="Once the session list holds this many sessions, the oldest are removed as new ones arrive. Choose a limit for long captures, so VioLens's memory use stays steady."
+                    Margin="8,0,0,0"
                     VerticalAlignment="Center" />
         </StackPanel>
 

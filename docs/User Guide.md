@@ -118,10 +118,11 @@ To remove sessions, use **Edit > Remove Selected Session** (or press
 sessions are gone for good: they're no longer in the list or in what
 **Save SAZ** writes.
 
-For long captures, the **Keep** drop-down next to Start and Stop limits
-how many sessions VioLens holds (100 up to 10,000). Once the list is full,
-the oldest session is removed as each new one arrives, so memory use stays
-steady. It's **All sessions** by default, as in Fiddler Classic.
+For long captures, the drop-down next to Start and Stop (**Keep all
+sessions** by default, as in Fiddler Classic) limits how many sessions
+VioLens holds: **Keep newest 100** up to **Keep newest 10,000**. Once the
+list is full, the oldest session is removed as each new one arrives, so
+memory use stays steady.
 
 The **Version** column shows the HTTP version the browser used with
 VioLens, followed by the one VioLens used with the server when they differ:

@@ -14,7 +14,7 @@ public sealed partial class MainWindowViewModel
 
     /// <summary>The Keep drop-down's entries, matching <see cref="SessionsToKeepIndex"/>.</summary>
     public IReadOnlyList<string> SessionsToKeepLabels =>
-        _sessionsToKeepChoices.Select(n => n == 0 ? "All sessions" : $"{n:N0} sessions").ToList();
+        _sessionsToKeepChoices.Select(n => n == 0 ? "Keep all sessions" : $"Keep newest {n:N0}").ToList();
 
     public int SessionsToKeepIndex
     {
