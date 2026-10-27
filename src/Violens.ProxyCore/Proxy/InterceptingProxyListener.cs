@@ -187,15 +187,15 @@ public sealed class InterceptingProxyListener
         }
     }
 
-    private int _http2Enabled;
+    private int _http2Enabled = 1;
 
     /// <summary>
     /// Whether clients may use HTTP/2 for HTTPS traffic: offered in the TLS
     /// handshake (ALPN) alongside HTTP/1.1, and used when the client picks
     /// it. Their requests then go on to the server over HTTP/2 too, when the
     /// server supports it, and HTTP/1.1 otherwise; HTTP/1.1 clients are
-    /// unaffected. Off unless set; read
-    /// when each client connection's TLS handshake starts.
+    /// unaffected. On unless turned off; read when each client connection's
+    /// TLS handshake starts.
     /// </summary>
     public bool Http2Enabled
     {

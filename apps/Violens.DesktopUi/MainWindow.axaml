@@ -336,9 +336,9 @@
                       VerticalAlignment="Center" />
             <TextBlock Text="{Binding RemoteClientsHint}" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" TextWrapping="Wrap" />
           </StackPanel>
-          <CheckBox Content="Use HTTP/2 with browsers (preview)"
+          <CheckBox Content="Use HTTP/2 with browsers"
                     IsChecked="{Binding Http2Enabled, Mode=TwoWay}"
-                    ToolTip.Tip="Lets browsers talk to VioLens over HTTP/2 for HTTPS sites, as they would to the site itself. VioLens then uses HTTP/2 with the site too when it supports it, and HTTP/1.1 otherwise. Applies to new connections straight away."
+                    ToolTip.Tip="On by default. Lets browsers talk to VioLens over HTTP/2 for HTTPS sites, as they would to the site itself. VioLens then uses HTTP/2 with the site too when it supports it, and HTTP/1.1 otherwise. Turn it off to see every request as HTTP/1.1. Applies to new connections straight away."
                     VerticalAlignment="Center" />
           <!-- Fiddler Classic's "Skip decryption for the following hosts",
                for apps that pin certificates. -->

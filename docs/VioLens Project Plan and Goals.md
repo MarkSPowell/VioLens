@@ -117,8 +117,8 @@ shaped several decisions:
   still to do.
 
 One repeat is deliberate: the core type is called `Session`, which he
-regrets, because tenet 1 matters more here. HTTP/2 is now in preview
-(off by default): `SslStream` exposes ALPN, which was his blocker.
+regrets, because tenet 1 matters more here. HTTP/2 is supported and on
+by default: `SslStream` exposes ALPN, which was his blocker.
 
 ## Extensible config lists
 
@@ -158,9 +158,11 @@ all-day use on both platforms and ProxyCore's public API stops changing.
 
 Must have:
 
-1. **HTTP/2 out of preview.** On by default after real browsing on Windows
-   and macOS, with ProxyCore's representation of HTTP/2 requests settled
-   (the Embedding guide still warns it may change).
+1. **HTTP/2 out of preview.** Mostly done: on by default in the app and
+   in `InterceptingProxyListener`, after real browsing on Windows showed
+   no problems. Still to do: browsing on macOS, and settling ProxyCore's
+   representation of HTTP/2 requests with the API freeze (the Embedding
+   guide still warns it may change).
 2. **ProxyCore's public API frozen.** One review of everything public;
    anything not ready becomes internal. From 1.0, semantic versioning:
    breaking changes wait for 2.0.

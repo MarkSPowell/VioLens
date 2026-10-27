@@ -127,8 +127,8 @@ memory use stays steady.
 The **Version** column shows the HTTP version the browser used with
 VioLens, followed by the one VioLens used with the server when they differ:
 `HTTP/2 → HTTP/1.1` means the browser used HTTP/2 but the site only offered
-HTTP/1.1. HTTP/2 is a preview and off by default; turn it on with **Use
-HTTP/2 with browsers** under **Tools > Connections**. (Fiddler Classic's
+HTTP/1.1. HTTP/2 is on by default; to see everything as HTTP/1.1, turn off
+**Use HTTP/2 with browsers** under **Tools > Connections**. (Fiddler Classic's
 Protocol column showed HTTP or HTTPS; here that's the start of the URL.)
 
 The **Image Bloat** column shows, for image responses, the bloat bytes out
@@ -414,7 +414,8 @@ Replay sends the captured request byte for byte, whatever its body.
 
 To send over HTTP/2, write `HTTP/2` as the version on the first line of an
 `https://` request; Replay of an HTTP/2 session does the same. That needs
-**Use HTTP/2 with browsers** on (under **Tools > Connections**). Without
+**Use HTTP/2 with browsers** on (under **Tools > Connections**; it's on
+unless you turned it off). Without
 it the request goes over HTTP/1.1 and the Composer says so. SAZ files save
 HTTP/2 sessions as `HTTP/2.0` and HAR files as `http/2.0`, as Chrome does.
 
@@ -514,11 +515,13 @@ off when you've finished, and remove the certificate from the other device.
 Other devices can't reach this computer's own `localhost` services
 through VioLens; they get a "403 Forbidden" page instead.
 
-**Use HTTP/2 with browsers (preview).** Lets browsers use HTTP/2 with
+**Use HTTP/2 with browsers.** Lets browsers use HTTP/2 with
 VioLens for HTTPS sites, as they would with the site itself. VioLens then
 uses HTTP/2 with each site that offers it, with all that site's requests
-sharing one connection, and HTTP/1.1 with sites that don't. It's off by
-default while it's a preview. Changes apply straight away to new
+sharing one connection, and HTTP/1.1 with sites that don't. It's on by
+default; turn it off if you'd rather every request went over HTTP/1.1, as
+in Fiddler Classic. If you turned it off while it was a preview, it stays
+off until you tick it. Changes apply straight away to new
 connections, so reload the page (or restart the browser) to move off
 connections it already has open. The session list's **Version** column
 shows which version each side used. WebSockets still use HTTP/1.1, and
@@ -775,8 +778,7 @@ had is lost. To reset every setting, quit VioLens and delete the file.
 
 ## Known limitations
 
-VioLens is still a preview. The main gaps are HTTP/2 (a preview, off by
-default), client
-certificates, SOCKS proxies and Digest proxy sign-in, and the Mac build
-has had less use than the Windows one. The full list is in the Known
+VioLens is still a preview. The main gaps are SOCKS proxies and Digest
+proxy sign-in, sending only one client certificate, and the Mac build
+having had less use than the Windows one. The full list is in the Known
 limitations section of [README.md](../README.md).

@@ -264,7 +264,7 @@ public sealed partial class MainWindowViewModel
         _upstreamProxySetting = _preferences.GetStringPref(PreferenceKeys.UpstreamProxy, string.Empty);
         _proxyUserName = _preferences.GetStringPref(PreferenceKeys.UpstreamProxyUserName, string.Empty);
         _allowRemoteClients = _preferences.GetBoolPref(PreferenceKeys.AllowRemoteClients, false);
-        _http2Enabled = _preferences.GetBoolPref(PreferenceKeys.Http2, false);
+        _http2Enabled = _preferences.GetBoolPref(PreferenceKeys.Http2, true);
         _skipDecryptionHostsText = string.Join("; ", _preferences.GetListPref(PreferenceKeys.SkipDecryptionHosts, []));
         _clientCertificateChoices = [.. ClientCertificateStore.FindUsable()];
         _clientCertificateThumbprint = _preferences.GetStringPref(PreferenceKeys.ClientCertificate, string.Empty);
