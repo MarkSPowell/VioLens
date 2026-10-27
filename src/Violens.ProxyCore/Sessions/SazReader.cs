@@ -61,6 +61,8 @@ public static class SazReader
                 ?? throw new InvalidDataException("request file was empty");
         }
 
+        request = request with { HttpVersion = HttpVersions.Normalize(request.HttpVersion) };
+
         CapturedResponse response;
         await using (var responseStream = responseEntry.Open())
         {
@@ -70,6 +72,8 @@ public static class SazReader
             response = await Http1MessageReader.ReadResponseAsync(responseStream, isResponseToHeadRequest: false, cancellationToken)
                 ?? throw new InvalidDataException("response file was empty");
         }
+
+        response = response with { HttpVersion = HttpVersions.Normalize(response.HttpVersion) };
 
         // A plain HTTP request is saved with its full URL in the request line
         // (Fiddler Classic does the same); store it path-only with the scheme

@@ -96,6 +96,18 @@ internal sealed class Http2Connection : IAsyncDisposable
         _nextLocalStreamId = role == Http2Role.Client ? 1 : 2;
     }
 
+    /// <summary>Whether new streams can still be opened: the connection is open and the peer hasn't sent GOAWAY.</summary>
+    public bool CanOpenStreams
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return !_closed && _goAwayLastStreamId is null && !_shutdown.IsCancellationRequested;
+            }
+        }
+    }
+
     /// <summary>Completes when the connection has ended, for whatever reason.</summary>
     public Task Completion => _readLoop;
 

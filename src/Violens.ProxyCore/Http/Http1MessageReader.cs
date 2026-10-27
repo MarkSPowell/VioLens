@@ -200,6 +200,101 @@ internal static class Http1MessageReader
             ? RelayToEndAsync(source, destination, new CaptureBuffer(maxCapturedBytes), cancellationToken)
             : RelayBodyAsync(source, destination, headers, cancellationToken, maxCapturedBytes);
 
+    /// <summary>
+    /// Relays a response body without its framing: each piece of the decoded
+    /// body goes to <paramref name="write"/> as it arrives, for a client on
+    /// another protocol (HTTP/2) that frames the body itself. Chunked,
+    /// Content-Length and close-delimited bodies are all handled; trailers
+    /// are read and dropped.
+    /// </summary>
+    public static async Task<RelayedBody> RelayDecodedResponseBodyAsync(
+        Stream source,
+        IReadOnlyList<(string Name, string Value)> headers,
+        Func<ReadOnlyMemory<byte>, CancellationToken, Task> write,
+        CancellationToken cancellationToken,
+        long maxCapturedBytes = DefaultMaxCapturedBodyBytes)
+    {
+        var capture = new CaptureBuffer(maxCapturedBytes);
+        var buffer = new byte[RelayBufferSize];
+        var transferEncoding = FindHeader(headers, "Transfer-Encoding");
+        if (transferEncoding is not null && transferEncoding.Contains("chunked", StringComparison.OrdinalIgnoreCase))
+        {
+            while (true)
+            {
+                var sizeLine = await ReadLineAsync(source, allowImmediateEof: false, cancellationToken);
+                var semicolon = sizeLine!.IndexOf(';');
+                var sizeText = semicolon >= 0 ? sizeLine[..semicolon] : sizeLine;
+                if (!int.TryParse(sizeText, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var size) || size < 0)
+                {
+                    throw new InvalidDataException($"Malformed chunk size: '{sizeLine}'");
+                }
+
+                if (size == 0)
+                {
+                    while ((await ReadLineAsync(source, allowImmediateEof: false, cancellationToken))!.Length != 0)
+                    {
+                    }
+
+                    return capture.Build();
+                }
+
+                await RelayDecodedExactAsync(source, size, buffer, write, capture, cancellationToken);
+                if ((await ReadLineAsync(source, allowImmediateEof: false, cancellationToken))!.Length != 0)
+                {
+                    throw new InvalidDataException("Malformed chunk terminator.");
+                }
+            }
+        }
+
+        var contentLengthText = FindHeader(headers, "Content-Length");
+        if (contentLengthText is not null)
+        {
+            if (!long.TryParse(contentLengthText, out var contentLength) || contentLength < 0)
+            {
+                throw new InvalidDataException($"Malformed Content-Length: '{contentLengthText}'");
+            }
+
+            await RelayDecodedExactAsync(source, contentLength, buffer, write, capture, cancellationToken);
+            return capture.Build();
+        }
+
+        // Close-delimited: everything until the server closes.
+        while (true)
+        {
+            var read = await ReadOrEndAsync(source, buffer, cancellationToken);
+            if (read == 0)
+            {
+                return capture.Build();
+            }
+
+            await write(buffer.AsMemory(0, read), cancellationToken);
+            capture.Append(buffer.AsSpan(0, read));
+        }
+    }
+
+    private static async Task RelayDecodedExactAsync(
+        Stream source,
+        long count,
+        byte[] buffer,
+        Func<ReadOnlyMemory<byte>, CancellationToken, Task> write,
+        CaptureBuffer capture,
+        CancellationToken cancellationToken)
+    {
+        var remaining = count;
+        while (remaining > 0)
+        {
+            var read = await source.ReadAsync(buffer.AsMemory(0, (int)Math.Min(buffer.Length, remaining)), cancellationToken);
+            if (read == 0)
+            {
+                throw new InvalidDataException("Connection closed before the expected body was fully read.");
+            }
+
+            await write(buffer.AsMemory(0, read), cancellationToken);
+            capture.Append(buffer.AsSpan(0, read));
+            remaining -= read;
+        }
+    }
+
     private static async Task<byte[]> ReadToEndAsync(Stream source, CancellationToken cancellationToken)
     {
         using var body = new MemoryStream();

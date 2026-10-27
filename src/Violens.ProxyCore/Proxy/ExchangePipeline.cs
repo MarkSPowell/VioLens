@@ -130,7 +130,8 @@ internal sealed class ExchangePipeline(ExchangeServices services)
                 return ExchangeResult.CloseConnection;
             }
 
-            var localResponse = await InterceptingProxyListener.BuildMockResponseAsync(outcome, localRequest, services.ProxyUrl, cancellationToken);
+            var localResponse = InVersionOf(
+                localRequest, await InterceptingProxyListener.BuildMockResponseAsync(outcome, localRequest, services.ProxyUrl, cancellationToken));
             await client.WriteResponseAsync(localResponse, cancellationToken);
             timing.Done();
             var localSession = sessionStore.Add(
@@ -217,7 +218,7 @@ internal sealed class ExchangePipeline(ExchangeServices services)
 
             timing.SendStarted();
             var requestBody = await upstream.SendRequestRelayingBodyAsync(
-                outgoingPreamble, client.Stream, services.MaxCapturedBodyBytes, cancellationToken);
+                outgoingPreamble, client, services.MaxCapturedBodyBytes, cancellationToken);
             timing.SendDone();
             request = outgoingPreamble with { Body = requestBody.Captured };
             relayedRequestBody = requestBody;
@@ -227,7 +228,7 @@ internal sealed class ExchangePipeline(ExchangeServices services)
         {
             // An extension answered (utilCreateResponseAndBypassServer). Nothing was
             // sent, so the request-after hooks don't run; the response hooks do.
-            var localResponse = extensionSession!.ResponseBefore(request, extensionLocalResponse);
+            var localResponse = InVersionOf(request, extensionSession!.ResponseBefore(request, extensionLocalResponse));
             await client.WriteResponseAsync(localResponse, cancellationToken);
             extensionSession.ResponseAfter(request, localResponse);
 
@@ -253,7 +254,7 @@ internal sealed class ExchangePipeline(ExchangeServices services)
         // it. 101 is final -- the connection switches protocols.
         while (responsePreamble is { StatusCode: >= 100 and < 200 and not 101 } interim)
         {
-            await client.WriteResponsePreambleAsync(interim, cancellationToken);
+            await client.WriteInterimResponseAsync(interim, cancellationToken);
             responsePreamble = await upstream.ReadResponsePreambleAsync(cancellationToken);
         }
 
@@ -282,7 +283,8 @@ internal sealed class ExchangePipeline(ExchangeServices services)
             var responseBody = responseHasNoBody
                 ? Array.Empty<byte>()
                 : await upstream.ReadResponseBodyAsync(responsePreamble, cancellationToken);
-            response = responsePreamble with { Body = responseBody };
+            var trailers = upstream.ResponseTrailers;
+            response = responsePreamble with { Body = responseBody, Trailers = trailers };
 
             if (mustBufferResponseForScript)
             {
@@ -307,6 +309,10 @@ internal sealed class ExchangePipeline(ExchangeServices services)
             response = await breakpointManager.ApplyResponseBreakpointAsync(
                 upstream.TargetHost, request, response, cancellationToken);
             timing.AddPause(responsePauseStart, SessionTimingRecorder.Now());
+
+            // Scripts, extensions and breakpoint edits rebuild the response
+            // without knowing about trailers; they're kept.
+            response = response.Trailers is null && trailers is not null ? response with { Trailers = trailers } : response;
             await client.WriteResponseAsync(response, cancellationToken);
         }
         else
@@ -316,8 +322,10 @@ internal sealed class ExchangePipeline(ExchangeServices services)
             await client.WriteResponsePreambleAsync(responsePreamble, cancellationToken);
             var responseBody = responseHasNoBody
                 ? Http1MessageReader.RelayedBody.Empty
-                : await upstream.RelayResponseBodyAsync(responsePreamble, client.Stream, services.MaxCapturedBodyBytes, cancellationToken);
-            response = responsePreamble with { Body = responseBody.Captured };
+                : await upstream.RelayResponseBodyAsync(responsePreamble, client, services.MaxCapturedBodyBytes, cancellationToken);
+            var trailers = upstream.ResponseTrailers;
+            await client.EndResponseAsync(trailers, cancellationToken);
+            response = responsePreamble with { Body = responseBody.Captured, Trailers = trailers };
             relayedResponseBody = responseBody;
         }
 
@@ -363,13 +371,13 @@ internal sealed class ExchangePipeline(ExchangeServices services)
         }
         catch (Exception ex) when (ex is SocketException or IOException or AuthenticationException)
         {
-            var failure = InterceptingProxyListener.BadGateway(
+            var failure = InVersionOf(outgoing, InterceptingProxyListener.BadGateway(
                 upstream.TargetHost,
                 upstream.TargetPort,
                 ex,
                 upstream.ClientCertificateRequested
                     ? $"The server asked for a client certificate (mutual TLS), and {ProxyEngine.Identity.ProductName} doesn't send one yet, so the server may have refused the connection for that reason."
-                    : null);
+                    : null));
             await client.WriteResponseAsync(failure, cancellationToken);
             timing.Done();
             var failedTimings = timing.Build();
@@ -380,4 +388,12 @@ internal sealed class ExchangePipeline(ExchangeServices services)
             return false;
         }
     }
+
+    /// <summary>
+    /// A response VioLens made itself, labelled with the HTTP/2 client's
+    /// version, so the session doesn't look as if a server answered over
+    /// HTTP/1.1. HTTP/1.x clients get it unchanged.
+    /// </summary>
+    private static CapturedResponse InVersionOf(CapturedRequest request, CapturedResponse response) =>
+        HttpVersions.IsHttp2(request.HttpVersion) ? response with { HttpVersion = HttpVersions.Http2 } : response;
 }

@@ -879,6 +879,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 new CompositeExtensionAutoTamperHost([_extensionHost.CreateAutoTamperHost(), legacyBridge]),
                 _extensionHost.CreateSessionHost(),
                 allowRemoteClients: AllowRemoteClients);
+            _proxy.Http2Enabled = Http2Enabled;
             IsRunning = true;
             ShowBoundPort(_proxy.Port);
 

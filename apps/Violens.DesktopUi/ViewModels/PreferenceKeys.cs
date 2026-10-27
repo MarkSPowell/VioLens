@@ -24,6 +24,9 @@ internal static class PreferenceKeys
     public const string UpstreamProxy = "violens.proxy.upstream";
     public const string AllowRemoteClients = "violens.proxy.allowremote";
 
+    /// <summary>Whether browsers may use HTTP/2 with VioLens.</summary>
+    public const string Http2 = "violens.proxy.http2.enabled";
+
     /// <summary>The user name for an upstream proxy that asks for a sign-in. The password is never saved.</summary>
     public const string UpstreamProxyUserName = "violens.proxy.upstream.username";
 

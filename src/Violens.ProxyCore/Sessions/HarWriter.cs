@@ -167,7 +167,7 @@ public static class HarWriter
         {
             ["method"] = request.Method,
             ["url"] = url,
-            ["httpVersion"] = request.HttpVersion,
+            ["httpVersion"] = HttpVersions.ForHar(request.HttpVersion),
             ["cookies"] = RequestCookies(request.Headers),
             ["headers"] = Headers(request.Headers),
             ["queryString"] = QueryString(url),
@@ -228,7 +228,7 @@ public static class HarWriter
         {
             ["status"] = response.StatusCode,
             ["statusText"] = response.ReasonPhrase,
-            ["httpVersion"] = response.HttpVersion,
+            ["httpVersion"] = HttpVersions.ForHar(response.HttpVersion),
             ["cookies"] = ResponseCookies(response.Headers),
             ["headers"] = Headers(response.Headers),
             ["content"] = content,

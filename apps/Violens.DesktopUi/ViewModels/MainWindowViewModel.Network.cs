@@ -18,6 +18,7 @@ public sealed partial class MainWindowViewModel
     private bool _showConnectionsRow;
     private string _upstreamProxySetting = string.Empty;
     private bool _allowRemoteClients;
+    private bool _http2Enabled;
     private string _gatewayStatus = "Upstream proxy: decided when capture starts.";
     private UpstreamProxyDetection? _detectedUpstream;
     private string _proxyUserName = string.Empty;
@@ -119,6 +120,27 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    /// <summary>
+    /// Lets browsers use HTTP/2 for HTTPS sites, and VioLens use it with the
+    /// sites that support it. Applies to connections opened from now on,
+    /// even while capturing.
+    /// </summary>
+    public bool Http2Enabled
+    {
+        get => _http2Enabled;
+        set
+        {
+            if (SetField(ref _http2Enabled, value))
+            {
+                _preferences.SetBoolPref(PreferenceKeys.Http2, value);
+                if (_proxy is not null)
+                {
+                    _proxy.Http2Enabled = value;
+                }
+            }
+        }
+    }
+
     /// <summary>Which upstream proxy is in use, for the Connections row.</summary>
     public string GatewayStatus
     {
@@ -155,6 +177,7 @@ public sealed partial class MainWindowViewModel
         _upstreamProxySetting = _preferences.GetStringPref(PreferenceKeys.UpstreamProxy, string.Empty);
         _proxyUserName = _preferences.GetStringPref(PreferenceKeys.UpstreamProxyUserName, string.Empty);
         _allowRemoteClients = _preferences.GetBoolPref(PreferenceKeys.AllowRemoteClients, false);
+        _http2Enabled = _preferences.GetBoolPref(PreferenceKeys.Http2, false);
     }
 
     /// <summary>

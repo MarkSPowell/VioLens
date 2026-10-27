@@ -312,6 +312,10 @@
                       VerticalAlignment="Center" />
             <TextBlock Text="{Binding RemoteClientsHint}" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" TextWrapping="Wrap" />
           </StackPanel>
+          <CheckBox Content="Use HTTP/2 with browsers (preview)"
+                    IsChecked="{Binding Http2Enabled, Mode=TwoWay}"
+                    ToolTip.Tip="Lets browsers talk to VioLens over HTTP/2 for HTTPS sites, as they would to the site itself. VioLens then uses HTTP/2 with the site too when it supports it, and HTTP/1.1 otherwise. Applies to new connections straight away."
+                    VerticalAlignment="Center" />
         </StackPanel>
       </Grid>
     </Border>
@@ -686,6 +690,10 @@
           <DataGridTextColumn Header="Status" Binding="{Binding StatusCode}" Width="70" />
           <DataGridTextColumn Header="Method" Binding="{Binding Method}" Width="80" />
           <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="*" />
+          <!-- HTTP/1.1 or HTTP/2 with the browser, then with the server when
+               that differs. (Fiddler Classic's Protocol column is the scheme,
+               so this one is called Version.) -->
+          <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="130" />
           <DataGridTextColumn Header="Req" Binding="{Binding RequestSize}" Width="80" />
           <DataGridTextColumn Header="Resp" Binding="{Binding ResponseSize}" Width="80" />
           <!-- PNG/JPEG/GIF/WebP responses only: bytes that don't affect how

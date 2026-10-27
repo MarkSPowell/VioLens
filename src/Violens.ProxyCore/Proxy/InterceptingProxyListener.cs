@@ -9,6 +9,7 @@ using Violens.ProxyCore.Breakpoints;
 using Violens.ProxyCore.Certificates;
 using Violens.ProxyCore.Extensions;
 using Violens.ProxyCore.Http;
+using Violens.ProxyCore.Http2;
 using Violens.ProxyCore.Proxy.AutoConfig;
 using Violens.ProxyCore.Scripting;
 using Violens.ProxyCore.Sessions;
@@ -184,6 +185,25 @@ public sealed class InterceptingProxyListener
             Interlocked.Exchange(ref _clientIdleTimeoutTicks, value.Ticks);
         }
     }
+
+    private int _http2Enabled;
+
+    /// <summary>
+    /// Whether clients may use HTTP/2 for HTTPS traffic: offered in the TLS
+    /// handshake (ALPN) alongside HTTP/1.1, and used when the client picks
+    /// it. Their requests then go on to the server over HTTP/2 too, when the
+    /// server supports it, and HTTP/1.1 otherwise; HTTP/1.1 clients are
+    /// unaffected. Off unless set; read
+    /// when each client connection's TLS handshake starts.
+    /// </summary>
+    public bool Http2Enabled
+    {
+        get => Volatile.Read(ref _http2Enabled) == 1;
+        set => Volatile.Write(ref _http2Enabled, value ? 1 : 0);
+    }
+
+    /// <summary>Replaces the normal check of servers' certificates. Tests only, for origins with test certificates.</summary>
+    internal RemoteCertificateValidationCallback? UpstreamCertificateValidation { get; set; }
 
     private static readonly IReadOnlyList<UpstreamProxy?> DirectOnly = [null];
 
@@ -457,7 +477,7 @@ public sealed class InterceptingProxyListener
                 await PumpSessionsAsync(
                     isTls: false, string.Empty, PlainHttpRequest.DefaultPort, client, clientStream, first, _sessionStore,
                     _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
-                    () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, cancellationToken);
+                    () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, cancellationToken);
                 return;
             }
 
@@ -473,6 +493,7 @@ public sealed class InterceptingProxyListener
                     _leafProvider.GetCertificateFor(string.IsNullOrEmpty(sniHostName) ? targetHost : sniHostName),
                 // Let the OS choose TLS 1.2 or 1.3.
                 EnabledSslProtocols = SslProtocols.None,
+                ApplicationProtocols = Http2Enabled ? [SslApplicationProtocol.Http2, SslApplicationProtocol.Http11] : null,
             };
             // The handshake falls under the idle timeout too: a client that
             // sends CONNECT and then nothing else would otherwise hold the
@@ -490,11 +511,17 @@ public sealed class InterceptingProxyListener
                 }
             }
 
+            if (clientTls.NegotiatedApplicationProtocol == SslApplicationProtocol.Http2)
+            {
+                await ServeHttp2Async(new ReadBufferedStream(clientTls), targetHost, targetPort, idleTimeout, cancellationToken);
+                return;
+            }
+
             // The server connection is opened later, only when needed.
             await PumpSessionsAsync(
                 isTls: true, targetHost, targetPort, client, new ReadBufferedStream(clientTls), firstRequest: null, _sessionStore, _breakpointManager,
                 _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
-                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, cancellationToken);
+                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, cancellationToken);
         }
         catch (BreakpointAbortedException ex)
         {
@@ -556,6 +583,7 @@ public sealed class InterceptingProxyListener
         Func<byte[]> rootCertificateDer,
         long maxCapturedBodyBytes,
         TimeSpan idleTimeout,
+        RemoteCertificateValidationCallback? validateServer,
         CancellationToken cancellationToken)
     {
         // clientTls is the TLS stream for a CONNECT tunnel, or the plain
@@ -565,7 +593,7 @@ public sealed class InterceptingProxyListener
         var pipeline = new ExchangePipeline(new ExchangeServices(
             sessionStore, breakpointManager, autoResponderRules, scriptRunner, extensionHost, sessionHost, proxyUrl, maxCapturedBodyBytes));
         var client = new Http1ClientExchange(clientConnection, clientTls);
-        using var upstream = new Http1Upstream(isTls, targetHost, targetPort, chooseRoutes, proxyCredential);
+        using var upstream = new Http1Upstream(isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer);
         var pendingRequest = firstRequest;
 
         while (true)
@@ -652,6 +680,132 @@ public sealed class InterceptingProxyListener
     }
 
     /// <summary>
+    /// Handles an HTTP/2 client connection inside a CONNECT tunnel: each
+    /// stream is an exchange, run through the <see cref="ExchangePipeline"/>
+    /// alongside the others. They go on to the server over HTTP/2 when the
+    /// server offers it, as streams on one connection, or otherwise over
+    /// HTTP/1.1 on a small pool of connections (see <see cref="Http2TunnelUpstreams"/>).
+    /// The connection closes once it's been idle
+    /// (no streams in progress) for <paramref name="idleTimeout"/>.
+    /// </summary>
+    private async Task ServeHttp2Async(Stream clientTls, string targetHost, int targetPort, TimeSpan idleTimeout, CancellationToken cancellationToken)
+    {
+        await using var connection = await Http2Connection.AcceptAsync(clientTls, new Http2Settings(), cancellationToken);
+        var pipeline = new ExchangePipeline(new ExchangeServices(
+            _sessionStore, _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, _proxyUrl, MaxCapturedBodyBytes));
+        var validateServer = UpstreamCertificateValidation;
+        await using var tunnel = new Http2TunnelUpstreams(
+            targetHost,
+            targetPort,
+            offerHttp2 => new Http1Upstream(isTls: true, targetHost, targetPort, ChooseRoutesAsync, () => ProxyCredential, validateServer, offerHttp2));
+
+        var exchanges = new List<Task>();
+        var inProgress = 0;
+        var lastActivity = Environment.TickCount64;
+        while (true)
+        {
+            Http2Stream? stream;
+            using (var timer = StartIdleTimer(idleTimeout, cancellationToken))
+            {
+                try
+                {
+                    stream = await connection.AcceptStreamAsync(timer.Token);
+                }
+                catch (OperationCanceledException) when (timer.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    if (Volatile.Read(ref inProgress) == 0 &&
+                        Environment.TickCount64 - Volatile.Read(ref lastActivity) >= (long)idleTimeout.TotalMilliseconds)
+                    {
+                        await connection.GoAwayAsync(cancellationToken);
+                        break;
+                    }
+
+                    continue;
+                }
+            }
+
+            if (stream is null)
+            {
+                break;
+            }
+
+            Interlocked.Increment(ref inProgress);
+            exchanges.RemoveAll(task => task.IsCompleted);
+            exchanges.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    await RunHttp2ExchangeAsync(stream, pipeline, tunnel, targetHost, cancellationToken);
+                }
+                finally
+                {
+                    Volatile.Write(ref lastActivity, Environment.TickCount64);
+                    Interlocked.Decrement(ref inProgress);
+                }
+            }, CancellationToken.None));
+        }
+
+        await Task.WhenAll(exchanges);
+    }
+
+    /// <summary>One HTTP/2 stream's exchange. A stream left without a complete response is reset.</summary>
+    private static async Task RunHttp2ExchangeAsync(
+        Http2Stream stream, ExchangePipeline pipeline, Http2TunnelUpstreams tunnel, string targetHost, CancellationToken cancellationToken)
+    {
+        Http2ClientExchange? client = null;
+        try
+        {
+            var headers = await stream.ReadHeadersAsync(cancellationToken);
+            var startedAt = DateTimeOffset.Now;
+            var timing = new SessionTimingRecorder();
+            if (!Http2Messages.TryToRequest(headers, out var request))
+            {
+                await stream.ResetAsync(Http2ErrorCode.RefusedStream);
+                return;
+            }
+
+            client = new Http2ClientExchange(stream, request);
+            var upstream = tunnel.CreateUpstream();
+            var reusable = false;
+            try
+            {
+                upstream.Timing = timing;
+                var result = await pipeline.RunAsync(
+                    client, upstream, request, $"https://{targetHost}{request.Target}", "https", startedAt, timing, cancellationToken);
+                reusable = result.End switch
+                {
+                    ExchangeEnd.AnsweredLocally => true,
+                    ExchangeEnd.Forwarded => result.Response!.StatusCode != 101 &&
+                        !(!result.ResponseHasNoBody && Http1MessageReader.IsCloseDelimited(result.ResponsePreamble!.Headers)) &&
+                        !AsksToClose(result.ResponsePreamble!.HttpVersion, result.ResponsePreamble.Headers),
+                    _ => false,
+                };
+            }
+            finally
+            {
+                tunnel.Release(upstream, reusable);
+            }
+        }
+        catch (Http2StreamClosedException)
+        {
+            // The client reset the stream, or the connection ended.
+        }
+        catch (BreakpointAbortedException ex)
+        {
+            ProxyEngine.Log("proxy", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            ProxyEngine.Log("proxy", $"Stream {stream.Id} to {targetHost} ended: {DescribeException(ex)}");
+        }
+
+        if (client is null || !client.IsFinished)
+        {
+            await stream.ResetAsync(Http2ErrorCode.InternalError);
+        }
+    }
+
+    /// <summary>
     /// Records a connection AutoResponder ended with <c>*reset</c> or
     /// <c>*drop</c>, so it still shows in the list. Status 0 means no response
     /// was sent.
@@ -660,7 +814,7 @@ public sealed class InterceptingProxyListener
         SessionStore sessionStore, string targetHost, string scheme, DateTimeOffset startedAt, CapturedRequest request, string reason,
         SessionTimings timings)
     {
-        var response = new CapturedResponse("HTTP/1.1", 0, reason, [], []);
+        var response = new CapturedResponse(HttpVersions.IsHttp2(request.HttpVersion) ? HttpVersions.Http2 : HttpVersions.Http11, 0, reason, [], []);
         var session = sessionStore.Add(targetHost, startedAt, request, response, flags: null, scheme, timings);
         ProxyEngine.Log("session", $"#{session.Id} {request.Method} {scheme}://{targetHost}{request.Target} -- {reason}");
     }
@@ -742,7 +896,7 @@ public sealed class InterceptingProxyListener
     /// includes "close", or it's HTTP/1.0 without "keep-alive" (RFC 9112
     /// section 9.3).
     /// </summary>
-    private static bool AsksToClose(string httpVersion, IReadOnlyList<(string Name, string Value)> headers)
+    internal static bool AsksToClose(string httpVersion, IReadOnlyList<(string Name, string Value)> headers)
     {
         var keepAlive = false;
         foreach (var (name, value) in headers)

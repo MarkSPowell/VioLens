@@ -28,6 +28,12 @@ internal sealed class Http2Stream
 
     public int Id { get; }
 
+    /// <summary>Whether the last header block <see cref="ReadHeadersAsync"/> returned ended the peer's side: a request or response with no body.</summary>
+    public bool HeadersEndedStream { get; private set; }
+
+    /// <summary>Whether this side has ended the stream, or it was reset.</summary>
+    public bool IsLocalSideEnded => LocalClosed || IsReset;
+
     /// <summary>The trailers that ended the peer's side, once <see cref="ReadDataAsync"/> has returned 0; null if there were none.</summary>
     public IReadOnlyList<(string Name, string Value)>? Trailers { get; private set; }
 
@@ -71,6 +77,7 @@ internal sealed class Http2Stream
             if (item is HeadersItem headers)
             {
                 _ended |= headers.EndStream;
+                HeadersEndedStream = headers.EndStream;
                 return headers.Headers;
             }
 

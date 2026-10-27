@@ -223,6 +223,10 @@ public sealed partial class MainWindowViewModel
             using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(10));
             var response = await Task.Run(() => ComposerClient.SendAsync(listener.Port, rootDer, url!, toSend, timeout.Token));
             ComposerStatus = $"{what}: {response.StatusCode} {response.ReasonPhrase} from {toSend.Method} {url}. It's the newest session in the list.";
+            if (HttpVersions.IsHttp2(toSend.HttpVersion) && !HttpVersions.IsHttp2(response.HttpVersion))
+            {
+                ComposerStatus += " It went over HTTP/1.1: turn on Use HTTP/2 with browsers (Tools > Connections) to send HTTP/2.";
+            }
         }
         catch (Exception ex)
         {

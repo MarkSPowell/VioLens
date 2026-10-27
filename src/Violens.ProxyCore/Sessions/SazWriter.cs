@@ -59,14 +59,15 @@ public static class SazWriter
         var request = string.Equals(session.Scheme, "http", StringComparison.OrdinalIgnoreCase) && session.Request.Target.StartsWith('/')
             ? session.Request with { Target = SessionUrl.Of(session) }
             : session.Request;
-        stream.Write(HttpMessageWriter.BuildRequestBytes(request));
+        stream.Write(HttpMessageWriter.BuildRequestBytes(request with { HttpVersion = HttpVersions.ForSaz(request.HttpVersion) }));
     }
 
     private static void WriteResponse(ZipArchive archive, Session session)
     {
         var entry = archive.CreateEntry($"raw/{session.Id}_s.txt", CompressionLevel.Optimal);
         using var stream = entry.Open();
-        stream.Write(HttpMessageWriter.BuildResponseBytes(session.Response));
+        var response = session.Response;
+        stream.Write(HttpMessageWriter.BuildResponseBytes(response with { HttpVersion = HttpVersions.ForSaz(response.HttpVersion) }));
     }
 
     private static void WriteMetadata(ZipArchive archive, Session session)

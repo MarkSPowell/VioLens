@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Violens.ProxyCore.Http;
+using Violens.ProxyCore.Http2;
 
 namespace Violens.ProxyCore.Proxy;
 
@@ -15,7 +16,9 @@ namespace Violens.ProxyCore.Proxy;
 ///
 /// http:// and https:// URLs. An HTTPS connection trusts VioLens's root
 /// certificate specifically, so it works whether or not that root is in the
-/// system's trust store.
+/// system's trust store. An HTTPS request whose request line says HTTP/2 is
+/// sent over HTTP/2 when the listener offers it, and over HTTP/1.1 when it
+/// doesn't; the response's version says which.
 /// </summary>
 public static class ComposerClient
 {
@@ -81,8 +84,10 @@ public static class ComposerClient
             headers.Insert(0, ("Host", authority));
         }
 
-        var version = string.IsNullOrWhiteSpace(request.HttpVersion) || !request.HttpVersion.StartsWith("HTTP/1", StringComparison.OrdinalIgnoreCase)
-            ? "HTTP/1.1"
+        // HTTP/2 only over TLS: nothing uses it unencrypted (h2c).
+        var isHttps = string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+        var version = isHttps && HttpVersions.IsHttp2(request.HttpVersion) ? HttpVersions.Http2
+            : string.IsNullOrWhiteSpace(request.HttpVersion) || !request.HttpVersion.StartsWith("HTTP/1", StringComparison.OrdinalIgnoreCase) ? HttpVersions.Http11
             : request.HttpVersion;
 
         url = parsed;
@@ -122,19 +127,58 @@ public static class ComposerClient
         using var root = X509CertificateLoader.LoadCertificate(rootCertificateDer);
         await UpstreamProxy.EstablishTunnelAsync(stream, url.Host, url.Port, "the proxy's own listener", cancellationToken);
 
-        using var tls = new SslStream(stream, leaveInnerStreamOpen: false);
+        var wantsHttp2 = HttpVersions.IsHttp2(request.HttpVersion);
+        var tls = new SslStream(stream, leaveInnerStreamOpen: false);
+        await using var tlsOwner = tls;
         await tls.AuthenticateAsClientAsync(
             new SslClientAuthenticationOptions
             {
                 TargetHost = url.Host,
                 EnabledSslProtocols = SslProtocols.None,
                 RemoteCertificateValidationCallback = (_, certificate, _, _) => IsIssuedBy(certificate, root),
+                ApplicationProtocols = wantsHttp2 ? [SslApplicationProtocol.Http2, SslApplicationProtocol.Http11] : null,
             },
             cancellationToken);
+
+        if (tls.NegotiatedApplicationProtocol == SslApplicationProtocol.Http2)
+        {
+            return await SendHttp2Async(tls, url, request, cancellationToken);
+        }
+
+        if (wantsHttp2)
+        {
+            // The listener's HTTP/2 setting is off.
+            request = request with { HttpVersion = HttpVersions.Http11 };
+        }
 
         await HttpMessageWriter.WriteRequestAsync(tls, request, cancellationToken);
         return await Http1MessageReader.ReadResponseAsync(tls, isHead, cancellationToken)
             ?? throw new IOException("The connection closed before a response arrived.");
+    }
+
+    private static async Task<CapturedResponse> SendHttp2Async(
+        Stream tls, Uri url, CapturedRequest request, CancellationToken cancellationToken)
+    {
+        await using var connection = await Http2Connection.ConnectAsync(tls, null, cancellationToken);
+        var authority = url.IsDefaultPort ? url.Host : $"{url.Host}:{url.Port}";
+        var hasBody = request.Body.Length > 0;
+        var stream = await connection.OpenStreamAsync(
+            Http2Messages.ToRequestBlock(request, authority, hasBody ? request.Body.Length : null), endStream: !hasBody, cancellationToken);
+        if (hasBody)
+        {
+            await stream.WriteDataAsync(request.Body, endStream: true, cancellationToken);
+        }
+
+        // Interim (1xx) responses first, then the real one.
+        CapturedResponse response;
+        do
+        {
+            response = Http2Messages.ToResponse(await stream.ReadHeadersAsync(cancellationToken));
+        }
+        while (response.StatusCode is >= 100 and < 200 && !stream.HeadersEndedStream);
+
+        var body = stream.HeadersEndedStream ? [] : await stream.ReadAllDataAsync(cancellationToken);
+        return response with { Body = body, Trailers = stream.Trailers };
     }
 
     /// <summary>True when <paramref name="certificate"/> chains to <paramref name="root"/> (and only that root).</summary>

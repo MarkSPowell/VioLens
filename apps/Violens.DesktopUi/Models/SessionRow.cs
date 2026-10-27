@@ -3,6 +3,7 @@ using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Violens.Compatibility.FiddlerScript;
 using Violens.Extensibility.Inspection;
+using Violens.ProxyCore.Http;
 using Violens.ProxyCore.Sessions;
 
 namespace Violens.DesktopUi.Models;
@@ -20,6 +21,9 @@ public sealed class SessionRow
     public required int StatusCode { get; init; }
     public required string Method { get; init; }
     public required string Url { get; init; }
+
+    /// <summary>The HTTP version with the client, and with the server where it differs: "HTTP/2 → HTTP/1.1".</summary>
+    public required string Version { get; init; }
     public required string RequestSize { get; init; }
     public required string ResponseSize { get; init; }
     public required Session Session { get; init; }
@@ -77,6 +81,7 @@ public sealed class SessionRow
             StatusCode = session.Response.StatusCode,
             Method = session.Request.Method,
             Url = $"{session.Scheme}://{session.Host}{session.Request.Target}",
+            Version = HttpVersions.Describe(session.Request.HttpVersion, session.Response.StatusCode == 0 ? null : session.Response.HttpVersion),
             RequestSize = FormatBytes(session.Request.Body.Length),
             ResponseSize = FormatBytes(session.Response.Body.Length),
             Session = session,

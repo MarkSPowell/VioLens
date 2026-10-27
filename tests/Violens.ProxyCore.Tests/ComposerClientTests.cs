@@ -44,6 +44,18 @@ public class ComposerClientTests
         Assert.Equal(("Host", "new.example.test"), Assert.Single(toSend!.Headers));
     }
 
+    [Theory]
+    [InlineData("https://example.test/", "HTTP/2", "HTTP/2")]
+    [InlineData("https://example.test/", "HTTP/2.0", "HTTP/2")]
+    [InlineData("http://example.test/", "HTTP/2", "HTTP/1.1")]
+    [InlineData("https://example.test/", "HTTP/3", "HTTP/1.1")]
+    public void HttpTwoIsKeptForHttpsOnly(string target, string version, string expected)
+    {
+        Assert.True(ComposerClient.TryResolve(Typed(target) with { HttpVersion = version }, out _, out var toSend, out _));
+
+        Assert.Equal(expected, toSend!.HttpVersion);
+    }
+
     [Fact]
     public void AcceptsPlainHttpUrls()
     {
