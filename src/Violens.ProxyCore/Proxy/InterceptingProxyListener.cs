@@ -471,6 +471,10 @@ public sealed class InterceptingProxyListener
             // CONNECT reads through it too, so nothing read ahead is lost.
             using var clientStream = new ReadBufferedStream(client.GetStream());
             var idleTimeout = ClientIdleTimeout;
+
+            // Only possible with AllowsRemoteClients. Such a client mustn't
+            // reach this computer's loopback-only services through VioLens.
+            var isRemoteClient = client.Client.RemoteEndPoint is IPEndPoint remote && !IPAddress.IsLoopback(remote.Address);
             var first = await ReadRequestPreambleWithinAsync(clientStream, idleTimeout, cancellationToken);
             if (first is null)
             {
@@ -499,11 +503,16 @@ public sealed class InterceptingProxyListener
                 await PumpSessionsAsync(
                     isTls: false, string.Empty, PlainHttpRequest.DefaultPort, client, clientStream, first, _sessionStore,
                     _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
-                    () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, cancellationToken);
+                    () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient, cancellationToken);
                 return;
             }
 
             var (targetHost, targetPort) = ParseConnectTarget(first.Target);
+            if (isRemoteClient && await IsThisComputerAsync(targetHost, cancellationToken))
+            {
+                await AnswerAsync(clientStream, first, ProxyHomePage.NotForThisComputer(first.Target), cancellationToken);
+                return;
+            }
             if (UpstreamProxy.MatchesHostList(targetHost, SkipDecryptionHosts))
             {
                 await TunnelWithoutDecryptingAsync(clientStream, first, targetHost, targetPort, cancellationToken);
@@ -548,7 +557,7 @@ public sealed class InterceptingProxyListener
             await PumpSessionsAsync(
                 isTls: true, targetHost, targetPort, client, new ReadBufferedStream(clientTls), firstRequest: null, _sessionStore, _breakpointManager,
                 _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
-                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, cancellationToken);
+                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient: false, cancellationToken);
         }
         catch (BreakpointAbortedException ex)
         {
@@ -635,6 +644,41 @@ public sealed class InterceptingProxyListener
         }
     }
 
+    /// <summary>
+    /// Whether <paramref name="host"/> is this computer through a loopback
+    /// address: <c>localhost</c>, <c>*.localhost</c>, a loopback or
+    /// unspecified address (<c>0.0.0.0</c> reaches this computer on macOS),
+    /// or a name that resolves to one. A name that can't be resolved isn't;
+    /// connecting to it fails anyway. The answer could change between here
+    /// and the connection (DNS rebinding), a narrow gap that remains.
+    /// </summary>
+    internal static async Task<bool> IsThisComputerAsync(string host, CancellationToken cancellationToken)
+    {
+        if (UpstreamProxy.IsLoopback(host) || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (IPAddress.TryParse(host.Trim('[', ']'), out var literal))
+        {
+            return IsLoopbackOrUnspecified(literal);
+        }
+
+        try
+        {
+            var addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
+            return addresses.Any(IsLoopbackOrUnspecified);
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
+
+        static bool IsLoopbackOrUnspecified(IPAddress address) =>
+            IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any) ||
+            (address.IsIPv4MappedToIPv6 && IsLoopbackOrUnspecified(address.MapToIPv4()));
+    }
+
     /// <summary>Drains a plain request's body, sends VioLens's own answer, and logs it.</summary>
     private static async Task AnswerAsync(Stream clientStream, CapturedRequest request, CapturedResponse answer, CancellationToken cancellationToken)
     {
@@ -686,8 +730,13 @@ public sealed class InterceptingProxyListener
         long maxCapturedBodyBytes,
         TimeSpan idleTimeout,
         RemoteCertificateValidationCallback? validateServer,
+        bool isRemoteClient,
         CancellationToken cancellationToken)
     {
+        // isRemoteClient: a plain connection from another computer, whose
+        // requests mustn't reach this computer's own loopback services (a
+        // CONNECT tunnel's one target is checked before it gets here).
+        //
         // clientTls is the TLS stream for a CONNECT tunnel, or the plain
         // connection for http:// requests. A plain connection can carry
         // requests for different servers, so the target is set per request.
@@ -727,6 +776,12 @@ public sealed class InterceptingProxyListener
                 if (!PlainHttpRequest.TryNormalize(requestPreamble, out var normalized, out var plainHost, out var plainPort))
                 {
                     await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.NotForwarded(requestPreamble.Method, requestPreamble.Target), cancellationToken);
+                    return;
+                }
+
+                if (isRemoteClient && await IsThisComputerAsync(plainHost, cancellationToken))
+                {
+                    await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.NotForThisComputer(requestPreamble.Target), cancellationToken);
                     return;
                 }
 

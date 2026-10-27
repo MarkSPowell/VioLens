@@ -184,11 +184,14 @@ Should have:
    is only recorded.
 8. **Update notice.** A check at start-up that says when a newer release
    is out.
-9. **Docs brought up to date.** The README's Known limitations and the
-   design docs still describe some finished work as missing (root
-   removal, HTTP/2, leaf key cleanup).
-10. **A security review.** Root key protection, loopback-only listening by
-    default, and ProxyHost's pipe authentication.
+9. **Docs brought up to date.** Done: the README's Known limitations and
+   the Interception Certificate Design now match what's built. Revisit
+   after the macOS test.
+10. **A security review.** Done; the results are in SECURITY.md. It
+    stopped other devices reaching this computer's localhost services
+    through the proxy, and the host now refuses a pipe made by another
+    account. Left open: the app's pipe uses the default permissions (a
+    denial of service only).
 
 Fine after 1.0: an about:config editor, SOCKS and Digest proxy sign-in,
 DHCP proxy discovery on macOS, built-in NetLog import, `CustomRules.cs`,

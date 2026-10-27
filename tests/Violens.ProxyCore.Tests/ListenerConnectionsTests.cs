@@ -317,6 +317,21 @@ public class ListenerConnectionsTests
         }
     }
 
+    [Theory]
+    [InlineData("localhost", true)]
+    [InlineData("LOCALHOST", true)]
+    [InlineData("api.localhost", true)]
+    [InlineData("127.0.0.1", true)]
+    [InlineData("127.1.2.3", true)]
+    [InlineData("::1", true)]
+    [InlineData("[::1]", true)]
+    [InlineData("0.0.0.0", true)]
+    [InlineData("::ffff:127.0.0.1", true)]
+    [InlineData("192.0.2.10", false)]
+    [InlineData("does-not-exist.invalid", false)]
+    public async Task RemoteClientsCantReachThisComputersLoopback(string host, bool isThisComputer) =>
+        Assert.Equal(isThisComputer, await InterceptingProxyListener.IsThisComputerAsync(host, CancellationToken.None));
+
     [Fact]
     public void CanListenForRemoteComputers()
     {
