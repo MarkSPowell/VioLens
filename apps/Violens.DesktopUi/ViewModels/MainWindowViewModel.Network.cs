@@ -19,6 +19,7 @@ public sealed partial class MainWindowViewModel
     private string _upstreamProxySetting = string.Empty;
     private bool _allowRemoteClients;
     private bool _http2Enabled;
+    private string _skipDecryptionHostsText = string.Empty;
     private string _gatewayStatus = "Upstream proxy: decided when capture starts.";
     private UpstreamProxyDetection? _detectedUpstream;
     private string _proxyUserName = string.Empty;
@@ -141,6 +142,32 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    /// <summary>
+    /// Hosts to tunnel without decrypting (see
+    /// InterceptingProxyListener.SkipDecryptionHosts), as typed: separated by
+    /// semicolons, commas or spaces. Applies to connections opened from now
+    /// on, even while capturing.
+    /// </summary>
+    public string SkipDecryptionHostsText
+    {
+        get => _skipDecryptionHostsText;
+        set
+        {
+            if (SetField(ref _skipDecryptionHostsText, value ?? string.Empty))
+            {
+                var hosts = SkipDecryptionHosts;
+                _preferences.SetListPref(PreferenceKeys.SkipDecryptionHosts, hosts);
+                if (_proxy is not null)
+                {
+                    _proxy.SkipDecryptionHosts = hosts;
+                }
+            }
+        }
+    }
+
+    private IReadOnlyList<string> SkipDecryptionHosts =>
+        _skipDecryptionHostsText.Split([';', ',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
     /// <summary>Which upstream proxy is in use, for the Connections row.</summary>
     public string GatewayStatus
     {
@@ -178,6 +205,7 @@ public sealed partial class MainWindowViewModel
         _proxyUserName = _preferences.GetStringPref(PreferenceKeys.UpstreamProxyUserName, string.Empty);
         _allowRemoteClients = _preferences.GetBoolPref(PreferenceKeys.AllowRemoteClients, false);
         _http2Enabled = _preferences.GetBoolPref(PreferenceKeys.Http2, false);
+        _skipDecryptionHostsText = string.Join("; ", _preferences.GetListPref(PreferenceKeys.SkipDecryptionHosts, []));
     }
 
     /// <summary>

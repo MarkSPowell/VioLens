@@ -118,6 +118,11 @@ To remove sessions, use **Edit > Remove Selected Session** (or press
 sessions are gone for good: they're no longer in the list or in what
 **Save SAZ** writes.
 
+For long captures, the **Keep** drop-down next to Start and Stop limits
+how many sessions VioLens holds (100 up to 10,000). Once the list is full,
+the oldest session is removed as each new one arrives, so memory use stays
+steady. It's **All sessions** by default, as in Fiddler Classic.
+
 The **Version** column shows the HTTP version the browser used with
 VioLens, followed by the one VioLens used with the server when they differ:
 `HTTP/2 → HTTP/1.1` means the browser used HTTP/2 but the site only offered
@@ -516,6 +521,17 @@ connections it already has open. The session list's **Version** column
 shows which version each side used. WebSockets still use HTTP/1.1, and
 plain `http://` sites are unaffected.
 
+**Skip decryption for.** Some apps only accept their own server's
+certificate (certificate pinning), so they fail through any proxy that
+decrypts HTTPS, VioLens included. List their hosts here, separated by
+semicolons, and VioLens passes that traffic through without decrypting
+it. `*` matches any part of a name: `*.example.com` covers
+`api.example.com` but not `example.com` itself, so list both if you need
+both. Each such connection shows as one `CONNECT` session, with no
+requests inside it. Changes apply to new connections straight away. The
+list is saved as `violens.config.https.skipdecryption` in
+`preferences.json`.
+
 ## FiddlerScript
 
 FiddlerScript lets a script hook into every request and response, and add
@@ -681,7 +697,9 @@ and macOS:
 - Which Tools-menu panels are shown (FiddlerScript, Extensions, Legacy
   Extension Host, Also Break On, Connections)
 - The upstream proxy setting, the proxy sign-in user name (not the
-  password) and whether remote computers may connect
+  password), whether remote computers may connect, HTTP/2 and the
+  skip-decryption hosts
+- How many sessions to keep
 - The window's size and position, and whether it was maximized
 - The session list's columns: which are shown, their order and widths
 - TextWizard's last conversion and character encoding
@@ -714,6 +732,14 @@ had is lost. To reset every setting, quit VioLens and delete the file.
   for `.md` files. If nothing is set up for them, you'll find the file at
   `docs/User Guide.md` in the VioLens source tree, or in a `Documentation`
   folder next to the app's executable.
+- **Help > Copy Diagnostic Info** copies what a bug report needs: the
+  VioLens version, OS, whether capture is running and how, the upstream
+  proxy, HTTP/2, whether the root certificate is trusted, the network
+  adapters (which show a VPN or Docker) and the last status message. It
+  leaves out your computer's name, and only says whether proxy environment
+  variables are set, not what they're set to. Paste it into the
+  **Diagnostic info** box of a
+  [bug report](https://github.com/MarkSPowell/VioLens/issues/new?template=bug_report.yml).
 - **Help > About VioLens** shows which build you're running. That's
   useful when you report an issue or want to check you're on the latest
   preview.

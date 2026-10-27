@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Reflection;
 using Avalonia.Threading;
+using Violens.AppCore.Diagnostics;
 using Violens.AppCore.Migration;
 using Violens.Compatibility.Extensions;
 using Violens.Compatibility.FiddlerScript;
@@ -70,6 +71,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly Func<string, IReadOnlyList<FormatChoice>, string?, Task<FormatChoice?>>? _chooseFormat;
 
     private CertificateAuthority? _authority;
+    private bool _registeredAsSystemProxy;
     private InterceptingProxyListener? _proxy;
     private string _statusText;
     private decimal? _preferredPort = DefaultPreferredPort;
@@ -656,12 +658,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         _sessionStore.SessionAdded += _sessionArrivals.Add;
 
         // Removed sessions leave both lists; the selection goes with them.
-        _sessionStore.SessionsRemoved += ids => Dispatcher.UIThread.Post(() =>
+        // Batched too: once the Keep limit is reached, every new session
+        // evicts an old one.
+        var sessionRemovals = new CoalescingQueue<IReadOnlyList<int>>(deliver => Dispatcher.UIThread.Post(deliver), batches =>
         {
             // Anything still waiting to be added goes in first, so a session
             // removed before its batch arrived can't reappear afterwards.
             _sessionArrivals.Flush();
-            var removed = new HashSet<int>(ids);
+            var removed = new HashSet<int>(batches.SelectMany(ids => ids));
             for (var i = Sessions.Count - 1; i >= 0; i--)
             {
                 if (removed.Contains(Sessions[i].Id))
@@ -688,6 +692,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             RemoveAllSessionsCommand.RaiseCanExecuteChanged();
             RaisePropertyChanged(nameof(HasSessions));
         });
+        _sessionStore.SessionsRemoved += sessionRemovals.Add;
 
         _breakpointManager.BreakpointHit += pending => Dispatcher.UIThread.Post(() =>
         {
@@ -764,6 +769,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _autoLaunchLegacyHost = _preferences.GetBoolPref(PreferenceKeys.AutoLaunchLegacyHost, false);
         LoadNetworkPreferences();
+        LoadRetentionPreferences();
         LoadAutoResponderRules();
         if (_autoLaunchLegacyHost)
         {
@@ -880,6 +886,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 _extensionHost.CreateSessionHost(),
                 allowRemoteClients: AllowRemoteClients);
             _proxy.Http2Enabled = Http2Enabled;
+            _proxy.SkipDecryptionHosts = SkipDecryptionHosts;
             IsRunning = true;
             ShowBoundPort(_proxy.Port);
 
@@ -907,6 +914,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             try
             {
                 await RunOffUiThreadOnMacAsync(() => SystemProxyController.Enable(proxy.Port));
+                _registeredAsSystemProxy = true;
                 StatusText =
                     $"Listening on {listeningOn}{portNote} and registered as the system proxy -- " +
                     "browsers and most other apps on this machine will route through here automatically " +
@@ -951,6 +959,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _proxy.Stop();
         _proxy = null;
+        _registeredAsSystemProxy = false;
         SetStarting(true);
         try
         {
@@ -1195,6 +1204,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         return entries;
     }
 
+    private int LoadedExtensionCount =>
+        _extensionHost.AutoTampers.Count
+        + _extensionHost.RequestInspectors.Count
+        + _extensionHost.ResponseInspectors.Count
+        + _extensionHost.Importers.Count
+        + _extensionHost.Exporters.Count
+        + _extensionHost.ExecActionHandlers.Count
+        + _extensionHost.ShimExtensions.Count;
+
     /// <summary>Lists every folder scanned, so it's clear where extensions were looked for.</summary>
     private string BuildExtensionStatus()
     {
@@ -1207,13 +1225,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 : $"Folder not found, nothing scanned: '{folder}'.");
         }
 
-        var loadedCount = _extensionHost.AutoTampers.Count
-            + _extensionHost.RequestInspectors.Count
-            + _extensionHost.ResponseInspectors.Count
-            + _extensionHost.Importers.Count
-            + _extensionHost.Exporters.Count
-            + _extensionHost.ExecActionHandlers.Count
-            + _extensionHost.ShimExtensions.Count;
+        var loadedCount = LoadedExtensionCount;
         lines.Add(
             $"Loaded: {_extensionHost.AutoTampers.Count} AutoTamper, " +
             $"{_extensionHost.RequestInspectors.Count} request inspector, " +
@@ -1516,6 +1528,36 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         return chosen;
     }
+
+    /// <summary>Help > Copy Diagnostic Info: puts <see cref="BuildDiagnosticInfo"/> on the clipboard.</summary>
+    public async Task CopyDiagnosticInfoAsync(Func<string, Task> setClipboardText)
+    {
+        try
+        {
+            await setClipboardText(BuildDiagnosticInfo());
+            StatusText = "Diagnostic info copied -- paste it into the bug report's Diagnostic info box.";
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Couldn't copy the diagnostic info: {ex.Message}";
+        }
+    }
+
+    /// <summary>The text a bug report asks for (see DiagnosticReport).</summary>
+    public string BuildDiagnosticInfo() => DiagnosticReport.Format(new DiagnosticSnapshot
+    {
+        Version = DiagnosticReport.DisplayVersion(typeof(MainWindowViewModel).Assembly),
+        Port = _proxy?.Port,
+        ListensOnAllInterfaces = _proxy?.AllowsRemoteClients == true,
+        RegisteredAsSystemProxy = _proxy is null ? null : _registeredAsSystemProxy,
+        Upstream = GatewayStatus,
+        Http2Enabled = Http2Enabled,
+        RootCertificate = _authority?.RootCertificate,
+        SessionCount = Sessions.Count,
+        ExtensionCount = LoadedExtensionCount,
+        FiddlerScriptLoaded = _fiddlerScriptRunner.IsLoaded,
+        LastStatus = StatusText,
+    });
 
     /// <summary>
     /// Help > Documentation: opens the bundled User Guide, which works offline

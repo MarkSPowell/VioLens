@@ -112,8 +112,9 @@ shaped several decisions:
 - **Extensibility early**, not as a retrofit.
 - **A deadlock-safe preferences store.** It takes no lock on reads and never
   holds one across I/O or a watcher callback (see the Preferences Design).
-- **Bounded memory.** Captured bodies are capped. Eviction and spilling
-  large bodies to disk are still to do.
+- **Bounded memory.** Captured bodies are capped, and the session list
+  can keep only the newest N sessions. Spilling large bodies to disk is
+  still to do.
 
 One repeat is deliberate: the core type is called `Session`, which he
 regrets, because tenet 1 matters more here. HTTP/2 is now in preview
@@ -167,17 +168,15 @@ Must have:
    system proxy (and whether `networksetup` needs admin rights), restoring
    proxy settings after a crash, and the notarized install. Then update the
    README's macOS limitation.
-4. **Memory over long captures.** Bodies are capped at 64 MB each, but the
-   session list never trims itself. Add a "keep only the newest N
-   sessions" setting, as Fiddler Classic had.
-5. **Skip decryption for chosen hosts.** Apps that pin certificates break
-   through any decrypting proxy, so users need to tunnel those hosts
-   without decrypting them. Fiddler Classic had this; it should be a
-   `violens.config.*` list (see above).
-6. **Diagnostics for bug reports.** A GitHub issue form asking for OS,
-   VioLens version, browser or app, proxy setup (system, PAC, VPN,
-   Docker, localhost), certificate trust and the error, plus Help > Copy
-   diagnostic info to fill most of it in.
+4. **Memory over long captures.** Done: a Keep drop-down (Fiddler
+   Classic's "Keep: N sessions") backed by `SessionStore.MaxSessions`.
+5. **Skip decryption for chosen hosts.** Done: the
+   `violens.config.https.skipdecryption` list, edited on the Connections
+   row, tunnels those hosts untouched
+   (`InterceptingProxyListener.SkipDecryptionHosts`).
+6. **Diagnostics for bug reports.** Done: the bug report issue form
+   (`.github/ISSUE_TEMPLATE/bug_report.yml`) and Help > Copy Diagnostic
+   Info to fill most of it in.
 
 Should have:
 
@@ -196,8 +195,8 @@ DHCP proxy discovery on macOS, built-in NetLog import, `CustomRules.cs`,
 a headless/CLI mode, and spilling large bodies to disk.
 
 Suggested order: 6, 4 and 5 first (small to medium, and users will
-notice), then the macOS test and the docs, then HTTP/2 and the API freeze
-together so the API is frozen once it's stable.
+notice; done), then the macOS test and the docs, then HTTP/2 and the API
+freeze together so the API is frozen once it's stable.
 
 ## Still undecided
 

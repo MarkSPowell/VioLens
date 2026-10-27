@@ -202,6 +202,28 @@ public sealed class InterceptingProxyListener
         set => Volatile.Write(ref _http2Enabled, value ? 1 : 0);
     }
 
+    private IReadOnlyList<string> _skipDecryptionHosts = [];
+
+    /// <summary>
+    /// Hosts whose HTTPS traffic passes through without being decrypted:
+    /// Fiddler Classic's "Skip decryption for the following hosts", for apps
+    /// that pin their server's certificate and so refuse any decrypting
+    /// proxy. Entries are in <see cref="UpstreamProxy.BypassList"/>'s format:
+    /// exact names and <c>*</c> wildcards (<c>*.example.com</c>, which
+    /// doesn't match <c>example.com</c> itself). Such a connection is
+    /// recorded as one <c>CONNECT</c> session with no requests inside it,
+    /// flagged <see cref="NoDecryptFlag"/>. Read when each CONNECT arrives,
+    /// so it can change while running.
+    /// </summary>
+    public IReadOnlyList<string> SkipDecryptionHosts
+    {
+        get => Volatile.Read(ref _skipDecryptionHosts);
+        set => Volatile.Write(ref _skipDecryptionHosts, [.. value ?? throw new ArgumentNullException(nameof(value))]);
+    }
+
+    /// <summary>Fiddler's flag for a tunnel left encrypted; on the CONNECT session of a host in <see cref="SkipDecryptionHosts"/>.</summary>
+    public const string NoDecryptFlag = "x-no-decrypt";
+
     /// <summary>Replaces the normal check of servers' certificates. Tests only, for origins with test certificates.</summary>
     internal RemoteCertificateValidationCallback? UpstreamCertificateValidation { get; set; }
 
@@ -482,6 +504,11 @@ public sealed class InterceptingProxyListener
             }
 
             var (targetHost, targetPort) = ParseConnectTarget(first.Target);
+            if (UpstreamProxy.MatchesHostList(targetHost, SkipDecryptionHosts))
+            {
+                await TunnelWithoutDecryptingAsync(clientStream, first, targetHost, targetPort, cancellationToken);
+                return;
+            }
 
             var established = "HTTP/1.1 200 Connection Established\r\n\r\n"u8.ToArray();
             await clientStream.WriteAsync(established, cancellationToken);
@@ -530,6 +557,81 @@ public sealed class InterceptingProxyListener
         catch (Exception ex)
         {
             ProxyEngine.Log("proxy", $"Connection ended: {DescribeException(ex)}");
+        }
+    }
+
+    /// <summary>
+    /// A CONNECT for a host in <see cref="SkipDecryptionHosts"/>: connects to
+    /// the server (through the same routes as any other HTTPS connection),
+    /// then passes the client's bytes through untouched, TLS handshake and
+    /// all, so the client sees the server's own certificate.
+    /// </summary>
+    private async Task TunnelWithoutDecryptingAsync(
+        Stream clientStream, CapturedRequest connect, string targetHost, int targetPort, CancellationToken cancellationToken)
+    {
+        var startedAt = DateTimeOffset.Now;
+        var flags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [NoDecryptFlag] = "the host is in the skip-decryption list",
+        };
+
+        TcpClient server;
+        try
+        {
+            server = await OpenServerTunnelAsync(targetHost, targetPort, cancellationToken);
+        }
+        catch (Exception ex) when (ex is SocketException or IOException)
+        {
+            var failed = BadGateway(targetHost, targetPort, ex);
+            await HttpMessageWriter.WriteResponseAsync(clientStream, failed, cancellationToken);
+            _sessionStore.Add(targetHost, startedAt, connect, failed, flags, "http");
+            return;
+        }
+
+        using (server)
+        {
+            // Written by hand: a 2xx answer to CONNECT has no Content-Length.
+            await clientStream.WriteAsync("HTTP/1.1 200 Connection Established\r\n\r\n"u8.ToArray(), cancellationToken);
+            var session = _sessionStore.Add(
+                targetHost, startedAt, connect, new CapturedResponse("HTTP/1.1", 200, "Connection Established", [], []), flags, "http");
+            ProxyEngine.Log("session", $"#{session.Id} CONNECT {connect.Target} -- not decrypted (skip-decryption list)");
+
+            // clientStream may already hold the start of the client's TLS
+            // handshake, read ahead with the CONNECT; it's relayed first.
+            await RelayRawBytesUntilClosedAsync(clientStream, server.GetStream(), cancellationToken);
+        }
+    }
+
+    /// <summary>A plain TCP connection to the server: direct, or a CONNECT tunnel through the chosen proxy.</summary>
+    private async Task<TcpClient> OpenServerTunnelAsync(string targetHost, int targetPort, CancellationToken cancellationToken)
+    {
+        var routes = await ChooseRoutesAsync(isTls: true, targetHost, targetPort, "/", cancellationToken);
+        for (var i = 0; ; i++)
+        {
+            var route = routes[i];
+            try
+            {
+                if (route is not null)
+                {
+                    return await route.ConnectTunnelAsync(targetHost, targetPort, ProxyCredential, cancellationToken);
+                }
+
+                var direct = new TcpClient { NoDelay = true };
+                try
+                {
+                    await direct.ConnectAsync(targetHost, targetPort, cancellationToken);
+                    return direct;
+                }
+                catch
+                {
+                    direct.Dispose();
+                    throw;
+                }
+            }
+            catch (SocketException ex) when (i + 1 < routes.Count)
+            {
+                ProxyEngine.Log("proxy", $"{targetHost}: couldn't reach {DescribeRoute(route)} ({ex.Message}); trying {DescribeRoute(routes[i + 1])}.");
+            }
         }
     }
 

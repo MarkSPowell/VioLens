@@ -176,10 +176,12 @@
         <MenuItem Header="Remove _Root Certificate" Command="{Binding RemoveRootCertificateCommand}" />
       </MenuItem>
 
-      <!-- Documentation opens the bundled User Guide. About is a Click handler
-           because the dialog needs this window as its owner. -->
+      <!-- Documentation opens the bundled User Guide. About and Copy
+           Diagnostic Info are Click handlers because they need this window
+           (as the dialog's owner, and for the clipboard). -->
       <MenuItem Header="_Help" x:Name="HelpMenu">
         <MenuItem Header="_Documentation" Command="{Binding OpenDocumentationCommand}" />
+        <MenuItem Header="Copy Diagnostic _Info" Click="CopyDiagnosticInfoMenuItem_Click" />
         <Separator />
         <MenuItem Header="_About VioLens" Click="AboutMenuItem_Click" />
       </MenuItem>
@@ -229,6 +231,13 @@
                           Width="130" />
           <Button Content="Start" Command="{Binding StartCommand}" Classes="accent" />
           <Button Content="Stop" Command="{Binding StopCommand}" />
+          <!-- Fiddler Classic's "Keep: N sessions", so a long capture doesn't
+               grow without limit. Oldest sessions go first. -->
+          <TextBlock Text="Keep:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" Margin="8,0,0,0" />
+          <ComboBox ItemsSource="{Binding SessionsToKeepLabels}"
+                    SelectedIndex="{Binding SessionsToKeepIndex, Mode=TwoWay}"
+                    ToolTip.Tip="Once the session list holds this many sessions, the oldest are removed as new ones arrive. Choose a limit for long captures, so VioLens's memory use stays steady."
+                    VerticalAlignment="Center" />
         </StackPanel>
 
         <!-- See SessionQuery for the syntax. -->
@@ -316,6 +325,16 @@
                     IsChecked="{Binding Http2Enabled, Mode=TwoWay}"
                     ToolTip.Tip="Lets browsers talk to VioLens over HTTP/2 for HTTPS sites, as they would to the site itself. VioLens then uses HTTP/2 with the site too when it supports it, and HTTP/1.1 otherwise. Applies to new connections straight away."
                     VerticalAlignment="Center" />
+          <!-- Fiddler Classic's "Skip decryption for the following hosts",
+               for apps that pin certificates. -->
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Skip decryption for:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
+            <TextBox Text="{Binding SkipDecryptionHostsText, Mode=TwoWay}"
+                     PlaceholderText="*.apple.com; login.example.com"
+                     ToolTip.Tip="HTTPS traffic to these hosts passes through VioLens without being decrypted, so apps that only accept their server's own certificate keep working. Each shows as a single CONNECT session. Separate hosts with semicolons; * matches any part of a name. Applies to new connections straight away."
+                     VerticalAlignment="Center"
+                     Width="360" />
+          </StackPanel>
         </StackPanel>
       </Grid>
     </Border>

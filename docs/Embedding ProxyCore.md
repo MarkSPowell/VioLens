@@ -50,6 +50,11 @@ and the listener then uses it with servers that offer it. An HTTP/2
 session's `HttpVersion` is `HTTP/2`, and response trailers are in
 `CapturedResponse.Trailers`.
 
+For a long-running host, set `SessionStore.MaxSessions` to keep only the
+newest sessions (evictions raise `SessionsRemoved`), and
+`InterceptingProxyListener.SkipDecryptionHosts` to tunnel hosts that pin
+their certificates without decrypting them.
+
 ## Requirements
 
 - .NET 10. ProxyCore uses TLS and compression features that .NET Framework

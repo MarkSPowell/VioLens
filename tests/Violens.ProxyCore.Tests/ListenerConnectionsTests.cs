@@ -348,6 +348,75 @@ public class ListenerConnectionsTests
         Assert.Equal(forProxy, ProxyHomePage.IsRequestForProxy(target, 8888));
     }
 
+    [Fact]
+    public async Task TunnelsSkipDecryptionHostsWithoutDecrypting()
+    {
+        using var root = NewRoot();
+        // Not TLS at all: anything VioLens tried to decrypt would fail.
+        await using var origin = UpstreamProxyTests.FakeProxy.Start("server bytes\r\n\r\n");
+        var (store, recorded) = RecordingStore();
+        var listener = InterceptingProxyListener.StartOnAvailablePort(0, new LeafCertificateProvider(root), store);
+        listener.SkipDecryptionHosts = ["example.test", "127.0.0.*"];
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            using var client = new TcpClient();
+            await client.ConnectAsync(IPAddress.Loopback, listener.Port, timeout.Token);
+            var stream = client.GetStream();
+
+            // The client's first bytes come with the CONNECT, as a client that
+            // doesn't wait for the 200 sends them.
+            await stream.WriteAsync(
+                Encoding.ASCII.GetBytes($"CONNECT 127.0.0.1:{origin.Port} HTTP/1.1\r\nHost: 127.0.0.1:{origin.Port}\r\n\r\nclient bytes\r\n\r\n"),
+                timeout.Token);
+
+            Assert.Equal("HTTP/1.1 200 Connection Established\r\n\r\n", await UpstreamProxyTests.FakeProxy.ReadHeadAsync(stream));
+            Assert.Equal("server bytes\r\n\r\n", await UpstreamProxyTests.FakeProxy.ReadHeadAsync(stream));
+            Assert.Equal("client bytes\r\n\r\n", await origin.Received.Task.WaitAsync(timeout.Token));
+
+            var session = await recorded.Task.WaitAsync(timeout.Token);
+            Assert.Equal("CONNECT", session.Request.Method);
+            Assert.Equal(200, session.Response.StatusCode);
+            Assert.Equal($"127.0.0.1:{origin.Port}", SessionUrl.Of(session));
+            Assert.True(session.Flags!.ContainsKey(InterceptingProxyListener.NoDecryptFlag));
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task ASkipDecryptionHostThatCantBeReachedGetsA502()
+    {
+        using var root = NewRoot();
+        var (store, recorded) = RecordingStore();
+        var listener = InterceptingProxyListener.StartOnAvailablePort(0, new LeafCertificateProvider(root), store);
+        listener.SkipDecryptionHosts = ["127.0.0.1"];
+        try
+        {
+            // Nothing listens on port 1.
+            var response = await SendPlainAsync(listener.Port, "CONNECT 127.0.0.1:1 HTTP/1.1\r\nHost: 127.0.0.1:1\r\n\r\n");
+
+            Assert.Equal(502, response.StatusCode);
+            var session = await recorded.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.Equal(502, session.Response.StatusCode);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Theory]
+    [InlineData("api.example.com", true)]
+    [InlineData("API.EXAMPLE.COM", true)]
+    [InlineData("example.com", false)]
+    [InlineData("pinned.test", true)]
+    [InlineData("other.test", false)]
+    public void SkipDecryptionHostsUseTheBypassListFormat(string host, bool matches) =>
+        Assert.Equal(matches, UpstreamProxy.MatchesHostList(host, ["*.example.com", " pinned.test "]));
+
     private static (SessionStore Store, TaskCompletionSource<Session> Recorded) RecordingStore()
     {
         var store = new SessionStore();

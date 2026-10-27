@@ -17,6 +17,9 @@ internal static class PreferenceKeys
 
     public const string FilterText = "violens.ui.filter.text";
 
+    /// <summary>How many sessions to keep, oldest removed first; 0 keeps every session.</summary>
+    public const string SessionsToKeep = "violens.ui.sessionlist.keep";
+
     public const string FiddlerScriptPath = "violens.fiddlerscript.path";
     public const string AutoLaunchLegacyHost = "violens.extensions.legacyhost.autolaunch";
 
@@ -26,6 +29,13 @@ internal static class PreferenceKeys
 
     /// <summary>Whether browsers may use HTTP/2 with VioLens.</summary>
     public const string Http2 = "violens.proxy.http2.enabled";
+
+    /// <summary>
+    /// Hosts whose HTTPS traffic is tunnelled without decrypting it, for apps
+    /// that pin certificates. A list preference (semicolon-separated, with
+    /// <c>*</c> wildcards), per the Project Plan's extensible config lists.
+    /// </summary>
+    public const string SkipDecryptionHosts = "violens.config.https.skipdecryption";
 
     /// <summary>The user name for an upstream proxy that asks for a sign-in. The password is never saved.</summary>
     public const string UpstreamProxyUserName = "violens.proxy.upstream.username";
