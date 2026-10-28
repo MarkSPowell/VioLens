@@ -39,12 +39,16 @@ if (pipeName is null || token is null)
     return 2;
 }
 
-using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+// CurrentUserOnly: refuse a pipe of that name made by another account. The
+// app takes commands only from this host (the token above proves that to
+// it), but this host would otherwise carry out commands from whoever owns
+// the pipe: start capturing, trust a root, read and write files.
+using var pipe = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
 try
 {
     pipe.Connect(30_000);
 }
-catch (Exception ex) when (ex is TimeoutException or IOException)
+catch (Exception ex) when (ex is TimeoutException or IOException or UnauthorizedAccessException)
 {
     Console.Error.WriteLine($"Couldn't connect to the app's pipe: {ex.Message}");
     return 3;

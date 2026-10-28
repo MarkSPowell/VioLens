@@ -73,6 +73,59 @@ public class UpstreamTlsProbeTests
     }
 
     [Fact]
+    public async Task SendsTheChosenClientCertificate()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        var leaf = new LeafCertificateProvider(root).GetCertificateFor("localhost");
+        using var clientCertificate = LeafCertificateProvider.CreateLeaf(root, "client.test", notBefore, notBefore.AddDays(1));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var serverTask = Task.Run(async () =>
+            {
+                using var connection = await listener.AcceptTcpClientAsync(timeout.Token);
+                using var tls = new SslStream(connection.GetStream(), leaveInnerStreamOpen: false);
+                await tls.AuthenticateAsServerAsync(
+                    new SslServerAuthenticationOptions
+                    {
+                        ServerCertificate = leaf,
+                        ClientCertificateRequired = true,
+                        RemoteCertificateValidationCallback = (_, certificate, _, _) => certificate is not null,
+                        EnabledSslProtocols = SslProtocols.None,
+                    },
+                    timeout.Token);
+                await tls.WriteAsync(new byte[] { 1 }, timeout.Token);
+                return tls.RemoteCertificate?.Subject;
+            });
+
+            using var client = new TcpClient();
+            await client.ConnectAsync(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndpoint).Port, timeout.Token);
+            using var clientTls = new SslStream(client.GetStream(), leaveInnerStreamOpen: false);
+            string? askedFor = null;
+            var probe = new UpstreamTlsProbe(host =>
+            {
+                askedFor = host;
+                return clientCertificate;
+            });
+            probe.Attach(clientTls);
+            await clientTls.AuthenticateAsClientAsync(probe.CreateOptions("localhost", (_, _, _, _) => true), timeout.Token);
+            await clientTls.ReadExactlyAsync(new byte[1], timeout.Token);
+
+            Assert.Equal(clientCertificate.Subject, await serverTask);
+            Assert.Equal("localhost", askedFor);
+            Assert.Equal(clientCertificate.Subject, probe.Snapshot().ClientCertificateSent);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
     public async Task DescribesAnOrdinaryConnection()
     {
         var tls = await HandshakeAsync(serverAsksForCertificate: false);

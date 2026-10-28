@@ -231,6 +231,13 @@ public sealed class ListenerHttp2UpstreamTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Http2IsOnByDefault()
+    {
+        var listener = new InterceptingProxyListener(0, new LeafCertificateProvider(_root), new SessionStore());
+        Assert.True(listener.Http2Enabled);
+    }
+
+    [Fact]
     public async Task TheComposerFallsBackToHttp11WhenHttp2IsOff()
     {
         var listener = Start();

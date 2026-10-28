@@ -196,7 +196,9 @@ public sealed partial class MainWindowViewModel
                 lines.Add(
                     "The server asked for a client certificate (mutual TLS)" +
                     (tls.AcceptableIssuers.Count > 0 ? $", issued by: {tls.DescribeAcceptableIssuers()}." : ", from any issuer.") +
-                    " VioLens doesn't send one yet, so the server saw no certificate.");
+                    (tls.ClientCertificateSent is { } sent
+                        ? $" VioLens sent {sent}."
+                        : " VioLens sent none: choose one under Tools > Connections, with this host in its list."));
             }
         }
 

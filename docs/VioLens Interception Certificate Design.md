@@ -59,9 +59,14 @@ Classic's own documented setup walks users through.
 ### Removal
 
 `CertificateAuthority.Uninstall()` removes the root from both the
-personal and trusted-root stores — the "one-click removal" mechanics this
-design calls for. It's implemented but **not yet wired up to any UI or
-CLI command** — there's no menu item or button that calls it yet.
+personal and trusted-root stores, and `CertificateAuthority.RemoveRoots`
+removes every root with VioLens's name, including ones from earlier
+installs, along with their keys. Both are wired up: **Tools > Remove Root
+Certificate** in the app, the Windows uninstaller (through
+`Program.RemoveRootCertificateArgument`), and
+`ProxyHostClient.UninstallRootCertificateAsync` for apps using the proxy
+host. On Windows the OS asks before each removal from the trusted-root
+store; a "No" keeps that root's key too, so nothing is left half-removed.
 
 ## Leaf certificates (`LeafCertificateProvider`)
 
@@ -113,14 +118,15 @@ poison every future request for that host until the process restarts.
 certificate whose private key exists only in memory. On Windows,
 `SslStream`'s server-side handshake (Schannel) refuses such a certificate
 outright with "the platform does not support ephemeral keys." The fix is
-the same export-then-reimport-with-`PersistKeySet` trick the root uses,
-just without also adding the leaf to any visible store — only the key
-needs to stop being ephemeral.
-
-A known, tracked trade-off: this leaves a small CNG key-container
-artifact behind per leaf ever generated. **Cleaning those up as leaves
-expire and get evicted from the cache is a real, open follow-up — not yet
-built.**
+an export-then-reimport round trip like the root's, but without
+`PersistKeySet` and without adding the leaf to any store. The key then
+lives in a real key container, which Schannel accepts, and Windows
+deletes that container when the certificate is released. Leaf keys don't
+pile up in the user's profile. (An earlier version imported leaves with
+`PersistKeySet` and left one container behind per leaf.) A leaf dropped
+from the cache near expiry isn't disposed straight away, since a
+handshake may still be using it; its container goes when the garbage
+collector releases it.
 
 A freshly persisted key container also isn't always immediately ready for
 Schannel to use — reproduced live as an occasional, isolated
@@ -160,16 +166,13 @@ section used to pose. Mark's own calls, in order:
    set that by hand in System Settings every session. See "System proxy
    registration," below.
 
-**Unconfirmed back to this session, the same caveat every Windows-only
-piece of this project has carried the other way around: nothing here has
-run on a real Mac.** The commands below are correct as documented by
-Apple and as `security`'s own man page describes them, and the pattern
-(shell out, don't P/Invoke) is deliberately the lower-risk choice for
-exactly this reason — but the actual end-to-end behavior (does Chrome
-honor the trust setting immediately, does a fresh macOS installation's
-default keychain unlock without a password prompt for this operation,
-does the leaf certificate's 7-day validity clear whatever leaf-specific
-policy Apple's Transport Security enforces) is unverified.
+**Only partly tested on a real Mac.** The first real Mac run found the
+Start freeze described below, which is fixed, and CI checks that the
+signed app launches. A full hands-on test is item 3 of the Project Plan's
+Road to 1.0. It still has to confirm that Chrome honors the trust setting
+straight away, how the password prompt behaves, that the 7-day leaf
+certificates satisfy Apple's rules for server certificates, and that
+removal works.
 
 ### Keychain trust, mechanically
 
@@ -301,10 +304,13 @@ elevation question above has an answer.
 
 ## Open risks summary
 
-- macOS Keychain trust and system proxy registration — built this pass,
-  entirely unconfirmed against a real Mac; see "Platform status" above
-  for every specific unverified claim.
-- Leaf certificate key-container cleanup on cache eviction — tracked, not
-  built.
-- `Uninstall()` — implemented, not wired to any UI or CLI entry point (on
-  either platform).
+- macOS Keychain trust, removal and system proxy registration: built,
+  only partly tested on a real Mac (see "Platform status" above). That
+  includes whether `networksetup` needs admin rights, and whether the
+  root's key is non-extractable in the keychain.
+- Leaf key containers: no longer an open risk (see "The ephemeral-key
+  problem").
+- Root removal: wired up (see "Removal").
+
+SECURITY.md summarizes how the root, the listener and the proxy host are
+protected.

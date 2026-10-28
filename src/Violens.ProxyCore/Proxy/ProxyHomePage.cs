@@ -96,6 +96,17 @@ internal static class ProxyHomePage
             $"{ProxyEngine.Identity.ProductName} forwards http:// and https:// requests only, so it didn't forward this one ({method} {target}). " +
             $"To install its certificate on this device, browse to http://{HostName}/ with the proxy set.");
 
+    /// <summary>
+    /// The answer to another computer asking for this computer's own
+    /// loopback address (see InterceptingProxyListener.IsThisComputerAsync).
+    /// </summary>
+    internal static CapturedResponse NotForThisComputer(string target) =>
+        Text(
+            403,
+            "Forbidden",
+            $"{ProxyEngine.Identity.ProductName} doesn't let other devices reach the computer it runs on through localhost ({target}): " +
+            "that would expose services meant only for that computer.");
+
     private static CapturedResponse Text(int status, string reason, string message)
     {
         var body = Encoding.UTF8.GetBytes(message);

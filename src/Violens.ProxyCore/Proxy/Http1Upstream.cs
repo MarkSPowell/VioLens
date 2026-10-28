@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using Violens.ProxyCore.Http;
 
 namespace Violens.ProxyCore.Proxy;
@@ -18,7 +19,8 @@ internal sealed class Http1Upstream(
     Func<bool, string, int, string, CancellationToken, Task<IReadOnlyList<UpstreamProxy?>>> chooseRoutes,
     Func<NetworkCredential?> proxyCredential,
     RemoteCertificateValidationCallback? validateServer = null,
-    bool offerHttp2 = false) : IUpstream
+    bool offerHttp2 = false,
+    Func<string, X509Certificate2?>? chooseClientCertificate = null) : IUpstream
 {
     private TcpClient? _client;
     private Stream? _stream;
@@ -124,7 +126,7 @@ internal sealed class Http1Upstream(
             // The probe records a client-certificate request on the session.
             // Default certificate validation: a real upstream certificate problem
             // should show, not be hidden.
-            _tlsProbe = new UpstreamTlsProbe();
+            _tlsProbe = new UpstreamTlsProbe(chooseClientCertificate);
             _tlsProbe.Attach(tls);
             if (Timing is not null)
             {

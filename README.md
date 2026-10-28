@@ -28,7 +28,11 @@ here yet. Feedback and issues are welcome.
 - Captures plain `http://` and HTTPS traffic through a local proxy,
   decrypting HTTPS with a per-install root certificate installed into the
   current user's trusted root store — the same mechanism Fiddler Classic
-  uses.
+  uses. **Tools > Remove Root Certificate** (and the Windows uninstaller)
+  removes it again. Hosts that pin their certificates can be left
+  undecrypted (**Tools > Connections**).
+- Long captures: a **Keep** setting holds only the newest sessions, and
+  **Help > Copy Diagnostic Info** gathers what a bug report needs.
 - Registers itself as the system proxy while running — WinINET on
   Windows, per network service via `networksetup` on macOS — and recovers
   cleanly if a previous run didn't shut down properly (crash, kill,
@@ -43,7 +47,7 @@ here yet. Feedback and issues are welcome.
   for the selected session, a request summary, and a Statistics tab
   (totals, by type, status and host, slowest requests, easy wins). Timings
   are kept in SAZ and HAR files, and read from browsers' HAR exports.
-- HTTP/2 (preview, off by default; **Tools > Connections**): browsers use
+- HTTP/2 (on by default; **Tools > Connections** turns it off): browsers use
   HTTP/2 with VioLens for HTTPS sites, and VioLens uses it with sites that
   offer it, falling back to HTTP/1.1 for those that don't. Requests share
   one connection per site, trailers (gRPC's `grpc-status`) come through,
@@ -258,32 +262,20 @@ ever leaves the device on its own.
 Listed here on purpose, rather than left for someone to discover the hard
 way:
 
-- **macOS support is built, but has had little testing on a real Mac.**
-  The first real install found the `.dmg`'s app reported as "damaged",
-  because the hand-built app bundle wasn't signed as a whole; it's now
-  signed as a whole (see below), and CI checks the signature and that the app
-  launches after every macOS build; a hands-on check on a Mac is still to
-  come. Certificate
-  trust (via the `security` CLI, into the login keychain, behind
-  VioLens's own confirmation dialog since `security` has no OS-level
-  install prompt the way Windows does) and system proxy registration (via
-  `networksetup`, per network service) are both implemented — see the
-  Interception Certificate Design doc's "Platform status" section for the
-  full design, including one real open question this session couldn't
-  resolve: whether `networksetup` needs admin elevation at all. Nothing
-  here has run against a real Mac from this session; `ci.yml`'s own test
-  matrix does run on `macos-latest`, but the tests themselves are
-  deliberately pure-logic-only (argument/output parsing, no real `security`/
-  `networksetup` invocation) rather than live integration tests.
-  `.github/workflows/release-macos.yml` builds an installable `.dmg` from
-  every tagged release the same way `release-windows.yml` builds the
-  Windows one. Once the repository's signing secrets are set up (listed
-  in `release-macos.yml`'s header), the app and the `.dmg` are **Developer
-  ID signed and notarized**, so macOS opens them without asking. Without
-  those secrets, as in a fork or a test build, the app is only ad-hoc
-  signed, and macOS asks you to allow it once, in System Settings >
-  Privacy & Security > Open Anyway; see
-  `installer/macos/build-installer.sh`'s own remarks.
+- **macOS has had less real-world use than Windows.**
+  - Certificate trust uses the `security` tool, into your login keychain,
+    after VioLens's own confirmation dialog, since macOS doesn't prompt.
+  - The system proxy is set with `networksetup`, for each network service.
+  - CI checks the macOS build's signature and that it launches, but its
+    tests don't run `security` or `networksetup` for real.
+  - A full hands-on test is still to come: trust and removal, whether
+    `networksetup` needs admin rights, recovery after a crash, and the
+    notarized install. See the Interception Certificate Design's
+    "Platform status".
+  - Release builds of the `.dmg` are Developer ID signed and notarized
+    when the repository's signing secrets are set. Builds without them
+    (forks, test builds) are ad-hoc signed, and macOS asks you to allow
+    them once, in System Settings > Privacy & Security > Open Anyway.
 - **No Preferences/`about:config` editor yet.** Settings, the window's
   size and position, and AutoResponder rules are remembered between runs,
   but changed only through the app's own controls. Breakpoints and the
@@ -292,11 +284,10 @@ way:
 - **No built-in Chromium NetLog import.** NetLog import works through
   Eric Lawrence's ported NetLog importer extension (see above), an
   optional extension in the installers.
-- **HTTP/2 is a preview, off by default.** Turn it on with **Use HTTP/2
-  with browsers** under **Tools > Connections**. WebSockets stay on
-  HTTP/1.1 connections (browsers arrange that themselves), and HTTP/3
-  isn't supported: browsers don't send it through a proxy, so they use
-  HTTP/2 instead.
+- **HTTP/2 has had real-world use on Windows only so far.** WebSockets
+  stay on HTTP/1.1 connections (browsers arrange that themselves), and
+  HTTP/3 isn't supported: browsers don't send it through a proxy, so they
+  use HTTP/2 instead.
 - **Upstream proxies: plain HTTP proxies only.** A SOCKS proxy can't be
   used yet (a PAC script's SOCKS entries are skipped). Proxy sign-in
   supports Negotiate (Kerberos), NTLM and Basic, not Digest. Automatic proxy detection on macOS looks only in
@@ -312,12 +303,19 @@ way:
   proxied traffic; it's not part of the main app's own build, but the
   Windows installer can include it as an unchecked-by-default optional
   component.
-- **No client certificates (mutual TLS) yet.** When a server asks for
-  one, VioLens records that on the session (Timing and Notes tabs), but
-  doesn't send a certificate, so a server that requires one refuses the
-  connection.
+- **One client certificate (mutual TLS) at a time.** Chosen under
+  **Tools > Connections**, it's sent to every server that asks, or only to
+  the hosts you list. Fiddler Classic's
+  `ClientCertificate.cer` file and the `https-Client-Certificate` script
+  flag aren't supported.
 - **No headless/CLI mode.** Left out of this milestone by design, not by
   oversight.
+- **Bodies are kept in memory.** Each is capped at 64 MB, and the **Keep**
+  setting limits how many sessions are held, but large bodies aren't
+  spilled to disk.
+
+How the root certificate, the listener and the proxy host are protected,
+and what isn't covered yet, is in [SECURITY.md](SECURITY.md).
 
 ## Relationship to Fiddler
 

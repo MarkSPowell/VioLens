@@ -1,4 +1,5 @@
 using Avalonia.Threading;
+using Violens.AppCore.Certificates;
 using Violens.ProxyCore.Proxy;
 using Violens.ProxyCore.Proxy.AutoConfig;
 using Violens.ProxyCore.SystemProxy;
@@ -19,6 +20,10 @@ public sealed partial class MainWindowViewModel
     private string _upstreamProxySetting = string.Empty;
     private bool _allowRemoteClients;
     private bool _http2Enabled;
+    private string _skipDecryptionHostsText = string.Empty;
+    private List<ClientCertificateChoice> _clientCertificateChoices = [];
+    private string _clientCertificateThumbprint = string.Empty;
+    private string _clientCertificateHostsText = string.Empty;
     private string _gatewayStatus = "Upstream proxy: decided when capture starts.";
     private UpstreamProxyDetection? _detectedUpstream;
     private string _proxyUserName = string.Empty;
@@ -141,6 +146,88 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    /// <summary>
+    /// Hosts to tunnel without decrypting (see
+    /// InterceptingProxyListener.SkipDecryptionHosts), as typed: separated by
+    /// semicolons, commas or spaces. Applies to connections opened from now
+    /// on, even while capturing.
+    /// </summary>
+    public string SkipDecryptionHostsText
+    {
+        get => _skipDecryptionHostsText;
+        set
+        {
+            if (SetField(ref _skipDecryptionHostsText, value ?? string.Empty))
+            {
+                var hosts = SkipDecryptionHosts;
+                _preferences.SetListPref(PreferenceKeys.SkipDecryptionHosts, hosts);
+                if (_proxy is not null)
+                {
+                    _proxy.SkipDecryptionHosts = hosts;
+                }
+            }
+        }
+    }
+
+    private IReadOnlyList<string> SkipDecryptionHosts => SplitHostList(_skipDecryptionHostsText);
+
+    private static IReadOnlyList<string> SplitHostList(string text) =>
+        text.Split([';', ',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>The client certificate drop-down: "None", then each usable certificate (see ClientCertificateStore).</summary>
+    public IReadOnlyList<string> ClientCertificateLabels =>
+        ["None", .. _clientCertificateChoices.Select(c => c.Description)];
+
+    /// <summary>
+    /// Which client certificate is sent when a server asks for one (mutual
+    /// TLS), limited by <see cref="ClientCertificateHostsText"/>; 0 is none.
+    /// Applies straight away.
+    /// </summary>
+    public int ClientCertificateIndex
+    {
+        get => _clientCertificateChoices.FindIndex(c => c.Thumbprint == _clientCertificateThumbprint) + 1;
+        set
+        {
+            var thumbprint = value >= 1 && value <= _clientCertificateChoices.Count ? _clientCertificateChoices[value - 1].Thumbprint : string.Empty;
+            if (thumbprint != _clientCertificateThumbprint)
+            {
+                _clientCertificateThumbprint = thumbprint;
+                _preferences.SetStringPref(PreferenceKeys.ClientCertificate, thumbprint);
+                ApplyClientCertificate();
+                RaisePropertyChanged();
+            }
+        }
+    }
+
+    /// <summary>
+    /// The hosts the client certificate is sent to, as typed. Empty sends it
+    /// to every server that asks.
+    /// </summary>
+    public string ClientCertificateHostsText
+    {
+        get => _clientCertificateHostsText;
+        set
+        {
+            if (SetField(ref _clientCertificateHostsText, value ?? string.Empty))
+            {
+                _preferences.SetListPref(PreferenceKeys.ClientCertificateHosts, SplitHostList(_clientCertificateHostsText));
+                ApplyClientCertificate();
+            }
+        }
+    }
+
+    /// <summary>Hands the chosen certificate and its hosts to the listener, loading the certificate from the store.</summary>
+    private void ApplyClientCertificate()
+    {
+        if (_proxy is null)
+        {
+            return;
+        }
+
+        _proxy.ClientCertificate = ClientCertificateStore.Load(_clientCertificateThumbprint);
+        _proxy.ClientCertificateHosts = SplitHostList(_clientCertificateHostsText);
+    }
+
     /// <summary>Which upstream proxy is in use, for the Connections row.</summary>
     public string GatewayStatus
     {
@@ -177,7 +264,11 @@ public sealed partial class MainWindowViewModel
         _upstreamProxySetting = _preferences.GetStringPref(PreferenceKeys.UpstreamProxy, string.Empty);
         _proxyUserName = _preferences.GetStringPref(PreferenceKeys.UpstreamProxyUserName, string.Empty);
         _allowRemoteClients = _preferences.GetBoolPref(PreferenceKeys.AllowRemoteClients, false);
-        _http2Enabled = _preferences.GetBoolPref(PreferenceKeys.Http2, false);
+        _http2Enabled = _preferences.GetBoolPref(PreferenceKeys.Http2, true);
+        _skipDecryptionHostsText = string.Join("; ", _preferences.GetListPref(PreferenceKeys.SkipDecryptionHosts, []));
+        _clientCertificateChoices = [.. ClientCertificateStore.FindUsable()];
+        _clientCertificateThumbprint = _preferences.GetStringPref(PreferenceKeys.ClientCertificate, string.Empty);
+        _clientCertificateHostsText = string.Join("; ", _preferences.GetListPref(PreferenceKeys.ClientCertificateHosts, []));
     }
 
     /// <summary>

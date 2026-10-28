@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -97,7 +98,7 @@ namespace Violens.ProxyHost.Client
             // Short: on macOS and Linux a pipe is a socket file under the temp
             // folder, and those paths are limited to about 100 characters.
             var pipeName = "vlph-" + Guid.NewGuid().ToString("N").Substring(0, 16);
-            var token = Guid.NewGuid().ToString("N");
+            var token = NewToken();
             var pipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
 
             var arguments = "--pipe " + pipeName + " --token " + token + " --parent " + Process.GetCurrentProcess().Id;
@@ -131,6 +132,22 @@ namespace Violens.ProxyHost.Client
                 TryKill(process);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 128 random bits from the cryptographic generator, as hex. The host
+        /// sends it back, proving to this app that it's the process it
+        /// started. A GUID's randomness isn't a documented guarantee.
+        /// </summary>
+        private static string NewToken()
+        {
+            var bytes = new byte[16];
+            using (var random = RandomNumberGenerator.Create())
+            {
+                random.GetBytes(bytes);
+            }
+
+            return BitConverter.ToString(bytes).Replace("-", string.Empty);
         }
 
         /// <summary>

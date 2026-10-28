@@ -139,14 +139,19 @@ public sealed record UpstreamProxy(string Host, int Port, IReadOnlyList<string> 
     /// <summary>True when <paramref name="host"/> should be connected to directly rather than through this proxy.</summary>
     public bool ShouldBypass(string host)
     {
-        if (IsLoopback(host))
-        {
-            return true;
-        }
+        return IsLoopback(host) || MatchesHostList(host, BypassList);
+    }
 
-        foreach (var entry in BypassList)
+    /// <summary>
+    /// Whether <paramref name="host"/> matches an entry in a host list in the
+    /// Windows proxy-override format (see <see cref="BypassList"/>). Also
+    /// used for <see cref="InterceptingProxyListener.SkipDecryptionHosts"/>.
+    /// </summary>
+    internal static bool MatchesHostList(string host, IReadOnlyList<string> hostList)
+    {
+        foreach (var entry in hostList)
         {
-            if (string.Equals(entry, "<local>", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(entry.Trim(), "<local>", StringComparison.OrdinalIgnoreCase))
             {
                 if (!host.Contains('.') && !host.Contains(':'))
                 {

@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
@@ -877,6 +878,15 @@ public partial class MainWindow : Window
     {
         var about = new AboutWindow();
         _ = about.ShowDialog(this);
+    }
+
+    /// <summary>Help > Copy Diagnostic Info, for pasting into a bug report.</summary>
+    private async void CopyDiagnosticInfoMenuItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel viewModel && Clipboard is { } clipboard)
+        {
+            await viewModel.CopyDiagnosticInfoAsync(text => clipboard.SetTextAsync(text));
+        }
     }
 
     /// <summary>

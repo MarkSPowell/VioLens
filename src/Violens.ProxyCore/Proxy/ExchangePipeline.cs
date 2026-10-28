@@ -376,7 +376,8 @@ internal sealed class ExchangePipeline(ExchangeServices services)
                 upstream.TargetPort,
                 ex,
                 upstream.ClientCertificateRequested
-                    ? $"The server asked for a client certificate (mutual TLS), and {ProxyEngine.Identity.ProductName} doesn't send one yet, so the server may have refused the connection for that reason."
+                    ? $"The server asked for a client certificate (mutual TLS), and may have refused the connection because it didn't get one it accepts. " +
+                      $"To send one, choose it under Tools > Connections in {ProxyEngine.Identity.ProductName}, with this host in its list."
                     : null));
             await client.WriteResponseAsync(failure, cancellationToken);
             timing.Done();

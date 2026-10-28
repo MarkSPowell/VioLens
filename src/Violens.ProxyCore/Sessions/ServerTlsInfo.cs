@@ -5,8 +5,9 @@ namespace Violens.ProxyCore.Sessions;
 /// agreed, the server's certificate, and whether the server asked for a
 /// client certificate (mutual TLS). VioLens makes its own connection to
 /// the server, so a server's request for a client certificate reaches
-/// VioLens, not the browser; this is where it shows. VioLens doesn't
-/// send a client certificate yet.
+/// VioLens, not the browser; this is where it shows, along with the
+/// certificate VioLens sent (see
+/// <see cref="Proxy.InterceptingProxyListener.ClientCertificate"/>).
 /// </summary>
 public sealed record ServerTlsInfo
 {
@@ -38,6 +39,12 @@ public sealed record ServerTlsInfo
     /// certificate; its value lists the accepted issuers. Shows in the Notes tab.
     /// </summary>
     public const string ClientCertificateRequestedFlag = "x-client-certificate-requested";
+
+    /// <summary>The subject of the client certificate VioLens sent; null when it sent none.</summary>
+    public string? ClientCertificateSent { get; init; }
+
+    /// <summary>The session flag naming the client certificate sent (<see cref="ClientCertificateSent"/>). Shows in the Notes tab.</summary>
+    public const string ClientCertificateSentFlag = "x-client-certificate-sent";
 
     /// <summary>The value of <see cref="ClientCertificateRequestedFlag"/>.</summary>
     public string DescribeAcceptableIssuers() =>

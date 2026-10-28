@@ -4,14 +4,44 @@ namespace Violens.ProxyCore.Sessions;
 
 /// <summary>
 /// Every session captured so far, in memory. <see cref="SessionAdded"/> is
-/// the change feed a UI subscribes to. Bodies are capped, but nothing is
-/// evicted or spilled to disk yet.
+/// the change feed a UI subscribes to. Bodies are capped, and
+/// <see cref="MaxSessions"/> evicts the oldest sessions; nothing is spilled
+/// to disk yet.
 /// </summary>
 public sealed class SessionStore
 {
     private readonly object _gate = new();
     private readonly List<Session> _sessions = [];
     private int _nextId = 1;
+    private int _maxSessions;
+
+    /// <summary>
+    /// Fiddler Classic's "Keep: N sessions": once there are more than this,
+    /// the oldest are removed (raising <see cref="SessionsRemoved"/>). Zero,
+    /// the default, keeps every session. Lowering it trims straight away.
+    /// </summary>
+    public int MaxSessions
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _maxSessions;
+            }
+        }
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            List<int> removed;
+            lock (_gate)
+            {
+                _maxSessions = value;
+                removed = TrimLocked();
+            }
+
+            RaiseRemoved(removed);
+        }
+    }
 
     /// <summary>
     /// Raised after a session is recorded, on the thread that recorded it (a
@@ -76,6 +106,7 @@ public sealed class SessionStore
         WebSockets.WebSocketLog? webSocket)
     {
         Session session;
+        List<int> evicted;
         lock (_gate)
         {
             session = new Session(
@@ -87,12 +118,37 @@ public sealed class SessionStore
                 WebSocket = webSocket,
             };
             _sessions.Add(session);
+            evicted = TrimLocked();
         }
 
         // Outside the lock, so subscribers can call back in and slow ones don't
-        // hold up other connections.
+        // hold up other connections. Added before removed, so a subscriber
+        // never sees a removal of a session it hasn't been told about.
         SessionAdded?.Invoke(session);
+        RaiseRemoved(evicted);
         return session;
+    }
+
+    /// <summary>Removes the oldest sessions beyond <see cref="MaxSessions"/>; returns their ids.</summary>
+    private List<int> TrimLocked()
+    {
+        var excess = _maxSessions == 0 ? 0 : _sessions.Count - _maxSessions;
+        if (excess <= 0)
+        {
+            return [];
+        }
+
+        var removed = _sessions.Take(excess).Select(s => s.Id).ToList();
+        _sessions.RemoveRange(0, excess);
+        return removed;
+    }
+
+    private void RaiseRemoved(List<int> removed)
+    {
+        if (removed.Count > 0)
+        {
+            SessionsRemoved?.Invoke(removed);
+        }
     }
 
     /// <summary>

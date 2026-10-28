@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Violens.ProxyCore.AutoResponder;
 using Violens.ProxyCore.Breakpoints;
@@ -186,21 +187,87 @@ public sealed class InterceptingProxyListener
         }
     }
 
-    private int _http2Enabled;
+    private int _http2Enabled = 1;
 
     /// <summary>
     /// Whether clients may use HTTP/2 for HTTPS traffic: offered in the TLS
     /// handshake (ALPN) alongside HTTP/1.1, and used when the client picks
     /// it. Their requests then go on to the server over HTTP/2 too, when the
     /// server supports it, and HTTP/1.1 otherwise; HTTP/1.1 clients are
-    /// unaffected. Off unless set; read
-    /// when each client connection's TLS handshake starts.
+    /// unaffected. On unless turned off; read when each client connection's
+    /// TLS handshake starts.
     /// </summary>
     public bool Http2Enabled
     {
         get => Volatile.Read(ref _http2Enabled) == 1;
         set => Volatile.Write(ref _http2Enabled, value ? 1 : 0);
     }
+
+    private IReadOnlyList<string> _skipDecryptionHosts = [];
+
+    /// <summary>
+    /// Hosts whose HTTPS traffic passes through without being decrypted:
+    /// Fiddler Classic's "Skip decryption for the following hosts", for apps
+    /// that pin their server's certificate and so refuse any decrypting
+    /// proxy. Entries are in <see cref="UpstreamProxy.BypassList"/>'s format:
+    /// exact names and <c>*</c> wildcards (<c>*.example.com</c>, which
+    /// doesn't match <c>example.com</c> itself). Such a connection is
+    /// recorded as one <c>CONNECT</c> session with no requests inside it,
+    /// flagged <see cref="NoDecryptFlag"/>. Read when each CONNECT arrives,
+    /// so it can change while running.
+    /// </summary>
+    public IReadOnlyList<string> SkipDecryptionHosts
+    {
+        get => Volatile.Read(ref _skipDecryptionHosts);
+        set => Volatile.Write(ref _skipDecryptionHosts, [.. value ?? throw new ArgumentNullException(nameof(value))]);
+    }
+
+    private X509Certificate2? _clientCertificate;
+    private IReadOnlyList<string> _clientCertificateHosts = [];
+
+    /// <summary>
+    /// The certificate VioLens sends when a server asks for one (mutual
+    /// TLS), limited to <see cref="ClientCertificateHosts"/> when that's set. It
+    /// needs its private key (one from the user's personal certificate
+    /// store, say). Null, the default, sends none. The session records what
+    /// was sent (<see cref="ServerTlsInfo.ClientCertificateSent"/>). Read
+    /// when each server connection's handshake asks, so it can change while
+    /// running.
+    /// </summary>
+    public X509Certificate2? ClientCertificate
+    {
+        get => Volatile.Read(ref _clientCertificate);
+        set
+        {
+            if (value is { HasPrivateKey: false })
+            {
+                throw new ArgumentException("A client certificate needs its private key.", nameof(value));
+            }
+
+            Volatile.Write(ref _clientCertificate, value);
+        }
+    }
+
+    /// <summary>
+    /// The hosts <see cref="ClientCertificate"/> is sent to, in
+    /// <see cref="UpstreamProxy.BypassList"/>'s format. Empty, the default,
+    /// sends it to every server that asks, as a browser offers its
+    /// certificate; list hosts to keep it from servers it isn't meant for.
+    /// </summary>
+    public IReadOnlyList<string> ClientCertificateHosts
+    {
+        get => Volatile.Read(ref _clientCertificateHosts);
+        set => Volatile.Write(ref _clientCertificateHosts, [.. value ?? throw new ArgumentNullException(nameof(value))]);
+    }
+
+    private X509Certificate2? ChooseClientCertificate(string host) =>
+        ClientCertificate is { } certificate &&
+        (ClientCertificateHosts.Count == 0 || UpstreamProxy.MatchesHostList(host, ClientCertificateHosts))
+            ? certificate
+            : null;
+
+    /// <summary>Fiddler's flag for a tunnel left encrypted; on the CONNECT session of a host in <see cref="SkipDecryptionHosts"/>.</summary>
+    public const string NoDecryptFlag = "x-no-decrypt";
 
     /// <summary>Replaces the normal check of servers' certificates. Tests only, for origins with test certificates.</summary>
     internal RemoteCertificateValidationCallback? UpstreamCertificateValidation { get; set; }
@@ -449,6 +516,10 @@ public sealed class InterceptingProxyListener
             // CONNECT reads through it too, so nothing read ahead is lost.
             using var clientStream = new ReadBufferedStream(client.GetStream());
             var idleTimeout = ClientIdleTimeout;
+
+            // Only possible with AllowsRemoteClients. Such a client mustn't
+            // reach this computer's loopback-only services through VioLens.
+            var isRemoteClient = client.Client.RemoteEndPoint is IPEndPoint remote && !IPAddress.IsLoopback(remote.Address);
             var first = await ReadRequestPreambleWithinAsync(clientStream, idleTimeout, cancellationToken);
             if (first is null)
             {
@@ -477,11 +548,23 @@ public sealed class InterceptingProxyListener
                 await PumpSessionsAsync(
                     isTls: false, string.Empty, PlainHttpRequest.DefaultPort, client, clientStream, first, _sessionStore,
                     _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
-                    () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, cancellationToken);
+                    () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient,
+                    ChooseClientCertificate, cancellationToken);
                 return;
             }
 
             var (targetHost, targetPort) = ParseConnectTarget(first.Target);
+            if (isRemoteClient && await IsThisComputerAsync(targetHost, cancellationToken))
+            {
+                await AnswerAsync(clientStream, first, ProxyHomePage.NotForThisComputer(first.Target), cancellationToken);
+                return;
+            }
+
+            if (UpstreamProxy.MatchesHostList(targetHost, SkipDecryptionHosts))
+            {
+                await TunnelWithoutDecryptingAsync(clientStream, first, targetHost, targetPort, cancellationToken);
+                return;
+            }
 
             var established = "HTTP/1.1 200 Connection Established\r\n\r\n"u8.ToArray();
             await clientStream.WriteAsync(established, cancellationToken);
@@ -521,7 +604,8 @@ public sealed class InterceptingProxyListener
             await PumpSessionsAsync(
                 isTls: true, targetHost, targetPort, client, new ReadBufferedStream(clientTls), firstRequest: null, _sessionStore, _breakpointManager,
                 _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
-                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, cancellationToken);
+                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient: false,
+                ChooseClientCertificate, cancellationToken);
         }
         catch (BreakpointAbortedException ex)
         {
@@ -531,6 +615,116 @@ public sealed class InterceptingProxyListener
         {
             ProxyEngine.Log("proxy", $"Connection ended: {DescribeException(ex)}");
         }
+    }
+
+    /// <summary>
+    /// A CONNECT for a host in <see cref="SkipDecryptionHosts"/>: connects to
+    /// the server (through the same routes as any other HTTPS connection),
+    /// then passes the client's bytes through untouched, TLS handshake and
+    /// all, so the client sees the server's own certificate.
+    /// </summary>
+    private async Task TunnelWithoutDecryptingAsync(
+        Stream clientStream, CapturedRequest connect, string targetHost, int targetPort, CancellationToken cancellationToken)
+    {
+        var startedAt = DateTimeOffset.Now;
+        var flags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [NoDecryptFlag] = "the host is in the skip-decryption list",
+        };
+
+        TcpClient server;
+        try
+        {
+            server = await OpenServerTunnelAsync(targetHost, targetPort, cancellationToken);
+        }
+        catch (Exception ex) when (ex is SocketException or IOException)
+        {
+            var failed = BadGateway(targetHost, targetPort, ex);
+            await HttpMessageWriter.WriteResponseAsync(clientStream, failed, cancellationToken);
+            _sessionStore.Add(targetHost, startedAt, connect, failed, flags, "http");
+            return;
+        }
+
+        using (server)
+        {
+            // Written by hand: a 2xx answer to CONNECT has no Content-Length.
+            await clientStream.WriteAsync("HTTP/1.1 200 Connection Established\r\n\r\n"u8.ToArray(), cancellationToken);
+            var session = _sessionStore.Add(
+                targetHost, startedAt, connect, new CapturedResponse("HTTP/1.1", 200, "Connection Established", [], []), flags, "http");
+            ProxyEngine.Log("session", $"#{session.Id} CONNECT {connect.Target} -- not decrypted (skip-decryption list)");
+
+            // clientStream may already hold the start of the client's TLS
+            // handshake, read ahead with the CONNECT; it's relayed first.
+            await RelayRawBytesUntilClosedAsync(clientStream, server.GetStream(), cancellationToken);
+        }
+    }
+
+    /// <summary>A plain TCP connection to the server: direct, or a CONNECT tunnel through the chosen proxy.</summary>
+    private async Task<TcpClient> OpenServerTunnelAsync(string targetHost, int targetPort, CancellationToken cancellationToken)
+    {
+        var routes = await ChooseRoutesAsync(isTls: true, targetHost, targetPort, "/", cancellationToken);
+        for (var i = 0; ; i++)
+        {
+            var route = routes[i];
+            try
+            {
+                if (route is not null)
+                {
+                    return await route.ConnectTunnelAsync(targetHost, targetPort, ProxyCredential, cancellationToken);
+                }
+
+                var direct = new TcpClient { NoDelay = true };
+                try
+                {
+                    await direct.ConnectAsync(targetHost, targetPort, cancellationToken);
+                    return direct;
+                }
+                catch
+                {
+                    direct.Dispose();
+                    throw;
+                }
+            }
+            catch (SocketException ex) when (i + 1 < routes.Count)
+            {
+                ProxyEngine.Log("proxy", $"{targetHost}: couldn't reach {DescribeRoute(route)} ({ex.Message}); trying {DescribeRoute(routes[i + 1])}.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="host"/> is this computer through a loopback
+    /// address: <c>localhost</c>, <c>*.localhost</c>, a loopback or
+    /// unspecified address (<c>0.0.0.0</c> reaches this computer on macOS),
+    /// or a name that resolves to one. A name that can't be resolved isn't;
+    /// connecting to it fails anyway. The answer could change between here
+    /// and the connection (DNS rebinding), a narrow gap that remains.
+    /// </summary>
+    internal static async Task<bool> IsThisComputerAsync(string host, CancellationToken cancellationToken)
+    {
+        if (UpstreamProxy.IsLoopback(host) || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (IPAddress.TryParse(host.Trim('[', ']'), out var literal))
+        {
+            return IsLoopbackOrUnspecified(literal);
+        }
+
+        try
+        {
+            var addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
+            return addresses.Any(IsLoopbackOrUnspecified);
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
+
+        static bool IsLoopbackOrUnspecified(IPAddress address) =>
+            IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any) ||
+            (address.IsIPv4MappedToIPv6 && IsLoopbackOrUnspecified(address.MapToIPv4()));
     }
 
     /// <summary>Drains a plain request's body, sends VioLens's own answer, and logs it.</summary>
@@ -584,8 +778,14 @@ public sealed class InterceptingProxyListener
         long maxCapturedBodyBytes,
         TimeSpan idleTimeout,
         RemoteCertificateValidationCallback? validateServer,
+        bool isRemoteClient,
+        Func<string, X509Certificate2?> chooseClientCertificate,
         CancellationToken cancellationToken)
     {
+        // isRemoteClient: a plain connection from another computer, whose
+        // requests mustn't reach this computer's own loopback services (a
+        // CONNECT tunnel's one target is checked before it gets here).
+        //
         // clientTls is the TLS stream for a CONNECT tunnel, or the plain
         // connection for http:// requests. A plain connection can carry
         // requests for different servers, so the target is set per request.
@@ -593,7 +793,8 @@ public sealed class InterceptingProxyListener
         var pipeline = new ExchangePipeline(new ExchangeServices(
             sessionStore, breakpointManager, autoResponderRules, scriptRunner, extensionHost, sessionHost, proxyUrl, maxCapturedBodyBytes));
         var client = new Http1ClientExchange(clientConnection, clientTls);
-        using var upstream = new Http1Upstream(isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer);
+        using var upstream = new Http1Upstream(
+            isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer, chooseClientCertificate: chooseClientCertificate);
         var pendingRequest = firstRequest;
 
         while (true)
@@ -625,6 +826,12 @@ public sealed class InterceptingProxyListener
                 if (!PlainHttpRequest.TryNormalize(requestPreamble, out var normalized, out var plainHost, out var plainPort))
                 {
                     await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.NotForwarded(requestPreamble.Method, requestPreamble.Target), cancellationToken);
+                    return;
+                }
+
+                if (isRemoteClient && await IsThisComputerAsync(plainHost, cancellationToken))
+                {
+                    await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.NotForThisComputer(requestPreamble.Target), cancellationToken);
                     return;
                 }
 
@@ -697,7 +904,8 @@ public sealed class InterceptingProxyListener
         await using var tunnel = new Http2TunnelUpstreams(
             targetHost,
             targetPort,
-            offerHttp2 => new Http1Upstream(isTls: true, targetHost, targetPort, ChooseRoutesAsync, () => ProxyCredential, validateServer, offerHttp2));
+            offerHttp2 => new Http1Upstream(
+                isTls: true, targetHost, targetPort, ChooseRoutesAsync, () => ProxyCredential, validateServer, offerHttp2, ChooseClientCertificate));
 
         var exchanges = new List<Task>();
         var inProgress = 0;
@@ -841,6 +1049,10 @@ public sealed class InterceptingProxyListener
             ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, string>(flags, StringComparer.OrdinalIgnoreCase);
         combined[ServerTlsInfo.ClientCertificateRequestedFlag] = tls.DescribeAcceptableIssuers();
+        if (tls.ClientCertificateSent is { } sent)
+        {
+            combined[ServerTlsInfo.ClientCertificateSentFlag] = sent;
+        }
         return combined;
     }
 

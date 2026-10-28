@@ -118,11 +118,17 @@ To remove sessions, use **Edit > Remove Selected Session** (or press
 sessions are gone for good: they're no longer in the list or in what
 **Save SAZ** writes.
 
+For long captures, the drop-down next to Start and Stop (**Keep all
+sessions** by default, as in Fiddler Classic) limits how many sessions
+VioLens holds: **Keep newest 100** up to **Keep newest 10,000**. Once the
+list is full, the oldest session is removed as each new one arrives, so
+memory use stays steady.
+
 The **Version** column shows the HTTP version the browser used with
 VioLens, followed by the one VioLens used with the server when they differ:
 `HTTP/2 → HTTP/1.1` means the browser used HTTP/2 but the site only offered
-HTTP/1.1. HTTP/2 is a preview and off by default; turn it on with **Use
-HTTP/2 with browsers** under **Tools > Connections**. (Fiddler Classic's
+HTTP/1.1. HTTP/2 is on by default; to see everything as HTTP/1.1, turn off
+**Use HTTP/2 with browsers** under **Tools > Connections**. (Fiddler Classic's
 Protocol column showed HTTP or HTTPS; here that's the start of the URL.)
 
 The **Image Bloat** column shows, for image responses, the bloat bytes out
@@ -408,7 +414,8 @@ Replay sends the captured request byte for byte, whatever its body.
 
 To send over HTTP/2, write `HTTP/2` as the version on the first line of an
 `https://` request; Replay of an HTTP/2 session does the same. That needs
-**Use HTTP/2 with browsers** on (under **Tools > Connections**). Without
+**Use HTTP/2 with browsers** on (under **Tools > Connections**; it's on
+unless you turned it off). Without
 it the request goes over HTTP/1.1 and the Composer says so. SAZ files save
 HTTP/2 sessions as `HTTP/2.0` and HAR files as `http/2.0`, as Chrome does.
 
@@ -505,16 +512,48 @@ proxy set, open `http://violens/` to download VioLens's root
 certificate, and follow the instructions on that page to install and trust
 it. Anyone on your network can use the proxy while this is on, so turn it
 off when you've finished, and remove the certificate from the other device.
+Other devices can't reach this computer's own `localhost` services
+through VioLens; they get a "403 Forbidden" page instead.
 
-**Use HTTP/2 with browsers (preview).** Lets browsers use HTTP/2 with
+**Use HTTP/2 with browsers.** Lets browsers use HTTP/2 with
 VioLens for HTTPS sites, as they would with the site itself. VioLens then
 uses HTTP/2 with each site that offers it, with all that site's requests
-sharing one connection, and HTTP/1.1 with sites that don't. It's off by
-default while it's a preview. Changes apply straight away to new
+sharing one connection, and HTTP/1.1 with sites that don't. It's on by
+default; turn it off if you'd rather every request went over HTTP/1.1, as
+in Fiddler Classic. If you turned it off while it was a preview, it stays
+off until you tick it. Changes apply straight away to new
 connections, so reload the page (or restart the browser) to move off
 connections it already has open. The session list's **Version** column
 shows which version each side used. WebSockets still use HTTP/1.1, and
 plain `http://` sites are unaffected.
+
+**Skip decryption for.** Some apps only accept their own server's
+certificate (certificate pinning), so they fail through any proxy that
+decrypts HTTPS, VioLens included. List their hosts here, separated by
+semicolons, and VioLens passes that traffic through without decrypting
+it. `*` matches any part of a name: `*.example.com` covers
+`api.example.com` but not `example.com` itself, so list both if you need
+both. Each such connection shows as one `CONNECT` session, with no
+requests inside it. Changes apply to new connections straight away. The
+list is saved as `violens.config.https.skipdecryption` in
+`preferences.json`.
+
+**Client certificate.** Some servers ask the browser for a certificate of
+its own (mutual TLS), often on company sites. Through VioLens, that
+request reaches VioLens, not the browser, so VioLens answers it.
+- Choose the certificate from the drop-down. It lists your personal
+  certificates that have a private key and may be used to sign in to
+  servers; on Windows that's the Personal store, on macOS your login
+  keychain.
+- With the box after **for** left empty, the certificate goes to every
+  server that asks for one, as a browser would offer it. To keep it from
+  other servers, list the hosts it's for there, in the same format as
+  above.
+- The Timing tab and Notes say whether the server asked, and which
+  certificate VioLens sent.
+- VioLens sends one certificate. Fiddler Classic's `ClientCertificate.cer`
+  file and FiddlerScript's `https-Client-Certificate` flag aren't
+  supported.
 
 ## FiddlerScript
 
@@ -681,7 +720,10 @@ and macOS:
 - Which Tools-menu panels are shown (FiddlerScript, Extensions, Legacy
   Extension Host, Also Break On, Connections)
 - The upstream proxy setting, the proxy sign-in user name (not the
-  password) and whether remote computers may connect
+  password), whether remote computers may connect, HTTP/2, the
+  skip-decryption hosts, and the client certificate and its hosts
+- Whether to check for updates at start-up
+- How many sessions to keep
 - The window's size and position, and whether it was maximized
 - The session list's columns: which are shown, their order and widths
 - TextWizard's last conversion and character encoding
@@ -714,14 +756,29 @@ had is lost. To reset every setting, quit VioLens and delete the file.
   for `.md` files. If nothing is set up for them, you'll find the file at
   `docs/User Guide.md` in the VioLens source tree, or in a `Documentation`
   folder next to the app's executable.
+- **Help > Copy Diagnostic Info** copies what a bug report needs: the
+  VioLens version, OS, whether capture is running and how, the upstream
+  proxy, HTTP/2, whether the root certificate is trusted, the network
+  adapters (which show a VPN or Docker) and the last status message. It
+  leaves out your computer's name, and only says whether proxy environment
+  variables are set, not what they're set to. Paste it into the
+  **Diagnostic info** box of a
+  [bug report](https://github.com/MarkSPowell/VioLens/issues/new?template=bug_report.yml).
+- **Checking for updates.** At start-up VioLens asks GitHub whether a
+  newer release is out. If one is, a button beside the title says so and
+  opens the release's page. If you're running a preview you're offered
+  newer previews too; otherwise only full releases. **Help > Check for
+  Updates** asks straight away. To stop the start-up check, untick **Help
+  > Check for Updates at Start-up**. The check is one request to GitHub's
+  public releases list and sends nothing about you or your traffic.
+  VioLens never downloads or installs anything itself.
 - **Help > About VioLens** shows which build you're running. That's
   useful when you report an issue or want to check you're on the latest
   preview.
 
 ## Known limitations
 
-VioLens is still a preview. The main gaps are HTTP/2 (a preview, off by
-default), client
-certificates, SOCKS proxies and Digest proxy sign-in, and the Mac build
-has had less use than the Windows one. The full list is in the Known
+VioLens is still a preview. The main gaps are SOCKS proxies and Digest
+proxy sign-in, sending only one client certificate, and the Mac build
+having had less use than the Windows one. The full list is in the Known
 limitations section of [README.md](../README.md).

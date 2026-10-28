@@ -44,11 +44,21 @@ the rest of the solution, so it always matches the real API.
 | Settings | `PreferenceStore`, `IPreferenceStore` |
 
 It speaks HTTP/1.1 to clients and servers, including WebSockets (messages
-are recorded, permessage-deflate included). HTTP/2 is a preview: set
-`InterceptingProxyListener.Http2Enabled` to let clients use it over TLS,
-and the listener then uses it with servers that offer it. An HTTP/2
+are recorded, permessage-deflate included), and HTTP/2 over TLS: clients
+may pick it, and the listener then uses it with servers that offer it.
+That's on by default; set `InterceptingProxyListener.Http2Enabled` to
+false to keep every client on HTTP/1.1. An HTTP/2
 session's `HttpVersion` is `HTTP/2`, and response trailers are in
 `CapturedResponse.Trailers`.
+
+For a long-running host, set `SessionStore.MaxSessions` to keep only the
+newest sessions (evictions raise `SessionsRemoved`), and
+`InterceptingProxyListener.SkipDecryptionHosts` to tunnel hosts that pin
+their certificates without decrypting them. For servers that ask for a
+client certificate (mutual TLS), set `ClientCertificate` (with its private
+key), and optionally `ClientCertificateHosts` to limit which servers get
+it (empty means every server that asks); a session's
+`Timings.Tls.ClientCertificateSent` says what was sent.
 
 ## Requirements
 

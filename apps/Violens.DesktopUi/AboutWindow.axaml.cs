@@ -1,6 +1,7 @@
 using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Violens.AppCore.Diagnostics;
 
 namespace Violens.DesktopUi;
 
@@ -11,14 +12,7 @@ public partial class AboutWindow : Window
     {
         InitializeComponent();
 
-        // InformationalVersion, because the numeric assembly and file versions
-        // can't carry a "-preview.1" suffix.
-        var informationalVersion = Assembly.GetExecutingAssembly()
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion ?? "unknown";
-
-        // Drop any "+metadata" so the version matches the git tag.
-        VersionText.Text = $"Version {informationalVersion.Split('+')[0]}";
+        VersionText.Text = $"Version {DiagnosticReport.DisplayVersion(Assembly.GetExecutingAssembly())}";
     }
 
     private void CloseButton_Click(object? sender, RoutedEventArgs e) => Close();

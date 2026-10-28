@@ -176,10 +176,17 @@
         <MenuItem Header="Remove _Root Certificate" Command="{Binding RemoveRootCertificateCommand}" />
       </MenuItem>
 
-      <!-- Documentation opens the bundled User Guide. About is a Click handler
-           because the dialog needs this window as its owner. -->
+      <!-- Documentation opens the bundled User Guide. About and Copy
+           Diagnostic Info are Click handlers because they need this window
+           (as the dialog's owner, and for the clipboard). -->
       <MenuItem Header="_Help" x:Name="HelpMenu">
         <MenuItem Header="_Documentation" Command="{Binding OpenDocumentationCommand}" />
+        <MenuItem Header="Copy Diagnostic _Info" Click="CopyDiagnosticInfoMenuItem_Click" />
+        <Separator />
+        <MenuItem Header="Check for _Updates" Command="{Binding CheckForUpdatesNowCommand}" />
+        <MenuItem Header="Check for Updates at _Start-up"
+                  ToggleType="CheckBox"
+                  IsChecked="{Binding CheckForUpdatesAtStartup, Mode=TwoWay}" />
         <Separator />
         <MenuItem Header="_About VioLens" Click="AboutMenuItem_Click" />
       </MenuItem>
@@ -195,6 +202,14 @@
                  FontSize="13"
                  Foreground="{DynamicResource AppMutedTextBrush}"
                  VerticalAlignment="Center" />
+      <!-- The update notice (see MainWindowViewModel.Updates.cs). -->
+      <Button Content="{Binding UpdateNotice}"
+              Command="{Binding OpenUpdatePageCommand}"
+              IsVisible="{Binding HasUpdate}"
+              Classes="accent"
+              ToolTip.Tip="Opens the release's page on GitHub, with its notes and downloads."
+              VerticalAlignment="Center"
+              Margin="12,0,0,0" />
     </StackPanel>
 
     <Border DockPanel.Dock="Top"
@@ -229,6 +244,15 @@
                           Width="130" />
           <Button Content="Start" Command="{Binding StartCommand}" Classes="accent" />
           <Button Content="Stop" Command="{Binding StopCommand}" />
+          <!-- Fiddler Classic's "Keep: N sessions", so a long capture doesn't
+               grow without limit. Oldest sessions go first. -->
+          <!-- The entries say what they do ("Keep newest 1,000"), so there's
+               no separate label to miss. -->
+          <ComboBox ItemsSource="{Binding SessionsToKeepLabels}"
+                    SelectedIndex="{Binding SessionsToKeepIndex, Mode=TwoWay}"
+                    ToolTip.Tip="Once the session list holds this many sessions, the oldest are removed as new ones arrive. Choose a limit for long captures, so VioLens's memory use stays steady."
+                    Margin="8,0,0,0"
+                    VerticalAlignment="Center" />
         </StackPanel>
 
         <!-- See SessionQuery for the syntax. -->
@@ -312,10 +336,36 @@
                       VerticalAlignment="Center" />
             <TextBlock Text="{Binding RemoteClientsHint}" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" TextWrapping="Wrap" />
           </StackPanel>
-          <CheckBox Content="Use HTTP/2 with browsers (preview)"
+          <CheckBox Content="Use HTTP/2 with browsers"
                     IsChecked="{Binding Http2Enabled, Mode=TwoWay}"
-                    ToolTip.Tip="Lets browsers talk to VioLens over HTTP/2 for HTTPS sites, as they would to the site itself. VioLens then uses HTTP/2 with the site too when it supports it, and HTTP/1.1 otherwise. Applies to new connections straight away."
+                    ToolTip.Tip="On by default. Lets browsers talk to VioLens over HTTP/2 for HTTPS sites, as they would to the site itself. VioLens then uses HTTP/2 with the site too when it supports it, and HTTP/1.1 otherwise. Turn it off to see every request as HTTP/1.1. Applies to new connections straight away."
                     VerticalAlignment="Center" />
+          <!-- Fiddler Classic's "Skip decryption for the following hosts",
+               for apps that pin certificates. -->
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Skip decryption for:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
+            <TextBox Text="{Binding SkipDecryptionHostsText, Mode=TwoWay}"
+                     PlaceholderText="*.apple.com; login.example.com"
+                     ToolTip.Tip="HTTPS traffic to these hosts passes through VioLens without being decrypted, so apps that only accept their server's own certificate keep working. Each shows as a single CONNECT session. Separate hosts with semicolons; * matches any part of a name. Applies to new connections straight away."
+                     VerticalAlignment="Center"
+                     Width="360" />
+          </StackPanel>
+          <!-- Mutual TLS: the certificate VioLens sends when a server asks;
+               to every server, or only the listed hosts. -->
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Client certificate:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
+            <ComboBox ItemsSource="{Binding ClientCertificateLabels}"
+                      SelectedIndex="{Binding ClientCertificateIndex, Mode=TwoWay}"
+                      ToolTip.Tip="The certificate VioLens sends to a server that asks for one (mutual TLS). The list shows your personal certificates that have a private key and can be used to sign in to servers."
+                      VerticalAlignment="Center"
+                      MaxWidth="420" />
+            <TextBlock Text="for" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
+            <TextBox Text="{Binding ClientCertificateHostsText, Mode=TwoWay}"
+                     PlaceholderText="every server that asks"
+                     ToolTip.Tip="Leave empty to send the certificate to every server that asks for one. To limit it, list hosts separated by semicolons; * matches any part of a name, as in *.corp.example."
+                     VerticalAlignment="Center"
+                     Width="260" />
+          </StackPanel>
         </StackPanel>
       </Grid>
     </Border>
