@@ -790,7 +790,7 @@ something to build in this phase.
 **Update — Fiddler's own licensing history, and what changed in August
 2026.** Fiddler was created by Eric Lawrence and was free to use from the
 start. Telerik acquired it in 2012, and Progress Software acquired Telerik
-in 2014. In August 2026 Progress changed the Fiddler Classic licence so
+in 2014. In August 2026 Progress changed the Fiddler Classic license so
 that it may be used only for non-commercial purposes, directing
 commercial users to its Fiddler Everywhere product (see Progress's
 [Fiddler Classic commercial-use page](https://www.telerik.com/fiddler/fiddler-classic/commercial-use)).
@@ -799,7 +799,7 @@ This doesn't change anything this project depends on. The clean-room
 research read the five real extension DLLs' own metadata (third-party
 binaries with their own licensing) and Progress's public API
 documentation, never Progress's Fiddler.exe or FiddlerCore binaries, so
-Fiddler Classic's licence, old or new, doesn't govern it. It did make the
+Fiddler Classic's license, old or new, doesn't govern it. It did make the
 naming question above more important to settle, which led to Strategy 5
 below and, later, to the second rename. "Fiddler" and related names are
 trademarks of Progress Software Corporation; this project uses them only
@@ -1597,7 +1597,7 @@ tunnels are still never passed to extensions, and `x-replywithtunnel` is
 ignored: VioLens always answers CONNECT itself and opens the upstream
 connection lazily, which is what that flag asked for.
 
-## Update — menus, session-list columns and row colours (Sept 2026)
+## Update — menus, session-list columns and row colors (Sept 2026)
 
 Ported to test these: Eric Lawrence's Privacy Scanner sample (see the
 Extension Test Targets doc).
@@ -1615,7 +1615,7 @@ Extension Test Targets doc).
 - **Row styling** reads `ui-backcolor`, `ui-color`, `ui-bold`,
   `ui-italic`, `ui-strikeout` and `ui-hide` (`SessionRowStyle`). The grid
   tags each row with classes as it's shown, and styles in
-  `MainWindow.axaml` apply the colours; a selected row drops its custom
+  `MainWindow.axaml` apply the colors; a selected row drops its custom
   background so the selection stays visible.
 - **Peek-hook header edits** are kept: `ShimAutoTamperSet` applies header
   changes made in `OnPeekAtRequestHeaders`/`OnPeekAtResponseHeaders` to

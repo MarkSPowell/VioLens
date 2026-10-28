@@ -99,8 +99,8 @@ its README).
 ## Shipping them as optional extensions
 
 `installer/build-extensions.ps1` runs `port.ps1`, builds all three in
-Release, and collects each `.dll` with its licence text and a
-`THIRD-PARTY-NOTICES.txt` (source, commit, licence and what the port
+Release, and collects each `.dll` with its license text and a
+`THIRD-PARTY-NOTICES.txt` (source, commit, license and what the port
 changed; Apache-2.0 requires the last). The release workflows use it: the
 Windows installer offers each as an optional task installed into
 `<app>\Extensions`, and the macOS `.dmg` gets an **Optional Extensions**

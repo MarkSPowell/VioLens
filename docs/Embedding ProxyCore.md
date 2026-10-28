@@ -388,7 +388,7 @@ service's web proxies.
 For corporate networks:
 
 - `listener.Gateway = UpstreamProxy.Parse("proxy.contoso.com:8080")` sends
-  everything through a proxy, with its bypass list honoured.
+  everything through a proxy, with its bypass list honored.
 - `listener.AutoConfig = ProxyAutoConfig.FromScript(pacText)` (or
   `ProxyAutoConfig.Create(autoDetect: true, scriptUrl, fallback)` for WPAD)
   asks a PAC script which proxy to use for each connection.

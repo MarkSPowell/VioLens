@@ -1,9 +1,9 @@
 # VioLens
 
 An open source HTTP(S) inspection tool for developers — a spiritual
-successor to Fiddler Web Debugger (Fiddler Classic), whose licence
+successor to Fiddler Web Debugger (Fiddler Classic), whose license
 Progress Software changed in 2026 to allow non-commercial use only.
-VioLens is free for any use, under the MIT licence. It's an independent
+VioLens is free for any use, under the MIT license. It's an independent
 project, not affiliated with Progress or Telerik (see
 [Relationship to Fiddler](#relationship-to-fiddler)).
 
@@ -90,7 +90,7 @@ here yet. Feedback and issues are welcome.
 - Capturing phones and other computers: "Allow remote computers to
   connect", and a page at `http://violens/` for installing VioLens's
   certificate on the other device.
-- Rows in the session list can be coloured, bold, italic, struck through
+- Rows in the session list can be colored, bold, italic, struck through
   or hidden by an extension or importer (Fiddler's `ui-backcolor` and
   related session flags), and sessions can be removed from the list
   (**Edit > Remove Selected Session / Remove All Sessions**).
@@ -127,7 +127,7 @@ here yet. Feedback and issues are welcome.
   Windows and macOS. Ported extensions can import sessions, work on live
   traffic (one session object per request, and answering requests
   themselves), and add their own menus, tabs, session-list columns and
-  row colours. Working so far:
+  row colors. Working so far:
   - **NetLog importer** (Eric Lawrence's): builds with only its
     `using Fiddler;` lines removed.
   - **CSP Rule Collector**: a VioLens-only fork,
@@ -137,7 +137,7 @@ here yet. Feedback and issues are welcome.
     cookie viewing itself is built in (the Cookies tab).
 
   All three come with the installers as optional extensions, each with
-  its own licence: the Windows installer offers them as ticked boxes
+  its own license: the Windows installer offers them as checked boxes
   (Privacy Scanner off by default), and the macOS `.dmg` has an
   **Optional Extensions** folder to copy them from. See the User Guide.
 
@@ -333,14 +333,14 @@ decompiled or leaked Fiddler source, and with no code from Fiddler. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for the full clean-room policy that
 governs every contribution here. The optional extensions included with
 the installers are separate works by their authors, under their own
-licences (see `THIRD-PARTY-NOTICES.txt` alongside them).
+licenses (see `THIRD-PARTY-NOTICES.txt` alongside them).
 
 VioLens is inspired by Eric Lawrence's public writing about Fiddler,
 including his post [Fiddler in 2026](https://textslashplain.com/2026/08/05/fiddler-in-2026/),
 and by his public [Clearinet](https://github.com/ericlaw1979/Clearinet)
 repository. It isn't his project, and he hasn't contributed code to it.
 It does build on some of his published open source work, under its own
-licences: the ported NetLog importer and the CSP Rule Collector fork
+licenses: the ported NetLog importer and the CSP Rule Collector fork
 (see above).
 
 ## Credits

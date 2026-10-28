@@ -90,12 +90,12 @@ tabs:
   name, type and size.
 - **ImageView** (only for an image): the picture itself, with its format,
   pixel size and size in bytes. PNG, JPEG, GIF, WebP, BMP and ICO are
-  recognised even when the Content-Type is wrong. For PNG, JPEG, GIF and
+  recognized even when the Content-Type is wrong. For PNG, JPEG, GIF and
   WebP it also lists any **image bloat**: bytes that don't change how the
   image looks, such as EXIF camera data, XMP, editing-program data,
   comments, text, or data after the end of the image. Removing them makes
   the file smaller with no visible change. (EXIF can hold the photo's
-  orientation, which browsers honour, so keep that tag if the image relies
+  orientation, which browsers honor, so keep that tag if the image relies
   on it.)
 - **Hex**: a hex dump of the raw bytes.
 - **Cookies** (only on a side that has cookies): on the request side,
@@ -134,10 +134,10 @@ Protocol column showed HTTP or HTTPS; here that's the start of the URL.)
 The **Image Bloat** column shows, for image responses, the bloat bytes out
 of the file's size and the percentage. Rows where bloat is at least a
 quarter of the file (and at least 1 KB) are tinted orange, unless something
-else has already coloured the row.
+else has already colored the row.
 
 Importers, extensions and scripts can also mark sessions for the list: a
-row can have its own background or text colour, be bold, italic or struck
+row can have its own background or text color, be bold, italic or struck
 through, or be hidden (it's still captured and saved). Extensions can add
 columns to the list, too.
 
@@ -174,10 +174,10 @@ browsers' developer tools do:
 
 - The **Waterfall** column in the session list draws each session on a
   shared time axis, from the first session shown to the last one finishing.
-  Each bar is split into phases: **Queueing** (grey: reading the request,
+  Each bar is split into phases: **Queueing** (gray: reading the request,
   scripts and extensions, breakpoints), **DNS lookup** (teal), **Initial
   connection** (orange), **TLS handshake** (purple), **Request sent**
-  (blue-grey), **Waiting for server** (green: time to first byte) and
+  (blue-gray), **Waiting for server** (green: time to first byte) and
   **Content download** (blue). A request that reused an open connection
   has no DNS, connection or TLS phases. Hover over a bar for the numbers.
 - The line under the list sums up what's shown: how many requests, how much
@@ -305,7 +305,7 @@ Ctrl+E, it becomes the input.
 | Deflate to Base64 / Inflate from Base64 (SAML) | The compression SAML's redirect binding uses. Inflating also accepts a URL-encoded value copied from `SAMLRequest=`, and zlib or gzip data |
 
 **Characters as** chooses how text becomes bytes, and bytes text: UTF-8
-(the default), Latin-1 or UTF-16. It's greyed out for the conversions where
+(the default), Latin-1 or UTF-16. It's grayed out for the conversions where
 it doesn't matter. When decoded bytes aren't text in that encoding (an
 image, or compressed data, say), the output is a hex dump and a note says
 so. **Use output as input** moves the result up to convert it again, for
@@ -521,7 +521,7 @@ uses HTTP/2 with each site that offers it, with all that site's requests
 sharing one connection, and HTTP/1.1 with sites that don't. It's on by
 default; turn it off if you'd rather every request went over HTTP/1.1, as
 in Fiddler Classic. If you turned it off while it was a preview, it stays
-off until you tick it. Changes apply straight away to new
+off until you check it. Changes apply straight away to new
 connections, so reload the page (or restart the browser) to move off
 connections it already has open. The session list's **Version** column
 shows which version each side used. WebSockets still use HTTP/1.1, and
@@ -575,7 +575,7 @@ Besides the request and response hooks, a loaded script can add to the
 app in these places:
 
 - **Rules menu** (in the menu bar): filled from the rule options and
-  choices the script declares. It's empty and greyed out when no script is
+  choices the script declares. It's empty and grayed out when no script is
   loaded or the script declares none; hover over it to see why.
 - **Script Actions** (a row of buttons in the FiddlerScript panel, below
   Load and Reload): one button per action the script declares. The row
@@ -599,14 +599,14 @@ in your Documents folder is used.
 ### Optional extensions included with VioLens
 
 Three extensions come with the installers. Each is a separate work by its
-author, under its own licence (see `THIRD-PARTY-NOTICES.txt` and the
+author, under its own license (see `THIRD-PARTY-NOTICES.txt` and the
 `licenses` folder that come with them):
 
 | Extension | What it does | Windows installer |
 |---|---|---|
-| NetLog importer (`VioLensNetLog.dll`) | Imports Chromium/Edge NetLog captures | Ticked by default |
-| CSP Rule Collector (`VioLensCSP.dll`) | Builds a Content-Security-Policy for the sites you browse | Ticked by default |
-| Privacy Scanner (`PrivacyScanner.dll`) | Colours responses that set cookies and checks P3P headers | Unticked (P3P is obsolete; mostly an example extension) |
+| NetLog importer (`VioLensNetLog.dll`) | Imports Chromium/Edge NetLog captures | Checked by default |
+| CSP Rule Collector (`VioLensCSP.dll`) | Builds a Content-Security-Policy for the sites you browse | Checked by default |
+| Privacy Scanner (`PrivacyScanner.dll`) | Colors responses that set cookies and checks P3P headers | Unchecked (P3P is obsolete; mostly an example extension) |
 
 - **Windows:** choose them on the installer's "Select Additional Tasks"
   page. Run the installer again to add or remove one.
@@ -625,7 +625,7 @@ from the File menu:
 - **File > Import via Extension…**
 - **File > Export via Extension…**
 
-Each is greyed out (with a tooltip saying why) until a loaded extension
+Each is grayed out (with a tooltip saying why) until a loaded extension
 supports it. If your extensions offer more than one format, you're asked
 which to use, with last time's choice already selected. If there's only
 one, it's used straight away.
@@ -654,19 +654,19 @@ Content-Security-Policy a page needs, has a VioLens-only version:
 [CSP-CLeARINET-Extension](https://github.com/MarkSPowell/CSP-CLeARINET-Extension),
 a fork of the Fiddler extension with an Avalonia tab. It's one of the
 optional extensions above (or build it yourself; see its README). Open
-the **CSP Rule Collector** tab, tick **Enable Rule Collection**, clear the
-browser's cache and browse the site. Untick it when you're done: while
+the **CSP Rule Collector** tab, check **Enable Rule Collection**, clear the
+browser's cache and browse the site. Uncheck it when you're done: while
 it's on, responses get extra
 report-only CSP headers and aren't cached. While it's collecting, the
 browser sends many report requests to `fiddlercsp.deletethis.net`; the
-extension answers them itself, and they're shown struck through. Tick
+extension answers them itself, and they're shown struck through. Check
 **Tools > Hide CSP Report Requests** to leave new ones out of the list,
 and use **Edit > Remove All Sessions** to clear ones already there.
 
 Ported extensions can add their own menus (before **Help**, or in
-**Tools**), session-list columns and row colours. The optional Privacy
+**Tools**), session-list columns and row colors. The optional Privacy
 Scanner, for example, adds a **Privacy** menu, a **Privacy Info** column
-and row colours. See `docs/Extension Test Targets.md` for what's supported
+and row colors. See `docs/Extension Test Targets.md` for what's supported
 so far.
 
 ## Legacy Fiddler Classic extensions
@@ -768,7 +768,7 @@ had is lost. To reset every setting, quit VioLens and delete the file.
   newer release is out. If one is, a button beside the title says so and
   opens the release's page. If you're running a preview you're offered
   newer previews too; otherwise only full releases. **Help > Check for
-  Updates** asks straight away. To stop the start-up check, untick **Help
+  Updates** asks straight away. To stop the start-up check, uncheck **Help
   > Check for Updates at Start-up**. The check is one request to GitHub's
   public releases list and sends nothing about you or your traffic.
   VioLens never downloads or installs anything itself.

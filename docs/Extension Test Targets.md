@@ -25,8 +25,8 @@ written before the work started and is kept for its reasoning.
 | # | Extension | State |
 |---|---|---|
 | 1 | NetLog importer | **Ported (milestones 1 and 2).** Builds from upstream with only its three `using Fiddler;` lines deleted. Loads through `ExtensionHost` and imports on both platforms in CI (the extension-ports test step in `ci.yml`). See "NetLog port: known differences" below. Included with the installers as an optional extension. |
-| 2 | Cookie/P3P sample | **Built in, and ported as a test.** Cookie viewing is built in (the Cookies tab, `CookiesInspector`). The sample itself (Eric Lawrence's Privacy Scanner) is also ported, from Telerik's docs repo at a pinned commit, as the test of extension menus, flag-bound session-list columns and row colours. Also included with the installers as an optional extension, off by default. |
-| 3 | ImageBloat | **Built in.** VioLens's own `ImageBloatAnalyzer` finds bytes that don't change how a PNG, JPEG, GIF or WebP looks (metadata, comments, text, trailing data), shown in an Image Bloat column (heavily bloated rows are tinted) and on the ImageView tab. Designed from the published description of the extension's behaviour; its rules come from the format specifications, not its code. Not done: the extension's in-page overlay, which rewrites images in flight. |
+| 2 | Cookie/P3P sample | **Built in, and ported as a test.** Cookie viewing is built in (the Cookies tab, `CookiesInspector`). The sample itself (Eric Lawrence's Privacy Scanner) is also ported, from Telerik's docs repo at a pinned commit, as the test of extension menus, flag-bound session-list columns and row colors. Also included with the installers as an optional extension, off by default. |
+| 3 | ImageBloat | **Built in.** VioLens's own `ImageBloatAnalyzer` finds bytes that don't change how a PNG, JPEG, GIF or WebP looks (metadata, comments, text, trailing data), shown in an Image Bloat column (heavily bloated rows are tinted) and on the ImageView tab. Designed from the published description of the extension's behavior; its rules come from the format specifications, not its code. Not done: the extension's in-page overlay, which rewrites images in flight. |
 | 4 | CSP Rule Collector | **VioLens-only fork** ([MarkSPowell/CSP-CLeARINET-Extension](https://github.com/MarkSPowell/CSP-CLeARINET-Extension), builds `VioLensCSP.dll`). Its traffic code runs on the new per-request hooks (`ShimAutoTamperSet`) with only renames; its tab is rewritten in Avalonia. Fiddler Classic users keep the original. Headless tests in `tests/ExtensionPorts`, built from the fork at a pinned commit. Tried in the app against real sites. The fork also fixes two things that affect the original: current browsers report inline code and `eval()` as the keywords `inline`/`eval` (the original turned them into `inline:`), and rule order no longer depends on the machine's language settings. It adds **Tools > Hide CSP Report Requests**. Included with the installers as an optional extension. |
 
 ## Port or build in?
@@ -38,7 +38,7 @@ something almost everyone needs. Record the verdict and the reason here.
 
 **Build it into VioLens when most of these are true:**
 
-- Most users would want it. Examples: it's standard HTTP behaviour
+- Most users would want it. Examples: it's standard HTTP behavior
   (cookies, caching, compression), or it's a Fiddler Classic built-in
   people expect.
 - It's small and well specified, usually by an RFC or a web standard,
@@ -60,7 +60,7 @@ something almost everyone needs. Record the verdict and the reason here.
 **Either way:**
 
 - A built-in feature is our own clean-room code, designed from the
-  behaviour and the relevant standards. It never copies the extension's
+  behavior and the relevant standards. It never copies the extension's
   source, and it never uses the extension's name or branding.
 - If we build in something an extension already does, tell its author.
 - Features that a port forces us to build (stateful hooks, extension
@@ -72,8 +72,8 @@ something almost everyone needs. Record the verdict and the reason here.
 | Extension | Verdict | Why |
 |---|---|---|
 | NetLog importer | Port (done) | Large, subtle parser that its author maintains. It proved `ISessionImporter` compatibility. |
-| Cookie/P3P sample | Build in: a Cookies inspector that parses `Cookie` and `Set-Cookie` with their attributes | Every web developer needs cookie inspection. It's well specified (RFC 6265), and the extension is a docs sample. P3P is obsolete, because no current browser honours it, so it gets no dedicated feature: the header still shows on the Headers tab. The sample is still worth porting, since it's the smallest real user of the menu, column and row-colour hooks; it's offered as an optional extension, off by default. |
-| ImageBloat | Build in (proposed): flag images whose size is far larger than their pixel dimensions justify, or that carry large metadata | Its source and license are unconfirmed, and `System.Drawing` is Windows-only. Every front-end developer benefits. Design it clean-room from the behaviour. |
+| Cookie/P3P sample | Build in: a Cookies inspector that parses `Cookie` and `Set-Cookie` with their attributes | Every web developer needs cookie inspection. It's well specified (RFC 6265), and the extension is a docs sample. P3P is obsolete, because no current browser honors it, so it gets no dedicated feature: the header still shows on the Headers tab. The sample is still worth porting, since it's the smallest real user of the menu, column and row-color hooks; it's offered as an optional extension, off by default. |
+| ImageBloat | Build in (proposed): flag images whose size is far larger than their pixel dimensions justify, or that carry large metadata | Its source and license are unconfirmed, and `System.Drawing` is Windows-only. Every front-end developer benefits. Design it clean-room from the behavior. |
 | CSP Rule Collector | Port | It's specialist, MIT-licensed, and maintained. It forces two proxy features that many extensions need: one session object kept across a request's hooks, and extensions answering requests themselves. Its WinForms tab gets an Avalonia rewrite. Revisit building it in if CSP work proves popular. |
 
 ## The central finding: today's "source-level" compatibility isn't close enough yet
@@ -240,7 +240,7 @@ we get there:
 - A response created in `AutoTamperRequestBefore` must be honored, so
   the request never reaches the real server.
 - `x-replywithtunnel` must answer a CONNECT locally. The report host
-  (`fiddlercsp.deletethis.net`) may not even resolve any more, so both
+  (`fiddlercsp.deletethis.net`) may not even resolve anymore, so both
   are required, not optional.
 
 **Parity blocker:** its whole UI is a WinForms `UserControl` added to
@@ -339,7 +339,7 @@ needed three things VioLens now has:
   `Click`); the app draws it with Avalonia on both platforms.
 - **Row styling from flags**: `ui-backcolor`, `ui-color`, `ui-bold`,
   `ui-italic`, `ui-strikeout` and `ui-hide`. A background without a text
-  colour gets black or white text, whichever reads better, so rows stay
+  color gets black or white text, whichever reads better, so rows stay
   readable in dark mode.
 - **Header edits while peeking are kept.** The sample renames an invalid
   `P3P` header in `OnPeekAtResponseHeaders`; as in Fiddler, that change now

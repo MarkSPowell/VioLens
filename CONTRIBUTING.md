@@ -33,7 +33,7 @@ implementation code is not.
 ## No-relicensing commitment
 
 VioLens is licensed under the MIT License (see [LICENSE](LICENSE)) --
-the same licence as Eric Lawrence's public ericlaw1979/Clearinet
+the same license as Eric Lawrence's public ericlaw1979/Clearinet
 repository, which inspired it, so work can move between the two freely --
 and will stay that way. No
 maintainer, sponsor, or acquirer gets to pull the project behind a paywall
