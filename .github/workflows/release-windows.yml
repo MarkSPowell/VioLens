@@ -102,6 +102,18 @@ jobs:
           -p:InformationalVersion=${{ steps.version.outputs.version }}
           --output publish/win-x64
 
+      # violens-exec, which sends QuickExec commands to the running app from
+      # scripts (see tools/Violens.Exec). Native AOT, so it's a small native
+      # .exe beside VioLens's own, installed and signed with it.
+      - name: Publish violens-exec
+        run: >-
+          dotnet publish tools/Violens.Exec/Violens.Exec.csproj
+          --configuration Release
+          --runtime win-x64
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:DebugType=none
+          --output publish/win-x64
+
                 # The optional legacy extension host. It isn't in VioLens.sln, so a
                 # failure here can't affect the app build above. `dotnet build --output`
                 # rather than publish: it's a framework-dependent net48 app, and this

@@ -50,6 +50,7 @@
          See that interface's own remarks on why the dependency only points
          this one direction. -->
     <ProjectReference Include="..\..\src\Violens.Compatibility\Violens.Compatibility.csproj" />
+    <ProjectReference Include="..\..\src\Violens.Automation\Violens.Automation.csproj" />
   </ItemGroup>
 
   <!-- The artwork (violens.webp for the splash screen, violens-icon.png

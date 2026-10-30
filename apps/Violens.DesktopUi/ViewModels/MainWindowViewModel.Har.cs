@@ -8,7 +8,8 @@ public sealed partial class MainWindowViewModel
     /// <summary>Whether there's anything to export, for greying out Export HAR.</summary>
     public bool HasSessions => Sessions.Count > 0;
 
-    public async Task ImportHarAsync(string path)
+    /// <summary>Imports a .har file; false (with the reason on the status line) if it couldn't be read.</summary>
+    public async Task<bool> ImportHarAsync(string path)
     {
         try
         {
@@ -22,24 +23,30 @@ public sealed partial class MainWindowViewModel
             {
                 Console.WriteLine($"[import] Skipped {reason}");
             }
+
+            return true;
         }
         catch (Exception ex)
         {
             StatusText = $"Failed to import {Path.GetFileName(path)}: {ex.Message}";
+            return false;
         }
     }
 
-    public async Task ExportHarAsync(string path)
+    /// <summary>Saves every session as HAR; false (with the reason on the status line) if it couldn't be written.</summary>
+    public async Task<bool> ExportHarAsync(string path)
     {
         var sessions = _sessionStore.Snapshot();
         try
         {
             await Task.Run(() => HarWriter.Write(path, sessions));
             StatusText = $"Saved {sessions.Count} session(s) to {path}";
+            return true;
         }
         catch (Exception ex)
         {
             StatusText = $"Failed to save HAR: {ex.Message}";
+            return false;
         }
     }
 }

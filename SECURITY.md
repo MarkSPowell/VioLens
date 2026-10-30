@@ -30,7 +30,8 @@ For example:
 - an extension, script or file (SAZ, HAR) that can run code it shouldn't
   when opened
 - the proxy host (`Violens.ProxyHost`) accepting commands from anything
-  other than the app that started it
+  other than the app that started it, or the app accepting `violens-exec`
+  commands from another account
 
 ## How VioLens protects you
 
@@ -60,6 +61,12 @@ deleted when its certificate is released.
 and doesn't hide a failure. It doesn't turn certificate checks off. VioLens
 sends no client certificate unless you choose one. Once you do, it goes to
 every server that asks for one, unless you list the hosts it's for.
+
+**violens-exec.** Scripts drive VioLens through a named pipe that only
+your own account can open; nothing listens on the network. A program
+running as you could use it to start or stop capturing, or to save and
+open capture files, though such a program could already do more than
+that. **Tools > Accept Commands from violens-exec** turns it off.
 
 **Update check.** At start-up VioLens asks GitHub's public releases list
 whether a newer version is out; you can turn it off in the Help menu. It

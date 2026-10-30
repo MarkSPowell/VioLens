@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Driving a running VioLens from outside: the pipe and its small text
+    protocol, shared by the app (the server) and violens-exec (the client).
+    No other dependencies, so violens-exec can be compiled ahead of time
+    into a small native executable. Not packaged.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Violens.Automation</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Violens.AppCore.Tests" />
+  </ItemGroup>
+
+</Project>

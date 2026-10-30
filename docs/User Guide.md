@@ -330,6 +330,7 @@ column chooser:
 | Also Break On | A row of narrower breakpoint conditions (URL contains, method, status code) |
 | AutoResponder | The AutoResponder rules editor |
 | Connections | The upstream proxy setting and "Allow remote computers to connect" (see below) |
+| Accept Commands from violens-exec | Whether scripts can drive VioLens with `violens-exec` (on by default; see "Driving VioLens from scripts") |
 | TextWizard… | Encodes and decodes text (see "TextWizard") |
 | Session List Columns | Which columns the session list shows (see "The session list") |
 
@@ -458,6 +459,11 @@ press **Enter**. **Up** and **Down** bring back earlier commands, and
 | `bpm POST` (or `bpv`) | Pauses requests with that method |
 | `go` | Lets every paused session continue |
 | `start`, `stop` | Starts or stops capturing |
+| `dump` | Saves every session to a new `.saz` file on your Desktop, as **File > Save SAZ** does |
+| `save file` | Saves every session to that file: HAR if it ends in `.har`, SAZ otherwise. A relative name is on the Desktop (or, from `violens-exec`, in the folder it was run from) |
+| `open file` | Adds the sessions in a `.saz` or `.har` file |
+| `filter text` | Sets the session filter, as typed in the filter box (`filter` on its own clears it) |
+| `keep 1000`, `keep all` | How many sessions to keep, as the Keep drop-down sets |
 | `help` | Lists the commands and opens this guide |
 
 Selection commands select among the sessions the filter shows, so you can
@@ -468,6 +474,37 @@ Any other command goes to the loaded FiddlerScript's `OnExecAction`
 function (with the command split into words; "quoted text" stays one word),
 then to extensions that handle commands (`IHandleExecAction`). The first to
 return true has handled it.
+
+### Driving VioLens from scripts
+
+`violens-exec` sends a QuickExec command to the running VioLens, as Fiddler
+Classic's `ExecAction.exe` did, so a test script or a scheduled job can
+drive a capture:
+
+```
+violens-exec start
+(run your tests)
+violens-exec save results.har
+violens-exec stop
+```
+
+- **Where it is:** next to VioLens: `violens-exec.exe` in the install
+  folder on Windows (`%LOCALAPPDATA%\Programs\VioLens` for a per-user
+  install), and `VioLens.app/Contents/MacOS/violens-exec` on macOS. Add
+  that folder to your `PATH`, or give the full path.
+- **What it does:** everything after `violens-exec` is one command, run as
+  if typed into QuickExec, including FiddlerScript and extension commands.
+  It prints what VioLens's status line said. A file name with spaces needs
+  quotes: `violens-exec save "my capture.saz"`. A relative file name is
+  taken from the folder you ran it in.
+- **Exit codes:** 0 when the command worked, 1 when VioLens reported a
+  failure (an unknown command, a file it couldn't write), 2 for a usage
+  mistake, and 3 when it couldn't reach VioLens (not running, or busy with
+  another command for longer than `--timeout`, 10 seconds by default).
+- **Who can use it:** only programs running as you on this computer.
+  Nothing listens on the network. To stop it accepting commands, untick
+  **Tools > Accept Commands from violens-exec**. If two copies of VioLens
+  are running, the first one gets the commands.
 
 ## Connections: upstream proxy and other devices
 
@@ -730,6 +767,7 @@ and macOS:
   password), whether remote computers may connect, HTTP/2, the
   skip-decryption hosts, and the client certificate and its hosts
 - Whether to check for updates at start-up
+- Whether to accept commands from `violens-exec`
 - How many sessions to keep
 - The window's size and position, and whether it was maximized
 - The session list's columns: which are shown, their order and widths

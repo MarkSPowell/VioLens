@@ -43,6 +43,9 @@ internal static class PreferenceKeys
     /// <summary>The hosts the client certificate is sent to (a list preference, <c>*</c> wildcards).</summary>
     public const string ClientCertificateHosts = "violens.config.https.clientcertificatehosts";
 
+    /// <summary>Whether violens-exec may send QuickExec commands over the pipe.</summary>
+    public const string AcceptExecCommands = "violens.automation.exec";
+
     /// <summary>Whether VioLens checks for a newer release at start-up.</summary>
     public const string CheckForUpdates = "violens.update.check";
 

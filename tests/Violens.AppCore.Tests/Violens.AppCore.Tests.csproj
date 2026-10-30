@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Violens.AppCore\Violens.AppCore.csproj" />
+    <ProjectReference Include="..\..\src\Violens.Automation\Violens.Automation.csproj" />
   </ItemGroup>
 
 </Project>

@@ -725,6 +725,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
               "-- see the Interception Certificate Design doc's open risks.";
 
         InitializeUpdates();
+        InitializeAutomation();
     }
 
     /// <summary>
@@ -791,7 +792,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private async void Start()
+    private async void Start() => await StartAsync();
+
+    /// <summary>Start, awaitable (for QuickExec's start through violens-exec).</summary>
+    private async Task StartAsync()
     {
         if (_starting)
         {
@@ -1301,20 +1305,26 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         MoveAutoResponderRuleDownCommand.RaiseCanExecuteChanged();
     }
 
-    private void SaveSaz()
+    private void SaveSaz() => SaveSazTo(DefaultSazPath());
+
+    /// <summary>Where Save SAZ (and QuickExec's dump) writes: a new, dated file on the Desktop.</summary>
+    private static string DefaultSazPath() =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"violens-capture-{DateTime.Now:yyyyMMdd-HHmmss}.saz");
+
+    /// <summary>Saves every session as SAZ; false (with the reason on the status line) if it couldn't be written.</summary>
+    private bool SaveSazTo(string path)
     {
         var sessions = _sessionStore.Snapshot();
         try
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                $"violens-capture-{DateTime.Now:yyyyMMdd-HHmmss}.saz");
             SazWriter.Write(path, sessions);
             StatusText = $"Saved {sessions.Count} session(s) to {path}";
+            return true;
         }
         catch (Exception ex)
         {
             StatusText = $"Failed to save SAZ: {ex.Message}";
+            return false;
         }
     }
 
@@ -1323,7 +1333,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// so they arrive like live captures. Awaited rather than blocked on, since
     /// <see cref="SazReader"/> doesn't use <c>ConfigureAwait(false)</c>.
     /// </summary>
-    public async Task ImportSazAsync(string path)
+    public async Task<bool> ImportSazAsync(string path)
     {
         try
         {
@@ -1337,10 +1347,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 Console.WriteLine($"[import] Skipped {reason}");
             }
+
+            return true;
         }
         catch (Exception ex)
         {
             StatusText = $"Failed to import {Path.GetFileName(path)}: {ex.Message}";
+            return false;
         }
     }
 
@@ -1418,6 +1431,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        StopAutomation();
+
         // OnBeforeUnload is owed even if the proxy never started.
         _extensionHost.Unload();
         ExtensionUi.SetTabHost(null);

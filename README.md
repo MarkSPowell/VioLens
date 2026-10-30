@@ -58,8 +58,10 @@ here yet. Feedback and issues are welcome.
   together; kept in HAR files.
 - QuickExec, Fiddler's command box under the session list (Alt+Q):
   `?text`, `@host`, `=404`, `>40k`, `select`, `allbut`, `cls`, `tail`, the
-  `bpu`/`bpafter`/`bps`/`bpm` breakpoints and `go`; other commands go to
-  FiddlerScript's `OnExecAction` and extensions.
+  `bpu`/`bpafter`/`bps`/`bpm` breakpoints and `go`, plus `dump`, `save`,
+  `open`, `filter` and `keep`; other commands go to FiddlerScript's
+  `OnExecAction` and extensions. Scripts send the same commands to the
+  running app with `violens-exec`, like Fiddler's ExecAction.exe.
 - Compare Sessions (Ctrl+W): two sessions' requests and responses side by
   side, with each difference highlighted, bodies decompressed and JSON
   formatted so changes line up.
@@ -228,6 +230,8 @@ ever leaves the device on its own.
 - `src/Violens.AppCore` — VioLens's own app logic that isn't part of the
   engine: Compare, TextWizard's conversions, QuickExec, the session-list
   column layout, and the carry-over from the app's former name.
+- `src/Violens.Automation` — the pipe and protocol `violens-exec` uses to
+  drive the running app, with no other dependencies.
 - `src/Violens.Extensibility` — the inspector contract and the built-in
   inspectors (Headers, Raw, Hex, Cookies, Notes).
 - `src/Violens.Compatibility` — FiddlerScript compatibility
@@ -243,6 +247,9 @@ ever leaves the device on its own.
   ProxyCore's public API), so the guide can't drift from the real thing.
 - `tools/Violens.DevHost` — a console host used during early
   development of the proxy core.
+- `tools/Violens.Exec` — `violens-exec`, which sends QuickExec commands to
+  the running app from scripts. Built with Native AOT and shipped beside
+  the app.
 - `tools/Violens.SampleExtension` — a small, separately-compiled .NET
   extension used to validate `ExtensionHost` against a real `.dll` rather
   than only in-process fakes; see its own README for what it demonstrates

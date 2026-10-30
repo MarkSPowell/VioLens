@@ -62,6 +62,21 @@ public enum QuickExecKind
     /// <summary><c>help</c>: open the User Guide.</summary>
     Help,
 
+    /// <summary><c>dump</c>: save every session to a new SAZ file in the usual place, as Fiddler's <c>dump</c> does.</summary>
+    Dump,
+
+    /// <summary><c>save path</c>: save every session to that file, as HAR when it ends in .har and SAZ otherwise.</summary>
+    Save,
+
+    /// <summary><c>open path</c>: add the sessions in a SAZ or HAR file.</summary>
+    Open,
+
+    /// <summary><c>filter text</c>: set the session filter (<c>filter</c> alone clears it).</summary>
+    Filter,
+
+    /// <summary><c>keep 1000</c> or <c>keep all</c>: how many sessions to keep.</summary>
+    Keep,
+
     /// <summary>Anything else: offered to FiddlerScript's OnExecAction and extensions' IHandleExecAction.</summary>
     Other,
 }
@@ -82,8 +97,10 @@ public sealed record QuickExecCommand(QuickExecKind Kind, string Argument, IRead
 /// commands Fiddler Classic users type there: <c>?text</c>, <c>@host</c>,
 /// <c>=404</c>, <c>&gt;40k</c>, <c>select</c>, <c>allbut</c>, <c>cls</c>,
 /// <c>tail</c>, the <c>bpu</c>/<c>bpafter</c>/<c>bps</c>/<c>bpm</c>
-/// breakpoints, <c>go</c>, <c>start</c>, <c>stop</c> and <c>help</c>.
-/// Anything else goes to FiddlerScript and extensions.
+/// breakpoints, <c>go</c>, <c>start</c>, <c>stop</c>, <c>dump</c> and
+/// <c>help</c>, plus VioLens's own <c>save</c>, <c>open</c>, <c>filter</c>
+/// and <c>keep</c> for scripts driving it through violens-exec. Anything
+/// else goes to FiddlerScript and extensions.
 /// </summary>
 public static class QuickExecParser
 {
@@ -139,6 +156,14 @@ public static class QuickExecParser
             "start" => new QuickExecCommand(QuickExecKind.Start, argument, words),
             "stop" => new QuickExecCommand(QuickExecKind.Stop, argument, words),
             "help" => new QuickExecCommand(QuickExecKind.Help, argument, words),
+            "dump" => new QuickExecCommand(QuickExecKind.Dump, argument, words),
+            "save" => new QuickExecCommand(QuickExecKind.Save, argument, words),
+            "open" => new QuickExecCommand(QuickExecKind.Open, argument, words),
+            "filter" => new QuickExecCommand(QuickExecKind.Filter, argument, words),
+            "keep" when string.Equals(argument, "all", StringComparison.OrdinalIgnoreCase) =>
+                new QuickExecCommand(QuickExecKind.Keep, argument, words, 0),
+            "keep" when long.TryParse(argument, NumberStyles.None, CultureInfo.InvariantCulture, out var keep) && keep is > 0 and <= int.MaxValue =>
+                new QuickExecCommand(QuickExecKind.Keep, argument, words, keep),
             _ => new QuickExecCommand(QuickExecKind.Other, argument, words),
         };
     }

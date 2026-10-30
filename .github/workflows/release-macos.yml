@@ -116,6 +116,18 @@ jobs:
           -p:InformationalVersion=${{ steps.version.outputs.version }}
           --output publish/osx-arm64
 
+      # violens-exec (see tools/Violens.Exec): Native AOT, a small native
+      # executable that build-installer.sh puts in Contents/MacOS beside
+      # VioLens's own, signed with it.
+      - name: Publish violens-exec
+        run: >-
+          dotnet publish tools/Violens.Exec/Violens.Exec.csproj
+          --configuration Release
+          --runtime osx-arm64
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:DebugType=none
+          --output publish/osx-arm64
+
       - name: Build optional extensions
         shell: pwsh
         run: ./installer/build-extensions.ps1 -OutputDir publish/extensions
