@@ -199,6 +199,38 @@ Should have:
     account. Left open: the app's pipe uses the default permissions (a
     denial of service only).
 
+Optional (welcome in 1.0, but none holds it up). Most come from
+[Clearinet](https://github.com/ericlaw1979/Clearinet) and its issues;
+"Clearinet #N" below is that repository's issue N.
+
+11. **PCAP import.** Read packet captures, including Wi-Fi capture
+    formats (Clearinet #18). Clearinet's `PcapImporter`, `PcapReader` and
+    `PcapDecoder` are MIT-licensed like VioLens, so they can be ported with
+    attribution.
+12. **A tree data inspector.** JSON, and binary formats such as CBOR
+    (Clearinet #40), shown as a tree with Copy, Copy Subtree and Send to
+    TextWizard. Today JSON is indented text (the Feature Inventory lists
+    this gap).
+13. **A capture-only app.** A very simple app, like Fiddler's FiddlerCap,
+    that lets a non-technical person record a SAZ for a support team. Built
+    on ProxyCore; suits VioLens's commercial users.
+14. **Machine-wide policy settings** (Clearinet #9). Let IT departments
+    lock settings, for example forbidding Allow remote computers to
+    connect or turning off the update check.
+15. **An HTML preview and a Markdown inspector** (Clearinet #17, #26).
+    Render responses instead of showing their text. Avalonia has no
+    built-in browser control, so the preview needs a third-party control or
+    the system browser.
+16. **Smaller touches:**
+    - right-click a column header to search that column or highlight
+      repeated values
+    - a full-screen image viewer with zoom
+    - cookie sizes in the Cookies inspector
+    - QuickExec autocomplete as you type (Clearinet #43)
+    - a column customization dialog (Clearinet #32)
+    - faster HAR import (Clearinet #33)
+    - Microsoft Store distribution (Clearinet #3), alongside WinGet
+
 Fine after 1.0: an about:config editor, SOCKS and Digest proxy sign-in,
 DHCP proxy discovery on macOS, built-in NetLog import, `CustomRules.cs`,
 a headless/CLI mode, and spilling large bodies to disk.
