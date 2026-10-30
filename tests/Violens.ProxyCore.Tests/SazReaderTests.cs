@@ -43,6 +43,60 @@ public class SazReaderTests
         Assert.Equal("hello", Encoding.ASCII.GetString(imported.Response.Body));
     }
 
+    [Fact]
+    public async Task ImportAsync_KeepsSessionFlagsThroughASaveAndReopen()
+    {
+        var request = new CapturedRequest("CONNECT", "pinned.example.test:443", "HTTP/1.1", [("Host", "pinned.example.test:443")], []);
+        var response = new CapturedResponse("HTTP/1.1", 200, "Connection Established", [], []);
+        var flags = new Dictionary<string, string>
+        {
+            ["x-no-decrypt"] = "the host is in the skip-decryption list",
+            ["ui-comments"] = "Checked <with> \"quotes\" & ampersands",
+        };
+        var written = new Session(1, "pinned.example.test", DateTimeOffset.UtcNow, request, response, Flags: flags, Scheme: "http");
+
+        using var zipStream = new MemoryStream();
+        SazWriter.Write(zipStream, [written]);
+        zipStream.Position = 0;
+
+        var store = new SessionStore();
+        await SazReader.ImportAsync(zipStream, store);
+
+        var imported = Assert.Single(store.Snapshot());
+        Assert.Equal(flags, imported.Flags);
+        Assert.Equal("pinned.example.test:443", SessionUrl.Of(imported));
+    }
+
+    [Fact]
+    public async Task ImportAsync_ReadsFiddlerStyleFlagsAndToleratesNone()
+    {
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var (name, text) in new[]
+            {
+                ("raw/1_c.txt", "GET / HTTP/1.1\r\nHost: a.test\r\n\r\n"),
+                ("raw/1_s.txt", "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"),
+                ("raw/1_m.xml", """<Session><SessionTimers /><SessionFlags><SessionFlag N="x-clientip" V="127.0.0.1" /><SessionFlag N="" V="ignored" /></SessionFlags></Session>"""),
+                ("raw/2_c.txt", "GET / HTTP/1.1\r\nHost: b.test\r\n\r\n"),
+                ("raw/2_s.txt", "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"),
+                ("raw/2_m.xml", "<Session><SessionFlags /></Session>"),
+            })
+            {
+                using var writer = new StreamWriter(archive.CreateEntry(name).Open(), Encoding.ASCII);
+                writer.Write(text);
+            }
+        }
+
+        zipStream.Position = 0;
+        var store = new SessionStore();
+        await SazReader.ImportAsync(zipStream, store);
+
+        var sessions = store.Snapshot();
+        Assert.Equal("127.0.0.1", Assert.Single(sessions[0].Flags!).Value);
+        Assert.Null(sessions[1].Flags);
+    }
+
     /// <summary>A SAZ file holding one session, written by hand as another tool might.</summary>
     private static MemoryStream ArchiveWith(string requestText, string responseText)
     {

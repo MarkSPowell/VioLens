@@ -701,7 +701,9 @@ Classic extension of this kind that you want to keep using.
 - **File > Save SAZ…** exports every session captured this run to a
   `.saz` (Session Archive Zip) file on your Desktop. A `.saz` file is a zip:
   unzip it and open `_index.htm` for a list of the sessions, with links to
-  each one's request and response.
+  each one's request and response. Each session's notes (comments,
+  colours, and what the Notes tab shows) are saved with it, as Fiddler
+  Classic saves session flags, and come back when the file is opened.
 - **File > Open SAZ…** imports sessions from a previously saved `.saz` file
   back into the session list, exactly as if they'd just been captured live.
   It also reads `.saz` files from other tools that save HTTP/2 requests

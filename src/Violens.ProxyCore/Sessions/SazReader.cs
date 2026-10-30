@@ -10,7 +10,8 @@ namespace Violens.ProxyCore.Sessions;
 /// with the same reader as live traffic, so binary bodies survive
 /// byte for byte. HTTP/2 pseudo-headers that other tools save as header
 /// lines are dropped, with <c>:authority</c> becoming the Host header and
-/// <c>:scheme</c> the session's scheme, as for live HTTP/2 traffic. Sessions are added like live captures, with new Ids. A
+/// <c>:scheme</c> the session's scheme, as for live HTTP/2 traffic. Session
+/// flags (comments, colours, notes) come back from _m.xml. Sessions are added like live captures, with new Ids. A
 /// session that can't be read is skipped and listed in
 /// <see cref="SazImportResult.Skipped"/>.
 /// </summary>
@@ -113,10 +114,43 @@ public static class SazReader
         }
 
         var host = ExtractHost(request.Headers);
-        var (timestamp, timings) = TryReadTimers(archive.GetEntry($"raw/{number}_m.xml"));
+        var metadata = archive.GetEntry($"raw/{number}_m.xml");
+        var (timestamp, timings) = TryReadTimers(metadata);
         var startedAt = timestamp ?? DateTimeOffset.Now;
 
-        sessionStore.Add(host, startedAt, request, response, flags: null, scheme, timings);
+        sessionStore.Add(host, startedAt, request, response, TryReadFlags(metadata), scheme, timings);
+    }
+
+    /// <summary>
+    /// The session's flags from _m.xml's <c>&lt;SessionFlag N="…" V="…" /&gt;</c>
+    /// elements, as Fiddler and <see cref="SazWriter"/> write them. Null when
+    /// there are none or the file can't be read; the first of a repeated name wins.
+    /// </summary>
+    private static Dictionary<string, string>? TryReadFlags(ZipArchiveEntry? metadataEntry)
+    {
+        if (metadataEntry is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = metadataEntry.Open();
+            var flags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var flag in XDocument.Load(stream).Root?.Element("SessionFlags")?.Elements("SessionFlag") ?? [])
+            {
+                if (flag.Attribute("N")?.Value is { Length: > 0 } name)
+                {
+                    flags.TryAdd(name, flag.Attribute("V")?.Value ?? string.Empty);
+                }
+            }
+
+            return flags.Count > 0 ? flags : null;
+        }
+        catch (System.Xml.XmlException)
+        {
+            return null;
+        }
     }
 
     /// <summary>

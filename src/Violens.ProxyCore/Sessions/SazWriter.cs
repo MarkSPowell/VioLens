@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
+using System.Xml.Linq;
 using Violens.ProxyCore.Http;
 
 namespace Violens.ProxyCore.Sessions;
@@ -136,8 +137,21 @@ public static class SazWriter
             <?xml version="1.0" encoding="utf-8"?>
             <Session>
               <SessionTimers ClientConnected="{At(start)}" ClientBeginRequest="{At(start)}" GotRequestHeaders="{At(start)}" ClientDoneRequest="{At(requestRead)}" GatewayTime="0" DNSTime="{Whole(t?.Dns ?? 0)}" TCPConnectTime="{Whole(t?.Connect ?? 0)}" HTTPSHandshakeTime="{Whole(t?.Ssl ?? 0)}" ServerConnected="{At(connected)}" FiddlerBeginRequest="{At(connected)}" ServerGotRequest="{At(sent)}" ServerBeginResponse="{At(firstByte)}" GotResponseHeaders="{At(firstByte)}" ServerDoneResponse="{At(done)}" ClientBeginResponse="{At(firstByte)}" ClientDoneResponse="{At(done)}" />
-              <SessionFlags />
+              {BuildFlags(session.Flags)}
             </Session>
             """);
     }
+
+    /// <summary>
+    /// The session's flags in Fiddler's form, one
+    /// <c>&lt;SessionFlag N="name" V="value" /&gt;</c> each, so comments,
+    /// <c>ui-*</c> colours and VioLens's own notes survive a save and reopen.
+    /// Built as XML elements, so names and values are escaped.
+    /// </summary>
+    private static string BuildFlags(IReadOnlyDictionary<string, string>? flags) =>
+        new XElement(
+            "SessionFlags",
+            (flags ?? new Dictionary<string, string>()).Select(f =>
+                new XElement("SessionFlag", new XAttribute("N", f.Key), new XAttribute("V", f.Value))))
+            .ToString(SaveOptions.DisableFormatting);
 }
