@@ -33,8 +33,10 @@ here yet. Feedback and issues are welcome.
   undecrypted (**Tools > Connections**).
 - Long captures: a **Keep** setting holds only the newest sessions, and
   **Help > Copy Diagnostic Info** gathers what a bug report needs.
+- Runs on Windows, macOS and Linux (x86-64; an AppImage and a `.tar.gz`).
 - Registers itself as the system proxy while running — WinINET on
-  Windows, per network service via `networksetup` on macOS — and recovers
+  Windows, per network service via `networksetup` on macOS, GNOME's or
+  KDE Plasma's proxy settings on Linux — and recovers
   cleanly if a previous run didn't shut down properly (crash, kill,
   unclean shutdown).
 - A session list with live filtering: free-text search across the URL
@@ -191,7 +193,10 @@ Classic's own naming convention for the same purpose) — this is what lets
 VioLens see inside HTTPS traffic on this machine. On Windows that's the
 OS's own native prompt; on macOS, where the `security` CLI VioLens uses
 has no equivalent OS-level prompt, it's a confirmation dialog VioLens
-shows itself before ever touching your login keychain. Nothing captured
+shows itself before ever touching your login keychain. On Linux the same
+dialog comes first, and then the root goes into your browsers'
+certificate databases with `certutil` (from `libnss3-tools` or
+`nss-tools`). Nothing captured
 ever leaves the device on its own.
 
 ## Documentation
@@ -221,7 +226,7 @@ ever leaves the device on its own.
 - `src/Violens.ProxyCore` — the proxy engine, also published as a NuGet
   package for other apps: the listener, HTTP message parsing, sessions,
   breakpoints, AutoResponder, certificates, SAZ and HAR, system-proxy
-  registration on both Windows and macOS, and the preferences store. Its
+  registration on Windows, macOS and Linux, and the preferences store. Its
   public types are what other apps build on, so anything else is
   `internal` (VioLens's own assemblies are listed in its `AssemblyInfo.cs`).
 - `src/Violens.ProxyHost` and `src/Violens.ProxyHost.Client` — the engine
@@ -285,6 +290,24 @@ way:
     when the repository's signing secrets are set. Builds without them
     (forks, test builds) are ad-hoc signed, and macOS asks you to allow
     them once, in System Settings > Privacy & Security > Open Anyway.
+- **Linux is new, and hasn't had a hands-on test on a real desktop yet.**
+  - The root goes into the NSS databases Chrome, Chromium and other NSS
+    apps read (`~/.pki/nssdb`) and into each Firefox profile (including
+    the snap's and the Flatpak's), with `certutil`, which must be
+    installed. Firefox needs restarting if it was open.
+  - Not into the system store that curl, wget and most command-line tools
+    read: that needs root access, and differs by distribution. The User
+    Guide's "Linux" section has the commands.
+  - The system proxy is set in GNOME's settings (and desktops built on
+    them) and KDE Plasma's. On other desktops, and for programs that only
+    read `http_proxy`, point them at VioLens by hand.
+  - The root's private key is a file in your home folder (as .NET keeps
+    keys on Linux), not in an OS key store. See SECURITY.md.
+  - CI tests the Linux build and checks the packages launch, but doesn't
+    run `certutil`, `gsettings` or `kwriteconfig` for real. Wayland
+    sessions run VioLens through XWayland.
+  - x86-64 only; no Snap or Flatpak, since their sandboxes would stop
+    VioLens changing the proxy settings and certificate databases.
 - **No Preferences/`about:config` editor yet.** Settings, the window's
   size and position, and AutoResponder rules are remembered between runs,
   but changed only through the app's own controls. Breakpoints and the
@@ -299,7 +322,7 @@ way:
   use HTTP/2 instead.
 - **Upstream proxies: plain HTTP proxies only.** A SOCKS proxy can't be
   used yet (a PAC script's SOCKS entries are skipped). Proxy sign-in
-  supports Negotiate (Kerberos), NTLM and Basic, not Digest. Automatic proxy detection on macOS looks only in
+  supports Negotiate (Kerberos), NTLM and Basic, not Digest. Automatic proxy detection on macOS and Linux looks only in
   DNS (`wpad.<your domain>`), not DHCP.
 - **The main app's own compiled-extension support is source-level, not
   binary.** An already-compiled Fiddler Classic extension `.dll` can't be

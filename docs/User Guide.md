@@ -43,7 +43,9 @@ this computer:
    traffic on this machine, the same way Fiddler Classic does. On Windows
    you get the system's "Do you want to install this certificate?"
    prompt. On macOS, VioLens shows its own confirmation before it adds
-   anything to your login keychain. Accept it to continue. Nothing you
+   anything to your login keychain, and on Linux before it adds anything
+   to your browsers' certificate databases (see "Linux" below). Accept
+   it to continue. Nothing you
    capture leaves your device unless you send it somewhere.
 4. Once it's running, the status bar shows the port VioLens is listening
    on and whether it registered itself as the system proxy. If it couldn't
@@ -60,15 +62,68 @@ key from your account, and the next **Start** makes a new one.
 Uninstalling VioLens on Windows does the same. On Windows, the system asks
 you to confirm.
 
-HTTPS interception works on both Windows and macOS, but the Mac build is
-newer and less tested. See the Known limitations section of
-[README.md](../README.md) for details.
+HTTPS interception works on Windows, macOS and Linux, but the Mac and
+Linux builds are newer and less tested. See the Known limitations section
+of [README.md](../README.md) for details.
 
 A macOS build that's signed and notarized opens like any other app. One
 that isn't (one you built yourself, or a test build) makes macOS say it
 can't verify the developer the first time you open it. Open it anyway
 from **System Settings > Privacy & Security > Open Anyway**. You only
 need to do this once.
+
+### Linux
+
+VioLens for Linux comes two ways, both for x86-64:
+
+- **AppImage:** make it executable (`chmod +x VioLens-*.AppImage`) and
+  run it. `VioLens-*.AppImage --exec` runs `violens-exec` (see "Driving
+  VioLens from scripts").
+- **`.tar.gz`:** unpack it anywhere and run `./violens`. Run
+  `./install-desktop-entry.sh` once to add VioLens to your applications
+  menu and `violens-exec` to `~/.local/bin`.
+
+**Before the first Start, install `certutil`**, which VioLens uses to
+trust its certificate:
+
+```bash
+sudo apt install libnss3-tools
+```
+
+That's for Debian and Ubuntu; on Fedora it's `sudo dnf install
+nss-tools`, and on Arch `sudo pacman -S nss`.
+
+Linux has no single list of trusted certificates, so VioLens adds its
+root, for your account only, to:
+
+- the NSS database Chrome, Chromium, Edge, Brave and other NSS apps read
+  (`~/.pki/nssdb`, made if it isn't there), and the Chromium snap's;
+- every Firefox profile, including the snap's and the Flatpak's. Restart
+  Firefox if it was open;
+- .NET's own list, for .NET apps.
+
+It doesn't add it to the system's list, which curl, wget, Python and
+most command-line tools read, because that needs root access. To trust
+it there too, download `ViolensRoot.cer` from `http://violens/` in a
+browser while VioLens is capturing, convert it, and add it. On Debian
+and Ubuntu:
+
+```bash
+openssl x509 -inform der -in ViolensRoot.cer -out violens-root.crt && sudo cp violens-root.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
+```
+
+On Fedora, copy `violens-root.crt` to `/etc/pki/ca-trust/source/anchors/`
+instead and run `sudo update-ca-trust`. When you've finished, delete it
+from that folder and run the same update command again.
+
+**The system proxy** is a desktop setting on Linux. VioLens sets it in
+GNOME's settings (also used by Cinnamon, Budgie and others) and in KDE
+Plasma's, and puts them back when you click **Stop**, or the next time
+VioLens starts after a crash. Chrome, and Firefox when it's set to "Use
+system proxy settings" (its default), follow them. On other desktops, and
+for programs that only read the `http_proxy` environment variable, point
+them at the address VioLens shows. If you started VioLens with
+`http_proxy` or `https_proxy` set, it forwards through that proxy.
 
 ## The session list and inspectors
 
@@ -490,7 +545,9 @@ violens-exec stop
 
 - **Where it is:** next to VioLens: `violens-exec.exe` in the install
   folder on Windows (`%LOCALAPPDATA%\Programs\VioLens` for a per-user
-  install), and `VioLens.app/Contents/MacOS/violens-exec` on macOS. Add
+  install), `VioLens.app/Contents/MacOS/violens-exec` on macOS, and in
+  the unpacked folder on Linux (`install-desktop-entry.sh` links it into
+  `~/.local/bin`; with the AppImage, run `VioLens-*.AppImage --exec`). Add
   that folder to your `PATH`, or give the full path.
 - **What it does:** everything after `violens-exec` is one command, run as
   if typed into QuickExec, including FiddlerScript and extension commands.

@@ -49,9 +49,15 @@ Reviewed before 1.0 (October 2026). What's in place, and what isn't:
 - It's still a key in your account: a program running as you can ask the
   OS to sign with it, as with any per-user key. Other accounts can't.
 - **Tools > Remove Root Certificate**, and the Windows uninstaller, remove
-  it and its key.
+  it and its key (on Linux, from every browser database VioLens added it
+  to).
 - On macOS, whether the keychain marks the key non-extractable still needs
   checking on a real Mac.
+- On Linux there's no OS key store: .NET keeps the key in a file in your
+  home folder (under `~/.dotnet`) that only your account can read, and
+  the non-exportable flag isn't enforced. The root is trusted in your
+  browsers' certificate databases, for your account only, never in the
+  system's store.
 
 **Per-site certificates.** VioLens signs a certificate for each site,
 valid for 7 days. Their keys are never saved to disk for good: each is

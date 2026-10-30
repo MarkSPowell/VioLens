@@ -28,13 +28,13 @@ public static class ExecPipe
     private const int MaxLineLength = 32 * 1024;
 
     /// <summary>
-    /// The pipe's name. On Windows pipe names are shared by every account,
-    /// so it includes the user name; on macOS and Linux a pipe is a socket
-    /// file in the user's own temporary folder, whose path length is
-    /// limited, so it's kept short.
+    /// The pipe's name, which includes the user name: on Windows pipe names
+    /// are shared by every account, and on Linux a pipe is a socket file in
+    /// <c>/tmp</c>, which is too. Without it a second account's VioLens
+    /// couldn't listen at all.
     /// </summary>
     public static string PipeName =>
-        OperatingSystem.IsWindows() ? "violens-exec-" + Environment.UserName.Replace('\\', '_') : "violens-exec";
+        "violens-exec-" + Environment.UserName.Replace('\\', '_').Replace('/', '_');
 
     /// <summary>
     /// Sends <paramref name="command"/> to the running VioLens and waits for

@@ -51,8 +51,8 @@ independent: it isn't his project and he hasn't contributed to it.
 ## Platform and technology
 
 - C# on .NET 10.
-- [Avalonia UI](https://avaloniaui.net/) for Windows and macOS from one
-  codebase. Clearinet planned WinForms first; cross-platform from day one
+- [Avalonia UI](https://avaloniaui.net/) for Windows, macOS and Linux
+  from one codebase. Clearinet planned WinForms first; cross-platform from day one
   was the point of choosing differently.
 - FiddlerScript runs through a translation layer rather than JScript.NET,
   which was never ported to .NET Core
@@ -231,6 +231,13 @@ Optional (welcome in 1.0, but none holds it up). Most come from
     - a column customization dialog (Clearinet #32)
     - faster HAR import (Clearinet #33)
     - Microsoft Store distribution (Clearinet #3), alongside WinGet
+
+Added since this list was written: **Linux** (October 2026). Built:
+certificate trust in the NSS databases Chrome and Firefox read
+(`certutil`), the system proxy in GNOME's and KDE Plasma's settings, an
+AppImage and a `.tar.gz` from `release-linux.yml`, and Linux in CI. Still
+to do: a hands-on test on GNOME and KDE, like the macOS one (item 3).
+The new classes are internal, so the API freeze isn't affected.
 
 Fine after 1.0: an about:config editor, SOCKS and Digest proxy sign-in,
 DHCP proxy discovery on macOS, built-in NetLog import, `CustomRules.cs`,

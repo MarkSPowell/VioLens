@@ -302,7 +302,80 @@ process invocation) -- a real macOS integration test, gated to only run
 when `OperatingSystem.IsMacOS()`, is a reasonable next step once the
 elevation question above has an answer.
 
+### Linux
+
+Added after the macOS work, on the same pattern: shell out to the
+platform's own tools, for the current user only, with VioLens's own
+confirmation dialog first (`TrustConfirmationWindow`, shared with macOS)
+since nothing on Linux prompts.
+
+**Trust.** Linux has no one trust store every app reads, so
+`LinuxCertificateTrust` (`src/Violens.ProxyCore/Certificates/`) adds the
+root to the stores browsers actually use, all per-user and without
+elevation:
+
+- the shared NSS database, `~/.pki/nssdb`, which Chrome, Chromium, Edge,
+  Brave and other NSS apps read. It's made (`certutil -N
+  --empty-password`) if it isn't there yet, which is normal on a fresh
+  account that has never run Chrome. The Chromium snap's own copy
+  (`~/snap/chromium/current/.pki/nssdb`) too, when there is one;
+- every Firefox profile with a `cert9.db`, under `~/.mozilla/firefox`,
+  the snap's `~/snap/firefox/common/.mozilla/firefox` and the Flatpak's
+  `~/.var/app/org.mozilla.firefox/.mozilla/firefox`. A running Firefox
+  may not notice until it restarts;
+- .NET's own per-user root store (`X509Store(Root, CurrentUser)`, a
+  folder under `~/.dotnet`), for .NET apps. Best effort.
+
+Each NSS change is `certutil -A -d sql:<db> -n <nickname> -t C,, -i
+<root.cer>`, trust flags `C,,` meaning "a CA trusted to issue server
+certificates" and nothing else (not email, not code signing). The
+nickname is the root's name prefix and SHA-1 thumbprint, so removal can
+find this root, or every VioLens root from earlier installs, by listing
+nicknames (`certutil -L`) and deleting matches (`certutil -D`). `certutil`
+comes from the distribution's NSS tools package (`libnss3-tools`,
+`nss-tools`, `nss`), which isn't always installed; without it Start fails
+with a message saying which package to install. A database that can't be
+changed is logged and skipped; Start fails only if none took the root.
+
+The system store (`/usr/local/share/ca-certificates` with
+`update-ca-certificates`, `/etc/pki/ca-trust/source/anchors` with
+`update-ca-trust`) is deliberately left alone: it needs root, differs by
+distribution, and would make the root trusted for every account on the
+computer, which the Windows and macOS designs avoid. The User Guide gives
+the commands for someone who wants curl and other command-line tools to
+trust it.
+
+**The key.** The root and its key are kept in .NET's per-user `My` store,
+as on the other platforms. On Linux that's a PKCS#12 file under
+`~/.dotnet/corefx/cryptography/x509stores/my`, readable only by the
+account; the non-exportable flag has no OS key store to enforce it.
+
+**System proxy.** A desktop setting, not an OS one. `LinuxSystemProxy`
+(`src/Violens.ProxyCore/SystemProxy/`) sets GNOME's
+(`org.gnome.system.proxy`, with `gsettings`; also used by Cinnamon,
+Budgie, Pantheon and others) and KDE Plasma's (`kioslaverc`'s Proxy
+Settings, with `kwriteconfig6` or `kwriteconfig5`, then a D-Bus signal so
+running KDE apps reread it), whichever are present. The previous values
+are backed up exactly as the tools print them, to a JSON file, and
+written back by `Disable` or by `RecoverFromCrash` on the next launch,
+the same crash-safety shape as Windows and macOS. Other desktops get a
+status message saying to set the proxy by hand. Detecting the upstream
+proxy reads the same settings (manual, a PAC script, or discovery), then
+falls back to `https_proxy`/`http_proxy` in VioLens's own environment.
+
+**Testing.** `ci.yml` runs the whole test suite on `ubuntu-latest`, and
+`release-linux.yml` smoke-tests the AppImage and tarball, including a
+launch under Xvfb. As on macOS, the tests stop at argument building and
+output parsing (`LinuxCertificateTrustTests`, `LinuxSystemProxyTests`);
+nothing runs `certutil`, `gsettings` or `kwriteconfig` for real. A
+hands-on test on GNOME and KDE is still to come.
+
 ## Open risks summary
+
+- Linux trust, removal and system proxy registration: built, not yet
+  tested on a real desktop (see "Linux" above). Includes whether Chrome
+  and Firefox pick up the root without a restart, KDE Plasma 6's
+  `kwriteconfig6` behaviour, and Wayland sessions.
 
 - macOS Keychain trust, removal and system proxy registration: built,
   only partly tested on a real Mac (see "Platform status" above). That

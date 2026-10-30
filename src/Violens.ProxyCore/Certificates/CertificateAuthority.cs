@@ -133,10 +133,15 @@ public sealed class CertificateAuthority
             // security add-trusted-cert is idempotent, so no "already trusted" check.
             MacOSCertificateTrust.Install(rootCert);
         }
+        else if (OperatingSystem.IsLinux())
+        {
+            // certutil -A replaces any earlier copy, so no "already trusted" check either.
+            LinuxCertificateTrust.Install(rootCert, message => ProxyEngine.Log("certificates", message));
+        }
         else
         {
             throw new PlatformNotSupportedException(
-                "Certificate trust-store installation is only implemented for Windows and macOS " +
+                "Certificate trust-store installation is only implemented for Windows, macOS and Linux " +
                 "-- see the Interception Certificate Design doc's 'Platform status' section.");
         }
     }
@@ -200,7 +205,28 @@ public sealed class CertificateAuthority
                 return removed;
             }
 
-            log?.Invoke("Removing root certificates is only implemented for Windows and macOS.");
+            if (OperatingSystem.IsLinux())
+            {
+                var databases = LinuxCertificateTrust.Remove(subjectPrefix, thumbprint: null, log);
+                using var myStore = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+                myStore.Open(OpenFlags.ReadWrite);
+                var removed = 0;
+                foreach (var root in FindRoots(myStore, subjectPrefix))
+                {
+                    myStore.Remove(root);
+                    removed++;
+                }
+
+                if (databases > 0 || removed > 0)
+                {
+                    log?.Invoke($"Removed {removed} root certificate(s) named {subjectPrefix}, trusted in {databases} certificate database(s).");
+                }
+
+                // Count trusted copies too, for a root whose key was already gone.
+                return Math.Max(removed, databases > 0 ? 1 : 0);
+            }
+
+            log?.Invoke("Removing root certificates is only implemented for Windows, macOS and Linux.");
         }
         catch (CryptographicException ex)
         {
@@ -285,10 +311,14 @@ public sealed class CertificateAuthority
         {
             MacOSCertificateTrust.Uninstall(RootCertificate);
         }
+        else if (OperatingSystem.IsLinux())
+        {
+            LinuxCertificateTrust.Remove(RootCertificateName, RootCertificate.Thumbprint, message => ProxyEngine.Log("certificates", message));
+        }
         else
         {
             throw new PlatformNotSupportedException(
-                "Certificate trust-store removal is only implemented for Windows and macOS " +
+                "Certificate trust-store removal is only implemented for Windows, macOS and Linux " +
                 "-- see the Interception Certificate Design doc's 'Platform status' section.");
         }
 

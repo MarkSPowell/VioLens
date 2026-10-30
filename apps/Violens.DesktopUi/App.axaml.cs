@@ -43,8 +43,8 @@ public partial class App : Application
 
         var viewModel = new MainWindowViewModel(
             // Awaited, never blocked on: the dialog needs the UI thread.
-            confirmMacOSCertificateTrust: () =>
-                new MacTrustConfirmationWindow().ShowDialog<bool>(mainWindow!),
+            confirmCertificateTrust: () =>
+                new TrustConfirmationWindow().ShowDialog<bool>(mainWindow!),
             // Import/Export via Extension's format picker.
             chooseFormat: (heading, choices, rememberedKey) =>
                 new FormatPickerWindow(heading, choices, rememberedKey)

@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
@@ -43,6 +43,9 @@ jobs:
           if ($IsWindows) {
             $name = 'h2spec_windows_amd64.zip'
             $sha256 = '57B608578BD9C8C3B6B821C2AB64925A6CAEE16185B356FFF611A7A86FE8E697'
+          } elseif ($IsLinux) {
+            $name = 'h2spec_linux_amd64.tar.gz'
+            $sha256 = '157EE0DE702E01AD40E752DBF074B366027E550C8E7504F9450DA2809E279318'
           } else {
             $name = 'h2spec_darwin_amd64.tar.gz'
             $sha256 = '981CB9F90A6F5E36300063022BD4EB7438D3DCF66D63A146A8541359697D1601'

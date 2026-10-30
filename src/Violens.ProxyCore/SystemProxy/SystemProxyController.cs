@@ -2,7 +2,8 @@ namespace Violens.ProxyCore.SystemProxy;
 
 /// <summary>
 /// The system proxy on whichever platform this is: <see cref="WinInetSystemProxy"/>
-/// on Windows, <see cref="MacOSSystemProxy"/> on macOS. Elsewhere every
+/// on Windows, <see cref="MacOSSystemProxy"/> on macOS,
+/// <see cref="LinuxSystemProxy"/> (GNOME and KDE settings) on Linux. Elsewhere every
 /// method does nothing, so callers needn't check the platform.
 /// </summary>
 public static class SystemProxyController
@@ -17,6 +18,10 @@ public static class SystemProxyController
         else if (OperatingSystem.IsMacOS())
         {
             MacOSSystemProxy.Enable(port);
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            LinuxSystemProxy.Enable(port);
         }
     }
 
@@ -39,6 +44,11 @@ public static class SystemProxyController
             {
                 return MacOSSystemProxy.DetectUpstream(ownPort);
             }
+
+            if (OperatingSystem.IsLinux())
+            {
+                return LinuxSystemProxy.DetectUpstream(ownPort);
+            }
         }
         catch (Exception ex)
         {
@@ -59,6 +69,10 @@ public static class SystemProxyController
         {
             MacOSSystemProxy.Disable();
         }
+        else if (OperatingSystem.IsLinux())
+        {
+            LinuxSystemProxy.Disable();
+        }
     }
 
     /// <summary>Call once at launch, before anything else touches the system proxy, to undo a crashed run.</summary>
@@ -71,6 +85,10 @@ public static class SystemProxyController
         else if (OperatingSystem.IsMacOS())
         {
             MacOSSystemProxy.RecoverFromCrash();
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            LinuxSystemProxy.RecoverFromCrash();
         }
     }
 }

@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        x:Class="Violens.DesktopUi.MacTrustConfirmationWindow"
+        x:Class="Violens.DesktopUi.TrustConfirmationWindow"
         Title="Install VioLens's root certificate?"
         Width="420"
         SizeToContent="Height"
@@ -10,8 +10,9 @@
         Icon="avares://Violens.DesktopUi/Assets/violens-icon.png"
         Background="{DynamicResource AppBackgroundBrush}">
 
-  <!-- macOS's security add-trusted-cert has no prompt of its own, so VioLens
-       asks here before touching the login keychain. -->
+  <!-- Neither macOS's security add-trusted-cert nor Linux's certutil has a
+       prompt of its own, so VioLens asks here first. The explanation is set
+       per platform in the code-behind. -->
   <StackPanel Margin="24" Spacing="4">
     <TextBlock Text="Install VioLens's root certificate?"
                FontSize="16"
@@ -19,7 +20,7 @@
                Foreground="{DynamicResource AppAccentBrush}"
                TextWrapping="Wrap"
                Margin="0,0,0,10" />
-    <TextBlock Text="VioLens needs to add a certificate to your login keychain so it can decrypt this account's HTTPS traffic for inspection. It will only be trusted for your user account -- not system-wide -- and can be removed later with Tools > Remove Root Certificate, or from Keychain Access."
+    <TextBlock x:Name="ExplanationText"
                FontSize="12"
                Foreground="{DynamicResource AppMutedTextBrush}"
                TextWrapping="Wrap"

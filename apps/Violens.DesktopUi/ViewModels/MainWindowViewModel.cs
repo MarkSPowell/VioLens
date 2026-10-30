@@ -53,7 +53,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// <c>security</c> command has no confirmation of its own. Must be awaited,
     /// not blocked on: it needs the UI thread. Null means always decline.
     /// </summary>
-    private readonly Func<Task<bool>>? _confirmMacOSCertificateTrust;
+    private readonly Func<Task<bool>>? _confirmCertificateTrust;
 
     /// <summary>Stops a second Start/Stop from beginning while one is still in progress.</summary>
     private bool _starting;
@@ -455,8 +455,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    /// <summary>Interception needs a trust store and system proxy, which only Windows and macOS have here.</summary>
-    public bool IsSupported { get; } = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS();
+    /// <summary>Interception needs a trust store and system proxy, which VioLens handles on Windows, macOS and Linux.</summary>
+    public bool IsSupported { get; } = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
 
     public string StatusText
     {
@@ -564,15 +564,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public RelayCommand RemoveAllSessionsCommand { get; }
 
-    /// <param name="confirmMacOSCertificateTrust">Null means always decline on macOS.</param>
+    /// <param name="confirmCertificateTrust">Asks before trusting the root on macOS and Linux; null means always decline.</param>
     /// <param name="preferences">Null means the per-user file. Disposed with this view model.</param>
     /// <param name="chooseFormat">Null means no format picker.</param>
     public MainWindowViewModel(
-        Func<Task<bool>>? confirmMacOSCertificateTrust = null,
+        Func<Task<bool>>? confirmCertificateTrust = null,
         PreferenceStore? preferences = null,
         Func<string, IReadOnlyList<FormatChoice>, string?, Task<FormatChoice?>>? chooseFormat = null)
     {
-        _confirmMacOSCertificateTrust = confirmMacOSCertificateTrust;
+        _confirmCertificateTrust = confirmCertificateTrust;
         _chooseFormat = chooseFormat;
 
         // Loaded into the backing fields, not the setters, so loading doesn't
@@ -721,8 +721,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _statusText = IsSupported
             ? "Not started. Pick a port and click Start."
-            : "This build only implements the certificate trust-store path for Windows and macOS so far " +
-              "-- see the Interception Certificate Design doc's open risks.";
+            : "Capturing isn't supported on this operating system: VioLens can trust its certificate and set the " +
+              "system proxy on Windows, macOS and Linux only.";
 
         InitializeUpdates();
         InitializeAutomation();
@@ -821,15 +821,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// On macOS, system proxy changes run <c>networksetup</c> many times and
-    /// may wait on a password prompt, so they run off the UI thread. On Windows
-    /// they're quick registry calls.
+    /// On macOS and Linux, certificate and system proxy changes run commands
+    /// (<c>networksetup</c>, which may wait on a password prompt;
+    /// <c>certutil</c>, <c>gsettings</c>), so they run off the UI thread. On
+    /// Windows they're quick registry calls, and the certificate prompt needs
+    /// the UI thread.
     /// </summary>
-    private static Task<T> RunOffUiThreadOnMacAsync<T>(Func<T> work) =>
-        OperatingSystem.IsMacOS() ? Task.Run(work) : Task.FromResult(work());
+    private static Task<T> RunOffUiThreadUnlessWindowsAsync<T>(Func<T> work) =>
+        OperatingSystem.IsWindows() ? Task.FromResult(work()) : Task.Run(work);
 
-    private static Task RunOffUiThreadOnMacAsync(Action work) =>
-        RunOffUiThreadOnMacAsync(() =>
+    private static Task RunOffUiThreadUnlessWindowsAsync(Action work) =>
+        RunOffUiThreadUnlessWindowsAsync(() =>
         {
             work();
             return true;
@@ -840,14 +842,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         try
         {
             // Created once per run and reused across Start/Stop; each Start gets a
-            // fresh leaf provider. Stays null if the macOS trust prompt is declined,
-            // so the next Start asks again.
+            // fresh leaf provider. Stays null if the macOS or Linux trust prompt is
+            // declined, so the next Start asks again.
             if (_authority is null)
             {
-                if (OperatingSystem.IsMacOS())
+                if (!OperatingSystem.IsWindows())
                 {
-                    var confirmed = _confirmMacOSCertificateTrust is not null
-                        && await _confirmMacOSCertificateTrust();
+                    var confirmed = _confirmCertificateTrust is not null
+                        && await _confirmCertificateTrust();
                     if (!confirmed)
                     {
                         StatusText =
@@ -856,12 +858,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                         return;
                     }
 
-                    StatusText = "Installing the root certificate -- macOS may ask for your password...";
+                    StatusText = OperatingSystem.IsMacOS()
+                        ? "Installing the root certificate -- macOS may ask for your password..."
+                        : "Installing the root certificate in your browsers' certificate databases...";
                 }
 
                 // On Windows this stays on the UI thread so the OS's own "install this
                 // certificate?" dialog appears in front of the app.
-                _authority = await RunOffUiThreadOnMacAsync(CreateAuthority);
+                _authority = await RunOffUiThreadUnlessWindowsAsync(CreateAuthority);
             }
 
             var leafProvider = new LeafCertificateProvider(_authority.RootCertificate);
@@ -905,7 +909,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
 
             var proxy = _proxy;
-            var detected = await RunOffUiThreadOnMacAsync(() => SystemProxyController.DetectUpstream(proxy.Port));
+            var detected = await RunOffUiThreadUnlessWindowsAsync(() => SystemProxyController.DetectUpstream(proxy.Port));
             var gatewayNote = StartGateway(proxy, detected);
             var listeningOn = proxy.AllowsRemoteClients
                 ? $"all network interfaces, port {proxy.Port}"
@@ -920,7 +924,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             // browser can still be pointed at it by hand.
             try
             {
-                await RunOffUiThreadOnMacAsync(() => SystemProxyController.Enable(proxy.Port));
+                await RunOffUiThreadUnlessWindowsAsync(() => SystemProxyController.Enable(proxy.Port));
                 _registeredAsSystemProxy = true;
                 StatusText =
                     $"Listening on {listeningOn}{portNote} and registered as the system proxy -- " +
@@ -975,7 +979,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 StatusText = "Stopping -- putting the system proxy settings back...";
             }
 
-            await RunOffUiThreadOnMacAsync(SystemProxyController.Disable);
+            await RunOffUiThreadUnlessWindowsAsync(SystemProxyController.Disable);
         }
         catch (Exception ex)
         {
@@ -1019,9 +1023,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         var name = Violens.ProxyCore.ProxyEngine.Identity.RootCertificateName;
         void Log(string message) => Console.WriteLine($"[certificates] {message}");
-        var removed = OperatingSystem.IsMacOS()
-            ? await Task.Run(() => CertificateAuthority.RemoveRoots(name, Log))
-            : CertificateAuthority.RemoveRoots(name, Log);
+        var removed = await RunOffUiThreadUnlessWindowsAsync(() => CertificateAuthority.RemoveRoots(name, Log));
 
         StatusText = removed > 0
             ? $"Removed {removed} root certificate(s). Start again to create and trust a new one."
