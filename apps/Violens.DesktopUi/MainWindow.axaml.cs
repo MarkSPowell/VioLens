@@ -27,6 +27,11 @@ public partial class MainWindow : Window
         Patterns = ["*.har"],
     };
 
+    private static readonly FilePickerFileType PcapFileType = new("Packet capture (*.pcap, *.pcapng, *.cap)")
+    {
+        Patterns = ["*.pcap", "*.pcapng", "*.cap"],
+    };
+
     /// <summary>
     /// <c>*.js</c> only, since <c>CustomRules.cs</c> isn't supported yet; "All
     /// files" is offered too.
@@ -816,6 +821,25 @@ public partial class MainWindow : Window
         if (files.Count > 0)
         {
             await viewModel.ImportHarAsync(files[0].Path.LocalPath);
+        }
+    }
+
+    private async void ImportPcapMenuItem_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel || GetTopLevel(this) is not { } topLevel)
+        {
+            return;
+        }
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Import Packet Capture",
+            AllowMultiple = false,
+            FileTypeFilter = [PcapFileType, FilePickerFileTypes.All],
+        });
+        if (files.Count > 0)
+        {
+            await viewModel.ImportPcapAsync(files[0].Path.LocalPath);
         }
     }
 

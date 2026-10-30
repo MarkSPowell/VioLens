@@ -203,10 +203,11 @@ Optional (welcome in 1.0, but none holds it up). Most come from
 [Clearinet](https://github.com/ericlaw1979/Clearinet) and its issues;
 "Clearinet #N" below is that repository's issue N.
 
-11. **PCAP import.** Read packet captures, including Wi-Fi capture
-    formats (Clearinet #18). Clearinet's `PcapImporter`, `PcapReader` and
-    `PcapDecoder` are MIT-licensed like VioLens, so they can be ported with
-    attribution.
+11. **PCAP import.** Done: File > Import Packet Capture (and QuickExec
+    `open`) reads the plain HTTP in PCAP and PCAPNG files, including Wi-Fi
+    captures (Clearinet #18). Ported from Clearinet's `PcapReader` and
+    `PcapDecoder` with attribution (THIRD-PARTY-NOTICES.md). Decrypting TLS
+    with a key log file could follow.
 12. **A tree data inspector.** JSON, and binary formats such as CBOR
     (Clearinet #40), shown as a tree with Copy, Copy Subtree and Send to
     TextWizard. Today JSON is indented text (the Feature Inventory lists

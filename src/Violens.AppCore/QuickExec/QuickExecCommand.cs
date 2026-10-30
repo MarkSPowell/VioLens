@@ -68,7 +68,7 @@ public enum QuickExecKind
     /// <summary><c>save path</c>: save every session to that file, as HAR when it ends in .har and SAZ otherwise.</summary>
     Save,
 
-    /// <summary><c>open path</c>: add the sessions in a SAZ or HAR file.</summary>
+    /// <summary><c>open path</c>: add the sessions in a SAZ, HAR or packet capture file.</summary>
     Open,
 
     /// <summary><c>filter text</c>: set the session filter (<c>filter</c> alone clears it).</summary>

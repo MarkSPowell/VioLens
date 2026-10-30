@@ -159,7 +159,9 @@ here yet. Feedback and issues are welcome.
   space.
 - Export captured sessions to a `.saz` (Session Archive Zip) file, or
   import a previously saved one back in; export and import HTTP Archive
-  (`.har`) files, the format browsers' developer tools use.
+  (`.har`) files, the format browsers' developer tools use; import the
+  plain HTTP traffic in a packet capture (`.pcap`, `.pcapng`) from
+  Wireshark, tcpdump or pktmon.
 - An automatic or manually-specified listening port (defaults to Auto).
 - Settings that persist between runs (port choice, Tools-menu panels,
   filter text and more), stored the same way on Windows and macOS in
@@ -348,7 +350,8 @@ and by his public [Clearinet](https://github.com/ericlaw1979/Clearinet)
 repository. It isn't his project, and he hasn't contributed code to it.
 It does build on some of his published open source work, under its own
 licences: the ported NetLog importer and the CSP Rule Collector fork
-(see above).
+(see above), and packet capture import, ported from Clearinet (see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 ## Credits
 

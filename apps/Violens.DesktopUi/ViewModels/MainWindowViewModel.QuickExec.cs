@@ -187,13 +187,16 @@ public sealed partial class MainWindowViewModel
             {
                 if (command.Argument.Length == 0)
                 {
-                    return Report("QuickExec: open needs a .saz or .har file.", succeeded: false);
+                    return Report("QuickExec: open needs a .saz, .har or packet capture (.pcap, .pcapng) file.", succeeded: false);
                 }
 
                 var path = ResolvePath(command.Argument, baseDirectory);
-                var opened = string.Equals(Path.GetExtension(path), ".har", StringComparison.OrdinalIgnoreCase)
-                    ? await ImportHarAsync(path)
-                    : await ImportSazAsync(path);
+                var opened = Path.GetExtension(path).ToLowerInvariant() switch
+                {
+                    ".har" => await ImportHarAsync(path),
+                    ".pcap" or ".pcapng" or ".cap" => await ImportPcapAsync(path),
+                    _ => await ImportSazAsync(path),
+                };
                 return Status(opened);
             }
 

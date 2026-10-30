@@ -73,6 +73,8 @@
        re-copying an unchanged file on every build. -->
   <ItemGroup>
     <None Include="..\..\docs\User Guide.md" Link="Documentation\User Guide.md" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The licences of code ported into VioLens itself (Clearinet's packet capture import). -->
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Link="Documentation\THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

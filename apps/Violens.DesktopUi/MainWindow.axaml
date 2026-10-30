@@ -98,6 +98,8 @@
              teams use. Bodies are written decoded (see HarWriter). -->
         <MenuItem Header="Import _HAR…" Click="ImportHarMenuItem_Click" />
         <MenuItem Header="Export HA_R…" Click="ExportHarMenuItem_Click" IsEnabled="{Binding HasSessions}" />
+        <MenuItem Header="Import _Packet Capture…" Click="ImportPcapMenuItem_Click"
+                  ToolTip.Tip="Adds the plain HTTP traffic in a Wireshark, tcpdump or pktmon capture (.pcap, .pcapng). HTTPS in a capture is encrypted, so it's skipped." />
         <!-- Enabled once an extension offers an importer or exporter; the
              tooltip explains why they're greyed out otherwise. -->
         <Separator />

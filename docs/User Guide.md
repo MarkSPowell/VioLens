@@ -461,7 +461,7 @@ press **Enter**. **Up** and **Down** bring back earlier commands, and
 | `start`, `stop` | Starts or stops capturing |
 | `dump` | Saves every session to a new `.saz` file on your Desktop, as **File > Save SAZ** does |
 | `save file` | Saves every session to that file: HAR if it ends in `.har`, SAZ otherwise. A relative name is on the Desktop (or, from `violens-exec`, in the folder it was run from) |
-| `open file` | Adds the sessions in a `.saz` or `.har` file |
+| `open file` | Adds the sessions in a `.saz` or `.har` file, or the plain HTTP in a packet capture (`.pcap`, `.pcapng`, `.cap`) |
 | `filter text` | Sets the session filter, as typed in the filter box (`filter` on its own clears it) |
 | `keep 1000`, `keep all` | How many sessions to keep, as the Keep drop-down sets |
 | `help` | Lists the commands and opens this guide |
@@ -754,6 +754,23 @@ Classic extension of this kind that you want to keep using.
   exported from a browser's developer tools. HAR files keep bodies
   decompressed, so imported sessions don't have Content-Encoding headers.
   The browser's own timings come in too, so the waterfall shows them.
+- **File > Import Packet Capture…** adds the plain HTTP/1.x traffic in a
+  `.pcap` or `.pcapng` file from Wireshark, tcpdump, Windows' `pktmon`
+  (converted with `pktmon etl2pcap`) and similar tools. Useful for devices
+  that can't be pointed at a proxy.
+  - HTTPS in a packet capture is encrypted, so it's skipped, and so are
+    HTTP/2 and HTTP/3. The status line says how many encrypted
+    connections there were; for HTTPS, capture through VioLens instead.
+  - Ethernet, unencrypted Wi-Fi, raw IP and Linux "any interface"
+    captures are read, over IPv4 or IPv6. Each session's Notes tab shows
+    the client's and server's addresses and ports.
+  - Timings come from when the packets were captured.
+  - If the capture missed part of an exchange (it started late, or
+    packets were dropped), the session shows what was captured and its
+    notes say what's missing. A request with no response gets status 0;
+    nothing is made up.
+  - Captures up to 256 MB can be imported. What was skipped, and why, is
+    written to the console.
 
 ## Settings that are remembered
 
