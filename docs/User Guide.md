@@ -699,9 +699,14 @@ Classic extension of this kind that you want to keep using.
 ## Saving and loading captured sessions
 
 - **File > Save SAZ…** exports every session captured this run to a
-  `.saz` (Session Archive Zip) file on your Desktop.
+  `.saz` (Session Archive Zip) file on your Desktop. A `.saz` file is a zip:
+  unzip it and open `_index.htm` for a list of the sessions, with links to
+  each one's request and response.
 - **File > Open SAZ…** imports sessions from a previously saved `.saz` file
   back into the session list, exactly as if they'd just been captured live.
+  It also reads `.saz` files from other tools that save HTTP/2 requests
+  with pseudo-headers such as `:authority`, or HTTPS requests with their
+  full URL.
 - **File > Export HAR…** saves every session as an HTTP Archive (`.har`),
   the format browsers' developer tools and many support teams use. Bodies
   are saved decompressed, as text where they're text, and each session's

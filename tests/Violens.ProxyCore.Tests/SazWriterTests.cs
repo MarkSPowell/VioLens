@@ -83,6 +83,25 @@ public class SazWriterTests
         Assert.EndsWith("hello world", responseText);
     }
 
+    [Fact]
+    public void Write_ListsTheSessionsInAnIndexPageWithEverythingEncoded()
+    {
+        var request = new CapturedRequest("GET", "/search?q=<script>alert(1)</script>", "HTTP/1.1", [("Host", "example.test")], []);
+        var response = new CapturedResponse("HTTP/1.1", 404, "Not Found", [("Content-Type", "text/html")], Encoding.ASCII.GetBytes("missing"));
+
+        using var zipStream = new MemoryStream();
+        SazWriter.Write(zipStream, [new Session(7, "example.test", DateTimeOffset.UtcNow, request, response)]);
+        zipStream.Position = 0;
+        using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
+
+        var index = ReadEntryText(archive.GetEntry("_index.htm")!);
+        Assert.Contains("""<a href="raw/7_c.txt">C</a> <a href="raw/7_s.txt">S</a> <a href="raw/7_m.xml">M</a>""", index);
+        Assert.Contains("<td>404</td><td>GET</td><td>example.test</td>", index);
+        Assert.Contains("q=&lt;script&gt;alert(1)&lt;/script&gt;", index);
+        Assert.DoesNotContain("<script>", index);
+        Assert.Contains("""Extension="htm" ContentType="text/html""", ReadEntryText(archive.GetEntry("[Content_Types].xml")!));
+    }
+
     private static string ReadEntryText(ZipArchiveEntry entry)
     {
         using var stream = entry.Open();
