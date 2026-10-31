@@ -31,7 +31,7 @@ of this doc is filled in.
 | SAZ export | Shipped |
 | SAZ import | Shipped |
 | Headers / Raw / Hex inspectors | Shipped |
-| JSON / WebForms / ImageView inspectors | Shipped (JSON as indented text, not a tree) |
+| JSON / WebForms / ImageView inspectors | Shipped: JSON as indented text, and a Tree tab (JSON, plus CBOR and MessagePack, which Fiddler Classic didn't read) with Copy, Copy Subtree and Send to TextWizard |
 | Image bloat detection (ImageBloat extension) | Built in: Image Bloat column, row tint, ImageView breakdown; no in-page overlay |
 | WebSocket message viewer | Shipped: WebSocket tab with each message (direction, time, type, size, data), live; fragmented messages joined, permessage-deflate decompressed (with and without context takeover); full message view with JSON indented and binary as hex; Find searches text messages; HAR `_webSocketMessages` export and import. Not yet: SAZ (Fiddler stores messages in its own per-session files), editing or breakpoints on messages |
 | Compare Sessions (Fiddler Classic launched an external diff tool) | Shipped, built in: side by side, line by line with the differing part highlighted; bodies decompressed, JSON and forms one value per line, optional header-order-insensitive compare; F8/Shift+F8 between differences |

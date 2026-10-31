@@ -22,6 +22,7 @@ public sealed class InspectorRegistry
             new HeadersInspector(),
             new RawTextInspector(),
             new JsonInspector(),
+            new TreeInspector(),
             new WebFormsInspector(),
             new ImageInspector(),
             new HexInspector(),

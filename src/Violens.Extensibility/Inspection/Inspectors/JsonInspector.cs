@@ -93,7 +93,7 @@ public sealed class JsonInspector : IInspector
         return Encoding.UTF8.GetString(buffer.ToArray());
     }
 
-    private static bool TryParse(InspectorContext context, out JsonDocument? document, out string? error)
+    internal static bool TryParse(InspectorContext context, out JsonDocument? document, out string? error)
     {
         document = null;
         if (!ContentDecoder.TryDecode(context.Body, context.FindHeader("Content-Encoding"), out var decoded, out error))

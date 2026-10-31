@@ -139,6 +139,24 @@ tabs:
 - **JSON** (only for a JSON body): the body pretty-printed, so an API
   response is easy to read. You get it for JSON content types, and for a
   body with no useful content type that turns out to be JSON.
+- **Tree** (only for JSON, CBOR or MessagePack): the body as a tree. The
+  top level opens expanded; each line shows a name and its value, or how
+  many members (`{3}`) or items (`[5]`) it holds. CBOR and MessagePack are
+  recognised by their content type (`application/cbor`, any `+cbor` type,
+  `application/msgpack`), and a body holding several values one after
+  another (a CBOR sequence, say) shows each one. Binary data is shown as
+  `h'0a1b'`, and a few values get a note in brackets: the date a CBOR
+  epoch time or a MessagePack timestamp stands for, a bignum's value, a
+  UUID. Right-click a node for:
+  - **Copy** (Ctrl+C): its value; a string without its quotes.
+  - **Copy Subtree**: the node and everything under it, as indented JSON.
+    CBOR and MessagePack are written in CBOR's diagnostic notation, which
+    is JSON plus `h'…'` for bytes and `1(…)` for tags.
+  - **Send to TextWizard**: the same text, as TextWizard's input.
+  - **Expand All** and **Collapse All**, below the selected node.
+
+  A very large body shows only its first 10,000 values, and says so; the
+  JSON or Hex tab has the rest.
 - **WebForms** (request side, only when there's something to show): the
   query string and any form fields, one row per name and value, decoded.
   Form uploads (`multipart/form-data`) show each field, and each file's
@@ -344,7 +362,8 @@ browsers export), but not in SAZ files yet.
 **Tools > TextWizard…** (**Ctrl+E**) encodes and decodes text. Type or
 paste into the top box, choose a conversion, and the output updates as you
 type. If text is selected in an inspector (or any text box) when you press
-Ctrl+E, it becomes the input.
+Ctrl+E, it becomes the input. The Tree tab's **Send to TextWizard** does
+the same with a node and everything under it.
 
 | Conversion | Does |
 |---|---|

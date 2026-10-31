@@ -77,6 +77,10 @@
       </DockPanel>
     </DataTemplate>
 
+    <DataTemplate DataType="inspect:TreeContent">
+      <controls:TreeInspectorView />
+    </DataTemplate>
+
     <DataTemplate DataType="inspect:ErrorContent">
       <TextBlock Text="{Binding Message}"
                  Foreground="IndianRed"

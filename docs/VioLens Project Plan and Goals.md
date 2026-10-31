@@ -208,10 +208,9 @@ Optional (welcome in 1.0, but none holds it up). Most come from
     captures (Clearinet #18). Ported from Clearinet's `PcapReader` and
     `PcapDecoder` with attribution (THIRD-PARTY-NOTICES.md). Decrypting TLS
     with a key log file could follow.
-12. **A tree data inspector.** JSON, and binary formats such as CBOR
-    (Clearinet #40), shown as a tree with Copy, Copy Subtree and Send to
-    TextWizard. Today JSON is indented text (the Feature Inventory lists
-    this gap).
+12. **A tree data inspector.** Done: a Tree tab shows JSON, CBOR
+    (Clearinet #40) and MessagePack as a tree, with Copy, Copy Subtree and
+    Send to TextWizard. Extensions can return a tree too (`TreeContent`).
 13. **A capture-only app.** A very simple app, like Fiddler's FiddlerCap,
     that lets a non-technical person record a SAZ for a support team. Built
     on ProxyCore; suits VioLens's commercial users.

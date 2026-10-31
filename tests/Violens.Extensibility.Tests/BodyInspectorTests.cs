@@ -195,6 +195,6 @@ public class BodyInspectorTests
 
         var names = InspectorRegistry.CreateDefault().GetApplicable(context).Select(i => i.DisplayName).ToArray();
 
-        Assert.Equal(new[] { "Headers", "Raw", "JSON", "Hex" }, names);
+        Assert.Equal(new[] { "Headers", "Raw", "JSON", "Tree", "Hex" }, names);
     }
 }

@@ -1381,9 +1381,9 @@ flagged limitation, not a silent one: with no method that hands back
 arbitrary UI content, `Inspector2Adapter.Inspect` can only ever produce
 `TextContent` from the resulting bytes (UTF-8 decoded) — an extension that
 populated a fully custom WinForms control in real Fiddler has no
-equivalent surface here today, consistent with `InspectorContent`'s own
-remarks that an image/tree case is future work for every inspector, not
-just adapted ones. `GetOrder()`'s absence means every adapted inspector
+equivalent surface here today. Native `IInspector`s can return richer
+content (`ImageContent`, `TreeContent`); an adapted one can't, since
+`IInspector2` only hands back bytes. `GetOrder()`'s absence means every adapted inspector
 sorts at a fixed `Inspector2Adapter.DefaultSortOrder`, below the built-ins.
 
 **`ISessionImporter`/`ISessionExporter`**

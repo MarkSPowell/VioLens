@@ -948,6 +948,12 @@ public partial class MainWindow : Window
             _ => null,
         };
 
+        OpenTextWizard(selectedText);
+    }
+
+    /// <summary>Opens TextWizard, or brings it forward, with <paramref name="input"/> as its input when there is some.</summary>
+    internal void OpenTextWizard(string? input)
+    {
         if (_textWizard is null)
         {
             _textWizard = new TextWizardWindow(
@@ -962,9 +968,9 @@ public partial class MainWindow : Window
             _textWizard.Activate();
         }
 
-        if (!string.IsNullOrEmpty(selectedText))
+        if (!string.IsNullOrEmpty(input))
         {
-            _textWizard.SetInput(selectedText);
+            _textWizard.SetInput(input);
         }
     }
 }

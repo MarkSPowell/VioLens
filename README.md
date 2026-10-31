@@ -74,7 +74,8 @@ here yet. Feedback and issues are welcome.
   columns (Waterfall, Image Bloat, script and extension columns...). Which
   columns are shown, their order and their widths are remembered.
 - Request/response inspector tabs: Headers, Raw (decoded text, with
-  automatic decompression), JSON (pretty-printed), WebForms (query string
+  automatic decompression), JSON (pretty-printed), Tree (JSON, CBOR or
+  MessagePack as a tree to expand and copy from), WebForms (query string
   and form fields, including multipart uploads), ImageView (the picture,
   its format and pixel size, and any image bloat), Hex, Cookies (each cookie sent or set, with
   its attributes, and a warning for ones browsers will refuse) and Notes
