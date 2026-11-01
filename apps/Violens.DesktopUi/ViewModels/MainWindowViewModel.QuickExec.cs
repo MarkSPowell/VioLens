@@ -9,8 +9,10 @@ namespace Violens.DesktopUi.ViewModels;
 /// Classic. Built-in commands run here (see <see cref="QuickExecParser"/>);
 /// anything else is offered to the loaded FiddlerScript's
 /// <c>OnExecAction</c>, then to extensions' <c>IHandleExecAction</c>.
-/// Up and Down go through earlier commands. The same commands arrive from
-/// violens-exec (see MainWindowViewModel.Automation.cs).
+/// Up and Down go through earlier commands. As a command is typed,
+/// suggestions appear above the box (see <see cref="QuickExecCompletion"/>):
+/// Tab takes the highlighted one, and Up and Down move between them. The
+/// same commands arrive from violens-exec (see MainWindowViewModel.Automation.cs).
 /// </summary>
 public sealed partial class MainWindowViewModel
 {
@@ -20,6 +22,9 @@ public sealed partial class MainWindowViewModel
     private int _quickExecHistoryPosition;
     private string _quickExecText = string.Empty;
     private RelayCommand? _runQuickExecCommand;
+    private IReadOnlyList<QuickExecSuggestion> _quickExecSuggestions = [];
+    private int _quickExecSuggestionIndex;
+    private bool _browsingQuickExecHistory;
 
     /// <summary>Raised with the sessions a selection command picked, for the window to select in the list.</summary>
     public event Action<IReadOnlyList<SessionRow>>? QuickExecSelectionRequested;
@@ -27,8 +32,62 @@ public sealed partial class MainWindowViewModel
     public string QuickExecText
     {
         get => _quickExecText;
-        set => SetField(ref _quickExecText, value ?? string.Empty);
+        set
+        {
+            if (SetField(ref _quickExecText, value ?? string.Empty))
+            {
+                // A command brought back from history is run as it is, not completed.
+                QuickExecSuggestions = _browsingQuickExecHistory ? [] : QuickExecCompletion.Suggest(_quickExecText);
+            }
+        }
     }
+
+    /// <summary>What the typed text could become; empty hides the suggestions.</summary>
+    public IReadOnlyList<QuickExecSuggestion> QuickExecSuggestions
+    {
+        get => _quickExecSuggestions;
+        private set
+        {
+            if (SetField(ref _quickExecSuggestions, value))
+            {
+                QuickExecSuggestionIndex = value.Count > 0 ? 0 : -1;
+                RaisePropertyChanged(nameof(HasQuickExecSuggestions));
+            }
+        }
+    }
+
+    public bool HasQuickExecSuggestions => _quickExecSuggestions.Count > 0;
+
+    /// <summary>The highlighted suggestion, which Tab takes.</summary>
+    public int QuickExecSuggestionIndex
+    {
+        get => _quickExecSuggestionIndex;
+        set => SetField(ref _quickExecSuggestionIndex, value);
+    }
+
+    /// <summary>Up (-1) or Down (+1) among the suggestions, wrapping round.</summary>
+    public void MoveQuickExecSuggestion(int step)
+    {
+        var count = _quickExecSuggestions.Count;
+        if (count > 0)
+        {
+            QuickExecSuggestionIndex = ((QuickExecSuggestionIndex + step) % count + count) % count;
+        }
+    }
+
+    /// <summary>Puts the highlighted suggestion in the box; false when there's none.</summary>
+    public bool AcceptQuickExecSuggestion()
+    {
+        if (QuickExecSuggestionIndex < 0 || QuickExecSuggestionIndex >= _quickExecSuggestions.Count)
+        {
+            return false;
+        }
+
+        QuickExecText = _quickExecSuggestions[QuickExecSuggestionIndex].Text;
+        return true;
+    }
+
+    public void DismissQuickExecSuggestions() => QuickExecSuggestions = [];
 
     /// <summary>Runs <see cref="QuickExecText"/> (Enter in the box).</summary>
     public RelayCommand RunQuickExecCommand => _runQuickExecCommand ??= new RelayCommand(() =>
@@ -60,7 +119,15 @@ public sealed partial class MainWindowViewModel
         }
 
         _quickExecHistoryPosition = Math.Clamp(_quickExecHistoryPosition + step, 0, _quickExecHistory.Count);
-        QuickExecText = _quickExecHistoryPosition < _quickExecHistory.Count ? _quickExecHistory[_quickExecHistoryPosition] : string.Empty;
+        _browsingQuickExecHistory = true;
+        try
+        {
+            QuickExecText = _quickExecHistoryPosition < _quickExecHistory.Count ? _quickExecHistory[_quickExecHistoryPosition] : string.Empty;
+        }
+        finally
+        {
+            _browsingQuickExecHistory = false;
+        }
     }
 
     /// <summary>

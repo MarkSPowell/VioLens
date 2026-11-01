@@ -169,14 +169,21 @@ tabs:
   comments, text, or data after the end of the image. Removing them makes
   the file smaller with no visible change. (EXIF can hold the photo's
   orientation, which browsers honour, so keep that tag if the image relies
-  on it.)
+  on it.) Double-click the picture, or click **View…**, to open it in a
+  window of its own: zoom with **+** and **−**, **Ctrl+scroll** (Cmd on a
+  Mac) or the buttons, **0** for actual size and **F** to fit. **F11**
+  goes full screen, and **Escape** leaves full screen or closes the window.
+  From 200% up, each pixel is drawn as a sharp square.
 - **Hex**: a hex dump of the raw bytes.
 - **Cookies** (only on a side that has cookies): on the request side,
   each cookie the browser sent; on the response side, each cookie the
   server set, with its attributes (Path, Domain, Expires, Secure, HttpOnly,
   SameSite...). A cookie browsers will refuse, such as `SameSite=None`
   without `Secure`, or a `__Host-`/`__Secure-` cookie that breaks its
-  prefix's rules, gets a warning.
+  prefix's rules, gets a warning. Above the list is the cookies' total
+  size and the largest one, since big cookies are sent with every request
+  to the site. A cookie over 4,096 bytes, the most browsers store, gets a
+  warning too.
 - **Notes** (request side, only when there are any): notes an importer
   or extension attached to the session. For example, a NetLog capture
   recorded without bodies notes the response size the browser reported,
@@ -219,7 +226,20 @@ To choose which columns the list shows, **right-click any column header**
 Every column can be hidden except **#** and **URL**, including the
 Waterfall and Image Bloat columns and columns a script or extension added;
 **Show All Columns** brings them all back. Drag a header to move its
-column, or drag the edge between headers to resize it.
+column, or drag the edge between headers to resize it. **Customize
+Columns…**, in the same menu, does it all in one dialog: tick the columns
+to show and move them up or down (**Alt+Up** and **Alt+Down**) into the
+order you want.
+
+The header's right-click menu also has two entries for that column:
+
+- **Find in the … Column** opens the Find bar limited to that column's
+  text, as the list shows it ("in the Method column"). Click **✕** beside
+  it to search whole sessions again.
+- **Highlight Repeated Values** highlights every session whose value in
+  the column is the same as another session's: the same URL fetched twice,
+  say. **F3** steps through them, and closing the Find bar clears the
+  highlighting.
 
 VioLens remembers which columns are shown, their order and their widths
 for next time. A script's or extension's column keeps its place and width
@@ -515,6 +535,11 @@ The box under the session list is **QuickExec**, Fiddler Classic's command
 line. Click it or press **Alt+Q** (**Edit > QuickExec**), type a command and
 press **Enter**. **Up** and **Down** bring back earlier commands, and
 **Escape** clears the box. What a command did shows on the status line.
+
+As you type, the commands you could mean appear above the box with what
+they do, and for `select`, `allbut` and `keep` the usual values. **Tab**
+takes the highlighted one, **Up** and **Down** move between them, a click
+takes one, and **Escape** hides them.
 
 | Command | Does |
 |---|---|

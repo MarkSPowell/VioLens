@@ -5,6 +5,7 @@
         xmlns:conv="using:Violens.DesktopUi.Converters"
         xmlns:controls="using:Violens.DesktopUi.Controls"
         xmlns:avc="using:Avalonia.Data.Converters"
+        xmlns:qe="using:Violens.AppCore.QuickExec"
         x:Class="Violens.DesktopUi.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="VioLens"
@@ -27,6 +28,14 @@
     </DataTemplate>
 
     <DataTemplate DataType="inspect:KeyValueContent">
+      <DockPanel>
+      <!-- The Cookies tab's sizes; other tabs have no summary. -->
+      <TextBlock DockPanel.Dock="Top"
+                 Text="{Binding Summary}"
+                 IsVisible="{Binding Summary, Converter={x:Static avc:StringConverters.IsNotNullOrEmpty}}"
+                 Foreground="{DynamicResource AppMutedTextBrush}"
+                 TextWrapping="Wrap"
+                 Margin="8,4" />
       <!-- DataGridTextColumn.Binding doesn't support compiled bindings. -->
       <DataGrid x:CompileBindings="False"
                 ItemsSource="{Binding Rows}"
@@ -45,6 +54,7 @@
           <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*" />
         </DataGrid.Columns>
       </DataGrid>
+      </DockPanel>
     </DataTemplate>
 
     <DataTemplate DataType="inspect:HexContent">
@@ -57,24 +67,8 @@
                BorderThickness="0" />
     </DataTemplate>
 
-    <!-- ImageView: the summary line (format, dimensions, size), then the
-         picture at its own size, scrollable. The converter returns null for
-         a format Avalonia can't draw, leaving just the summary. -->
     <DataTemplate DataType="inspect:ImageContent">
-      <DockPanel>
-        <TextBlock DockPanel.Dock="Top"
-                   Text="{Binding Summary}"
-                   Foreground="{DynamicResource AppMutedTextBrush}"
-                   TextWrapping="Wrap"
-                   Margin="8,4" />
-        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-          <Image Source="{Binding Bytes, Converter={x:Static conv:ImageBytesConverter.Instance}}"
-                 Stretch="None"
-                 HorizontalAlignment="Left"
-                 VerticalAlignment="Top"
-                 Margin="8" />
-        </ScrollViewer>
-      </DockPanel>
+      <controls:ImageInspectorView />
     </DataTemplate>
 
     <DataTemplate DataType="inspect:TreeContent">
@@ -655,12 +649,21 @@
             <KeyBinding Gesture="Escape" Command="{Binding CloseFindCommand}" />
           </TextBox.KeyBindings>
         </TextBox>
-        <ComboBox SelectedIndex="{Binding FindTargetIndex, Mode=TwoWay}" VerticalAlignment="Center">
+        <!-- Set by a column header's Find in This Column. -->
+        <StackPanel Orientation="Horizontal" Spacing="4" IsVisible="{Binding HasFindColumn}" VerticalAlignment="Center">
+          <TextBlock Text="{Binding FindColumnTitle, StringFormat='in the {0} column'}" VerticalAlignment="Center" />
+          <Button Content="✕"
+                  Command="{Binding ClearFindColumnCommand}"
+                  ToolTip.Tip="Search whole sessions again"
+                  Padding="6,0"
+                  VerticalAlignment="Center" />
+        </StackPanel>
+        <ComboBox SelectedIndex="{Binding FindTargetIndex, Mode=TwoWay}" IsEnabled="{Binding !HasFindColumn}" VerticalAlignment="Center">
           <ComboBoxItem Content="Requests and responses" />
           <ComboBoxItem Content="Requests only" />
           <ComboBoxItem Content="Responses only" />
         </ComboBox>
-        <ComboBox SelectedIndex="{Binding FindPartsIndex, Mode=TwoWay}" VerticalAlignment="Center">
+        <ComboBox SelectedIndex="{Binding FindPartsIndex, Mode=TwoWay}" IsEnabled="{Binding !HasFindColumn}" VerticalAlignment="Center">
           <ComboBoxItem Content="Headers and bodies" />
           <ComboBoxItem Content="Headers only" />
           <ComboBoxItem Content="Bodies only" />
@@ -681,8 +684,38 @@
       <!-- QuickExec, as in Fiddler Classic: commands such as ?text, @host,
            =404, >40k, select, allbut, cls, bpu, go (Alt+Q to get here, Up
            and Down for earlier commands). See MainWindowViewModel.QuickExec.cs. -->
+      <!-- QuickExec suggestions, above the box as the command is typed
+           (Tab takes the highlighted one). See QuickExecCompletion. -->
+      <Popup x:Name="QuickExecPopup"
+             DockPanel.Dock="Bottom"
+             PlacementTarget="{Binding #QuickExecBox}"
+             Placement="TopEdgeAlignedLeft"
+             IsOpen="{Binding HasQuickExecSuggestions}"
+             IsLightDismissEnabled="False">
+        <Border Background="{DynamicResource AppPanelBrush}"
+                BorderBrush="{DynamicResource AppBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="2">
+          <ListBox x:Name="QuickExecSuggestionList"
+                   ItemsSource="{Binding QuickExecSuggestions}"
+                   SelectedIndex="{Binding QuickExecSuggestionIndex, Mode=TwoWay}"
+                   Tapped="QuickExecSuggestionList_Tapped"
+                   Background="Transparent">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="qe:QuickExecSuggestion">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <TextBlock Text="{Binding Usage}" FontFamily="Cascadia Mono,Consolas,monospace" MinWidth="140" />
+                  <TextBlock Text="{Binding Description}" Foreground="{DynamicResource AppMutedTextBrush}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </Popup>
       <TextBox x:Name="QuickExecBox"
                DockPanel.Dock="Bottom"
+               LostFocus="QuickExecBox_LostFocus"
                Text="{Binding QuickExecText, Mode=TwoWay}"
                PlaceholderText="QuickExec (Alt+Q): ?text  @host  =404  >40k  select image  cls  bpu text  go  help"
                FontFamily="Cascadia Mono,Consolas,monospace"

@@ -14,11 +14,12 @@ public sealed record TextContent(string Text, string? SyntaxHint = null) : Inspe
 public sealed record HeaderRow(string Name, string Value);
 
 /// <summary>
-/// Name/value rows (Headers, Cookies, WebForms). A record rather than a
-/// tuple, because reflection bindings see a tuple's <c>Item1</c>/<c>Item2</c>,
-/// not its names, and would show blank rows.
+/// Name/value rows (Headers, Cookies, WebForms), with an optional line of
+/// text to show above them (the Cookies tab's sizes). <see cref="HeaderRow"/>
+/// is a record rather than a tuple, because reflection bindings see a
+/// tuple's <c>Item1</c>/<c>Item2</c>, not its names, and would show blank rows.
 /// </summary>
-public sealed record KeyValueContent(IReadOnlyList<HeaderRow> Rows) : InspectorContent;
+public sealed record KeyValueContent(IReadOnlyList<HeaderRow> Rows, string? Summary = null) : InspectorContent;
 
 /// <summary>Raw bytes, for a hex/ASCII dump. Formatting them into lines is a rendering concern, not this record's job.</summary>
 public sealed record HexContent(byte[] Bytes) : InspectorContent;

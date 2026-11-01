@@ -15,7 +15,8 @@ public sealed partial class MainWindowViewModel
         var name = Path.GetFileName(path);
         try
         {
-            var result = await PcapReader.ImportAsync(path, _sessionStore);
+            // Off the UI thread: reassembling a large capture takes a while.
+            var result = await Task.Run(() => PcapReader.ImportAsync(path, _sessionStore));
             foreach (var note in result.Notes)
             {
                 Console.WriteLine($"[import] {name}: {note.Text}: {note.Count}");

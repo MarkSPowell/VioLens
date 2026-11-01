@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Avalonia.Threading;
 using Violens.DesktopUi.Models;
 using Violens.ProxyCore.Sessions;
@@ -9,6 +10,10 @@ namespace Violens.DesktopUi.ViewModels;
 /// captured session that contains some text, in its URL, headers or
 /// (decompressed) bodies, and selects the first one. F3 moves to the next.
 /// Unlike the filter box, it doesn't hide anything. See <see cref="SessionSearch"/>.
+///
+/// Right-clicking a column header can scope Find to that column (its text
+/// as the list shows it), or highlight every session whose value in the
+/// column is shared with another session (Highlight Repeated Values).
 /// </summary>
 public sealed partial class MainWindowViewModel
 {
@@ -24,6 +29,9 @@ public sealed partial class MainWindowViewModel
     private RelayCommand? _findCommand;
     private RelayCommand? _findNextCommand;
     private RelayCommand? _closeFindCommand;
+    private RelayCommand? _clearFindColumnCommand;
+    private string _findColumnTitle = string.Empty;
+    private Func<SessionRow, string?>? _findColumnText;
 
     /// <summary>Raised when the Find bar should take keyboard focus.</summary>
     public event Action? FindFocusRequested;
@@ -69,6 +77,61 @@ public sealed partial class MainWindowViewModel
         set => SetField(ref _findUseRegex, value);
     }
 
+    /// <summary>The column Find is limited to, or empty for whole sessions.</summary>
+    public string FindColumnTitle
+    {
+        get => _findColumnTitle;
+        private set
+        {
+            if (SetField(ref _findColumnTitle, value))
+            {
+                RaisePropertyChanged(nameof(HasFindColumn));
+            }
+        }
+    }
+
+    public bool HasFindColumn => FindColumnTitle.Length > 0;
+
+    /// <summary>Back to searching whole sessions.</summary>
+    public RelayCommand ClearFindColumnCommand => _clearFindColumnCommand ??= new RelayCommand(() =>
+    {
+        _findColumnText = null;
+        FindColumnTitle = string.Empty;
+    });
+
+    /// <summary>Opens the Find bar limited to one column; <paramref name="cellText"/> gives a row's text in it.</summary>
+    public void ScopeFindToColumn(string title, Func<SessionRow, string?> cellText)
+    {
+        _findColumnText = cellText;
+        FindColumnTitle = title;
+        IsFindBarVisible = true;
+        FindFocusRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Highlights every session whose value in a column (not empty) is the
+    /// same as another session's, like a spreadsheet's duplicate
+    /// highlighting; F3 then steps through them.
+    /// </summary>
+    public void HighlightRepeatedValues(string title, Func<SessionRow, string?> cellText)
+    {
+        IsFindBarVisible = true;
+        var rows = Sessions.ToList();
+        var counts = rows
+            .Select(cellText)
+            .Where(text => !string.IsNullOrEmpty(text))
+            .GroupBy(text => text!, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.Ordinal);
+        var matches = rows.Where(row => cellText(row) is { } text && counts.Contains(text)).ToHashSet();
+        ShowMatches(matches, matches.Count switch
+        {
+            0 => $"No two sessions share a value in the {title} column.",
+            _ => $"{matches.Count} sessions share a value in the {title} column ({counts.Count} repeated {(counts.Count == 1 ? "value" : "values")}).",
+        });
+    }
+
     /// <summary>"3 sessions match", or why nothing could be searched for.</summary>
     public string FindStatus
     {
@@ -101,6 +164,12 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
+        if (_findColumnText is { } cellText)
+        {
+            FindInColumn(cellText);
+            return;
+        }
+
         var options = new SessionSearchOptions(
             FindText,
             (SessionSearchTarget)Math.Clamp(FindTargetIndex, 0, 2),
@@ -119,30 +188,82 @@ public sealed partial class MainWindowViewModel
         {
             var rows = Sessions.ToList();
             var matches = await Task.Run(() => rows.Where(row => search!.Matches(row.Session)).ToHashSet());
-
-            foreach (var row in Sessions)
-            {
-                row.IsFindMatch = matches.Contains(row);
-            }
-
-            var visible = FilteredSessions.ToHashSet();
-            var hidden = matches.Count(row => !visible.Contains(row));
-            FindStatus = matches.Count switch
-            {
-                0 => "No sessions match.",
-                1 => "1 session matches.",
-                _ => $"{matches.Count} sessions match.",
-            } + (hidden > 0 ? $" {hidden} hidden by the filter." : string.Empty);
-
-            FindResultsChanged?.Invoke();
-            if (FilteredSessions.FirstOrDefault(row => row.IsFindMatch) is { } first)
-            {
-                SelectedSessionRow = first;
-            }
+            ShowMatches(matches, MatchCount(matches.Count));
         }
         finally
         {
             _isFinding = false;
+        }
+    }
+
+    /// <summary>Find limited to a column: the text as the list shows it, so it's quick enough for the UI thread.</summary>
+    private void FindInColumn(Func<SessionRow, string?> cellText)
+    {
+        if (FindText.Length == 0)
+        {
+            FindStatus = "Type something to find.";
+            return;
+        }
+
+        Func<string, bool> matches;
+        if (FindUseRegex)
+        {
+            Regex regex;
+            try
+            {
+                regex = new Regex(FindText, FindMatchCase ? RegexOptions.None : RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+            }
+            catch (ArgumentException ex)
+            {
+                FindStatus = $"That isn't a valid regular expression: {ex.Message}";
+                return;
+            }
+
+            matches = text =>
+            {
+                try
+                {
+                    return regex.IsMatch(text);
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    return false;
+                }
+            };
+        }
+        else
+        {
+            var comparison = FindMatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+            matches = text => text.Contains(FindText, comparison);
+        }
+
+        var found = Sessions.Where(row => cellText(row) is { } text && matches(text)).ToHashSet();
+        ShowMatches(found, MatchCount(found.Count) + $" Searched the {FindColumnTitle} column only.");
+    }
+
+    private static string MatchCount(int count) => count switch
+    {
+        0 => "No sessions match.",
+        1 => "1 session matches.",
+        _ => $"{count} sessions match.",
+    };
+
+    /// <summary>Highlights <paramref name="matches"/>, reports them, and selects the first the filter shows.</summary>
+    private void ShowMatches(HashSet<SessionRow> matches, string status)
+    {
+        foreach (var row in Sessions)
+        {
+            row.IsFindMatch = matches.Contains(row);
+        }
+
+        var visible = FilteredSessions.ToHashSet();
+        var hidden = matches.Count(row => !visible.Contains(row));
+        FindStatus = status + (hidden > 0 ? $" {hidden} hidden by the filter." : string.Empty);
+
+        FindResultsChanged?.Invoke();
+        if (FilteredSessions.FirstOrDefault(row => row.IsFindMatch) is { } first)
+        {
+            SelectedSessionRow = first;
         }
     }
 

@@ -13,7 +13,8 @@ public sealed partial class MainWindowViewModel
     {
         try
         {
-            var result = await HarReader.ImportAsync(path, _sessionStore);
+            // Off the UI thread, so a big file doesn't freeze the window while it's parsed.
+            var result = await Task.Run(() => HarReader.ImportAsync(path, _sessionStore));
             StatusText = result.Skipped.Count == 0
                 ? $"Imported {result.Imported} session(s) from {Path.GetFileName(path)}."
                 : $"Imported {result.Imported} session(s) from {Path.GetFileName(path)} " +

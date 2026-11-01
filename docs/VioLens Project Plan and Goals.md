@@ -224,14 +224,18 @@ Optional (welcome in 1.0, but none holds it up). Most come from
     built-in browser control, so the preview needs a third-party control or
     the system browser.
 16. **Smaller touches:**
-    - right-click a column header to search that column or highlight
-      repeated values
-    - a full-screen image viewer with zoom
-    - cookie sizes in the Cookies inspector
-    - QuickExec autocomplete as you type (Clearinet #43)
-    - a column customization dialog (Clearinet #32)
-    - faster HAR import (Clearinet #33)
-    - Microsoft Store distribution (Clearinet #3), alongside WinGet
+    - Done: right-click a column header to find in that column or
+      highlight repeated values
+    - Done: an image viewer with zoom and full screen
+    - Done: cookie sizes in the Cookies inspector
+    - Done: QuickExec autocomplete as you type (Clearinet #43)
+    - Done: a column customization dialog (Clearinet #32)
+    - Done: faster HAR import (Clearinet #33). The reader already handles
+      20,000 entries (165 MB) in under a second; HAR, SAZ and packet
+      capture imports now run off the UI thread, so the window stays
+      responsive while they do.
+    - Microsoft Store distribution (Clearinet #3), alongside WinGet. Needs
+      a Partner Center account, so it waits for the maintainer.
 
 Added since this list was written: **Linux** (October 2026). Built:
 certificate trust in the NSS databases Chrome and Firefox read

@@ -1372,7 +1372,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            var result = await SazReader.ImportAsync(path, _sessionStore);
+            // Off the UI thread: sessions reach the list in batches either way.
+            var result = await Task.Run(() => SazReader.ImportAsync(path, _sessionStore));
             StatusText = result.Skipped.Count == 0
                 ? $"Imported {result.Imported} session(s) from {Path.GetFileName(path)}."
                 : $"Imported {result.Imported} session(s) from {Path.GetFileName(path)} " +

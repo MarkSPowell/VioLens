@@ -99,4 +99,39 @@ public class CookiesInspectorTests
 
         Assert.Equal(new[] { "Headers", "Raw", "Hex", "Cookies" }, names);
     }
+
+    // ---- Sizes ----
+
+    private static KeyValueContent Content(Session session, InspectorSide side) =>
+        Assert.IsType<KeyValueContent>(new CookiesInspector().Inspect(new InspectorContext(session, side)));
+
+    [Fact]
+    public void SummarisesRequestCookieSizes()
+    {
+        var content = Content(SessionWith([("Cookie", "a=1; session=" + new string('x', 100) + "; z=é")], []), InspectorSide.Request);
+
+        // a=1 is 2 bytes, session is 107, z=é is 3 (é is two bytes in UTF-8).
+        Assert.Equal("3 cookies, 112 bytes of names and values (the Cookie header is 119 bytes). Largest: session, 107 bytes.", content.Summary);
+        Assert.Equal("1", content.Rows[0].Value);
+    }
+
+    [Fact]
+    public void SummarisesSetCookieSizesWithoutAttributes()
+    {
+        var content = Content(SessionWith([], [("Set-Cookie", "id=abc; Path=/; Secure")]), InspectorSide.Response);
+
+        Assert.Equal("1 cookie, 5 bytes of names and values (the Set-Cookie headers are 22 bytes).", content.Summary);
+    }
+
+    [Fact]
+    public void WarnsAboutACookieBrowsersWontStore()
+    {
+        var big = new string('x', CookiesInspector.MaxCookieBytes);
+        var request = Content(SessionWith([("Cookie", "big=" + big + "; ok=1")], []), InspectorSide.Request);
+        var response = Content(SessionWith([], [("Set-Cookie", "big=" + big + "; Path=/")]), InspectorSide.Response);
+
+        Assert.Contains("Warning: 4,099 bytes, over the 4,096 browsers store", request.Rows[0].Value);
+        Assert.DoesNotContain("Warning", request.Rows[1].Value);
+        Assert.Contains("Warning: 4,099 bytes", response.Rows[0].Value);
+    }
 }

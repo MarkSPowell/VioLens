@@ -394,12 +394,40 @@ public partial class MainWindow : Window
     /// <summary>Edit > QuickExec (Alt+Q): puts the cursor in the QuickExec box.</summary>
     private void QuickExecMenuItem_Click(object? sender, RoutedEventArgs e) => Dispatcher.UIThread.Post(() => QuickExecBox.Focus());
 
-    /// <summary>Up and Down go through earlier commands; Escape clears the box.</summary>
+    /// <summary>
+    /// Up and Down go through earlier commands; Escape clears the box. While
+    /// suggestions show, Tab takes the highlighted one, Up and Down move
+    /// between them, and Escape just hides them.
+    /// </summary>
     private void QuickExecBox_KeyDown(object? sender, KeyEventArgs e)
     {
         if (_viewModel is null)
         {
             return;
+        }
+
+        if (_viewModel.HasQuickExecSuggestions)
+        {
+            switch (e.Key)
+            {
+                case Key.Tab when e.KeyModifiers == KeyModifiers.None:
+                    _viewModel.AcceptQuickExecSuggestion();
+                    QuickExecBox.CaretIndex = QuickExecBox.Text?.Length ?? 0;
+                    e.Handled = true;
+                    return;
+                case Key.Up:
+                    _viewModel.MoveQuickExecSuggestion(-1);
+                    e.Handled = true;
+                    return;
+                case Key.Down:
+                    _viewModel.MoveQuickExecSuggestion(1);
+                    e.Handled = true;
+                    return;
+                case Key.Escape:
+                    _viewModel.DismissQuickExecSuggestions();
+                    e.Handled = true;
+                    return;
+            }
         }
 
         switch (e.Key)
@@ -419,6 +447,29 @@ public partial class MainWindow : Window
 
         QuickExecBox.CaretIndex = QuickExecBox.Text?.Length ?? 0;
         e.Handled = true;
+    }
+
+    /// <summary>Hides the suggestions when focus leaves the box, unless it went to the suggestions themselves.</summary>
+    private void QuickExecBox_LostFocus(object? sender, RoutedEventArgs e) =>
+        Dispatcher.UIThread.Post(() =>
+        {
+            var focused = FocusManager?.GetFocusedElement() as Visual;
+            var inBox = ReferenceEquals(focused, QuickExecBox);
+            var inList = focused?.FindAncestorOfType<ListBox>(includeSelf: true) == QuickExecSuggestionList;
+            if (!inBox && !inList)
+            {
+                _viewModel?.DismissQuickExecSuggestions();
+            }
+        });
+
+    /// <summary>A click on a suggestion takes it, and puts the cursor back in the box.</summary>
+    private void QuickExecSuggestionList_Tapped(object? sender, TappedEventArgs e)
+    {
+        if (_viewModel is not null && _viewModel.AcceptQuickExecSuggestion())
+        {
+            QuickExecBox.Focus();
+            QuickExecBox.CaretIndex = QuickExecBox.Text?.Length ?? 0;
+        }
     }
 
     /// <summary>Selects the sessions a QuickExec command picked, and scrolls to the first.</summary>
@@ -682,6 +733,10 @@ public partial class MainWindow : Window
         }
 
         items.Add(new Separator());
+        var customize = new MenuItem { Header = "C_ustomize Columns…" };
+        customize.Click += (_, _) => _ = CustomizeColumnsAsync();
+        items.Add(customize);
+
         var showAll = new MenuItem { Header = "_Show All Columns" };
         showAll.Click += (_, _) =>
         {
@@ -695,6 +750,60 @@ public partial class MainWindow : Window
         reset.Click += (_, _) => Dispatcher.UIThread.Post(ResetColumns);
         items.Add(reset);
         return items;
+    }
+
+    /// <summary>
+    /// The Customize Columns dialog: shows and hides columns and puts them in
+    /// order, all at once. Widths are kept.
+    /// </summary>
+    private async Task CustomizeColumnsAsync()
+    {
+        if (_viewModel is not { } viewModel)
+        {
+            return;
+        }
+
+        var columns = SessionsDataGrid.Columns
+            .OrderBy(c => c.DisplayIndex)
+            .Select(c => (Column: c, Key: ColumnKey(c)))
+            .Where(c => c.Key is not null)
+            .ToList();
+        var choices = columns
+            .Select(c => new ColumnChoice(c.Key!, c.Column.Header?.ToString() ?? c.Key!, c.Column.IsVisible))
+            .ToList();
+
+        var result = await new ColumnsWindow(choices).ShowDialog<IReadOnlyList<ColumnChoice>?>(this);
+        if (result is null)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(result, ColumnsWindow.ResetRequested))
+        {
+            ResetColumns();
+            return;
+        }
+
+        var byKey = columns.ToDictionary(c => c.Key!, c => c.Column, StringComparer.OrdinalIgnoreCase);
+        _applyingColumnLayout = true;
+        try
+        {
+            for (var i = 0; i < result.Count; i++)
+            {
+                if (byKey.TryGetValue(result[i].Key, out var column))
+                {
+                    column.DisplayIndex = i;
+                    viewModel.SetColumnVisible(result[i].Key, result[i].IsVisible);
+                }
+            }
+        }
+        finally
+        {
+            _applyingColumnLayout = false;
+        }
+
+        SaveColumnLayout();
+        ApplyColumnVisibility();
     }
 
     private void SetColumnVisible(DataGridColumn column, string key, bool visible)
@@ -723,7 +832,7 @@ public partial class MainWindow : Window
         if (source?.FindAncestorOfType<DataGridColumnHeader>(includeSelf: true) is { } header)
         {
             e.Handled = true;
-            var menu = new ContextMenu { ItemsSource = BuildColumnMenuItems() };
+            var menu = new ContextMenu { ItemsSource = BuildColumnHeaderMenuItems(header).Concat(BuildColumnMenuItems()).ToList() };
             menu.Open(header);
             return;
         }
@@ -735,6 +844,32 @@ public partial class MainWindow : Window
         }
 
         SessionContextMenu.ItemsSource = BuildSessionMenuItems();
+    }
+
+    /// <summary>
+    /// The clicked column's own entries, above the column chooser: Find in
+    /// This Column and Highlight Repeated Values (see
+    /// MainWindowViewModel.Find.cs). Disabled for a column with no text.
+    /// </summary>
+    private List<Control> BuildColumnHeaderMenuItems(DataGridColumnHeader header)
+    {
+        var column = SessionsDataGrid.Columns.FirstOrDefault(c => ReferenceEquals(c.Header, header.Content));
+        var path = (column as DataGridBoundColumn)?.Binding is Binding binding ? binding.Path : null;
+        var cellText = Models.SessionColumnText.For(path);
+        var title = (column?.Header?.ToString() ?? "this").Replace("_", "__", StringComparison.Ordinal);
+        if (_viewModel is not { } viewModel)
+        {
+            return [];
+        }
+
+        var find = new MenuItem { Header = $"_Find in the {title} Column…", IsEnabled = cellText is not null };
+        find.Click += (_, _) => viewModel.ScopeFindToColumn(column!.Header!.ToString()!, cellText!);
+
+        var repeated = new MenuItem { Header = "_Highlight Repeated Values", IsEnabled = cellText is not null };
+        ToolTip.SetTip(repeated, "Highlights every session whose value in this column is the same as another session's. F3 steps through them; close the Find bar to clear the highlighting.");
+        repeated.Click += (_, _) => viewModel.HighlightRepeatedValues(column!.Header!.ToString()!, cellText!);
+
+        return [find, repeated, new Separator()];
     }
 
     /// <summary>The session list's right-click menu, for the current selection.</summary>
