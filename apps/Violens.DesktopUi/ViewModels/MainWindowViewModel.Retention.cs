@@ -21,6 +21,11 @@ public sealed partial class MainWindowViewModel
         get => _sessionsToKeepChoices.IndexOf(_sessionsToKeep);
         set
         {
+            if (!CanChange.SessionsToKeep)
+            {
+                return;
+            }
+
             if (value >= 0 && value < _sessionsToKeepChoices.Count)
             {
                 SessionsToKeep = _sessionsToKeepChoices[value];

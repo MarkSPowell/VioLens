@@ -19,6 +19,11 @@ public sealed partial class MainWindowViewModel
         get => _acceptExecCommands;
         set
         {
+            if (!CanChange.AcceptExecCommands)
+            {
+                return;
+            }
+
             if (SetField(ref _acceptExecCommands, value))
             {
                 _preferences.SetBoolPref(PreferenceKeys.AcceptExecCommands, value);

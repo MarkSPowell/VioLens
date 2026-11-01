@@ -36,6 +36,11 @@ public sealed record DiagnosticSnapshot
 
     public bool FiddlerScriptLoaded { get; init; }
 
+    /// <summary>Preference names machine policy locks, and those it gives defaults for. Names only: values can hold addresses.</summary>
+    public IReadOnlyList<string> LockedSettings { get; init; } = [];
+
+    public IReadOnlyList<string> PolicyDefaults { get; init; } = [];
+
     /// <summary>The status line, which carries the last start-up error.</summary>
     public string LastStatus { get; init; } = string.Empty;
 }
@@ -94,6 +99,11 @@ public static class DiagnosticReport
         text.AppendLine($"Sessions: {snapshot.SessionCount}");
         text.AppendLine($"Extensions loaded: {snapshot.ExtensionCount}");
         text.AppendLine($"FiddlerScript loaded: {(snapshot.FiddlerScriptLoaded ? "yes" : "no")}");
+        if (snapshot.LockedSettings.Count > 0 || snapshot.PolicyDefaults.Count > 0)
+        {
+            text.AppendLine($"Machine policy: locks {Names(snapshot.LockedSettings)}; defaults for {Names(snapshot.PolicyDefaults)}");
+        }
+
         text.AppendLine();
 
         text.AppendLine("Network interfaces (up):");
@@ -115,6 +125,8 @@ public static class DiagnosticReport
 
         return text.ToString();
     }
+
+    private static string Names(IReadOnlyList<string> names) => names.Count == 0 ? "none" : string.Join(", ", names);
 
     /// <summary>Whether the root is trusted, by building its chain with the OS's own trust settings.</summary>
     public static string DescribeRoot(X509Certificate2? root)

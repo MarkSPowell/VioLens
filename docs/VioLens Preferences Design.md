@@ -372,6 +372,32 @@ one-time migration of the existing file, though, so it's kept out of this
 first change to keep the change reviewable. The ephemeral-name rule is
 already the same in both.
 
+## Machine policy
+
+`PolicyPreferenceStore` wraps the user's `PreferenceStore` with a
+`PolicySettings` read once at start-up (`PolicySettings.LoadMachine`):
+the registry key `HKLM\SOFTWARE\Policies\VioLens` and its `Defaults`
+subkey on Windows, and `policy.json` under `%ProgramData%\VioLens`,
+`/Library/Application Support/VioLens` or `/etc/violens`. The User Guide
+has the file format.
+
+- A locked name reads as the policy's value; every write to it (setters,
+  `SetPrefs`, `RemovePref`) is dropped and logged. The user's file keeps
+  whatever it had, so lifting the policy restores the user's own choice.
+- A default reads only while the user's file has no value.
+- A policy value of `1` or `0` also reads as a boolean, because Group
+  Policy writes switches as DWORDs. The user's own values keep
+  `PreferenceStore`'s rules.
+- The desktop app hands the wrapper, not the inner store, to the
+  compatibility shim, so FiddlerScripts and extensions are bound too. Its
+  `SettingLocks` disables the controls for locked settings, and the view
+  model's setters refuse changes to them (QuickExec goes through those
+  setters).
+- A source that can't be read is logged and skipped. A policy is a
+  restriction, so a broken one makes VioLens fall back to the user's
+  settings rather than refuse to start; an administrator who needs a hard
+  guarantee should also check the file is valid.
+
 ## Follow-ups
 
 1. Move `FiddlerScriptPreferenceStore` onto `PreferenceStore`, migrating

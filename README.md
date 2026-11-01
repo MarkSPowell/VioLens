@@ -173,6 +173,10 @@ here yet. Feedback and issues are welcome.
   corrupt file is set aside rather than overwritten, and two running
   copies don't clobber each other's changes. See the Preferences Design
   doc.
+- Machine-wide policy: administrators can lock settings or set defaults
+  for everyone (Group Policy's registry key on Windows, or a
+  `policy.json` file), for example to forbid remote connections or turn
+  off the update check. See the User Guide.
 - **Help > Documentation** in the running app opens the
   [User Guide](docs/User%20Guide.md) — see [Documentation](#documentation)
   below.

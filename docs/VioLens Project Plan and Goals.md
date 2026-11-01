@@ -214,9 +214,11 @@ Optional (welcome in 1.0, but none holds it up). Most come from
 13. **A capture-only app.** A very simple app, like Fiddler's FiddlerCap,
     that lets a non-technical person record a SAZ for a support team. Built
     on ProxyCore; suits VioLens's commercial users.
-14. **Machine-wide policy settings** (Clearinet #9). Let IT departments
-    lock settings, for example forbidding Allow remote computers to
-    connect or turning off the update check.
+14. **Machine-wide policy settings** (Clearinet #9). Done: locked
+    settings and defaults from `HKLM\SOFTWARE\Policies\VioLens` or a
+    `policy.json` that only administrators can write; locked controls are
+    greyed out and nothing can change them (User Guide, "Settings set by
+    your organization").
 15. **An HTML preview and a Markdown inspector** (Clearinet #17, #26).
     Render responses instead of showing their text. Avalonia has no
     built-in browser control, so the preview needs a third-party control or

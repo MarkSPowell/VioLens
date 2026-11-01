@@ -880,13 +880,72 @@ Settings are saved in a `preferences.json` file:
 
 - **Windows:** `%LOCALAPPDATA%\VioLens\preferences.json`
 - **macOS:** `~/Library/Application Support/VioLens/preferences.json`
+- **Linux:** `~/.local/share/VioLens/preferences.json`
 
-The file is the same format on both platforms, so you can copy it from one
+The file is the same format on every platform, so you can copy it from one
 machine to another. You can edit it by hand while VioLens is closed.
 Changes made while it's running are picked up the next time it starts. If
 the file ever becomes unreadable, VioLens renames it to
 `preferences.json.corrupt-<date>` and starts with defaults, so nothing you
 had is lost. To reset every setting, quit VioLens and delete the file.
+
+### Settings set by your organization
+
+An administrator can set VioLens's settings for everyone on a machine,
+for example to forbid **Allow remote computers to connect** or to turn
+off the update check. A **locked** setting can't be changed: its control
+is greyed out, and FiddlerScripts, extensions and QuickExec can't change
+it either. A **default** applies until the user picks something else.
+When anything is locked, the status line says so at start-up, and
+**Help > Copy Diagnostic Info** lists which settings policy sets (names
+only, not their values).
+
+The policy is read at start-up from places only an administrator can
+change:
+
+- **Windows:** the registry key `HKLM\SOFTWARE\Policies\VioLens`, where
+  Group Policy and device management tools put policy. Each value is named
+  after a preference and holds its value: a string, or a DWORD (`1` and
+  `0` mean on and off). Values in a `Defaults` subkey are defaults rather
+  than locked. Then `%ProgramData%\VioLens\policy.json`.
+- **macOS:** `/Library/Application Support/VioLens/policy.json`
+- **Linux:** `/etc/violens/policy.json`
+
+Where the registry and the file both set something, the registry wins.
+`policy.json` looks like this:
+
+```json
+{
+  "locked": {
+    "violens.proxy.allowremote": false,
+    "violens.update.check": false
+  },
+  "defaults": {
+    "violens.proxy.upstream": "proxy.example.com:8080"
+  }
+}
+```
+
+The settings most often set this way:
+
+| Preference | Setting |
+|---|---|
+| `violens.proxy.allowremote` | Allow remote computers to connect (`true` or `false`) |
+| `violens.update.check` | Check for updates at start-up. Locked off, Check for Updates is turned off too |
+| `violens.automation.exec` | Accept commands from `violens-exec` |
+| `violens.proxy.upstream` | The upstream proxy (`host:port`, `none`, or empty for automatic) |
+| `violens.proxy.upstream.username` | The proxy sign-in user name |
+| `violens.proxy.http2.enabled` | HTTP/2 with browsers |
+| `violens.config.https.skipdecryption` | Hosts not to decrypt, separated by semicolons |
+| `violens.proxy.clientcertificate`, `violens.config.https.clientcertificatehosts` | The client certificate's thumbprint, and its hosts |
+| `violens.proxy.port.auto`, `violens.proxy.port` | Automatic port, or the port number |
+| `violens.ui.sessionlist.keep` | How many sessions to keep (`0` keeps all) |
+| `violens.extensions.legacyhost.autolaunch` | Launch the legacy extension host on Start |
+| `violens.fiddlerscript.path` | The FiddlerScript file |
+
+Any other name in `preferences.json` can be set the same way. A policy
+file VioLens can't read is skipped (and the reason written to the
+console), so a mistake in it never stops VioLens starting.
 
 ## The Help menu
 

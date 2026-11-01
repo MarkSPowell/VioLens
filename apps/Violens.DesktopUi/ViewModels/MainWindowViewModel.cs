@@ -62,7 +62,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// Writes are batched on a background timer, so setters can save on every
     /// change without waiting on disk.
     /// </summary>
-    private readonly PreferenceStore _preferences;
+    private readonly PolicyPreferenceStore _preferences;
 
     /// <summary>
     /// Shows the format picker: (heading, choices, choice to highlight) to the
@@ -326,6 +326,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         get => _fiddlerScriptPath;
         set
         {
+            if (!CanChange.FiddlerScriptPath)
+            {
+                return;
+            }
+
             if (SetField(ref _fiddlerScriptPath, value))
             {
                 LoadFiddlerScriptCommand.RaiseCanExecuteChanged();
@@ -359,6 +364,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         get => _autoLaunchLegacyHost;
         set
         {
+            if (!CanChange.AutoLaunchLegacyHost)
+            {
+                return;
+            }
+
             if (SetField(ref _autoLaunchLegacyHost, value))
             {
                 _preferences.SetBoolPref(PreferenceKeys.AutoLaunchLegacyHost, value);
@@ -473,6 +483,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         get => _preferredPort;
         set
         {
+            if (!CanChange.Port)
+            {
+                return;
+            }
+
             if (SetField(ref _preferredPort, value))
             {
                 StartCommand.RaiseCanExecuteChanged();
@@ -495,6 +510,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         get => _useAutomaticPort;
         set
         {
+            if (!CanChange.Port)
+            {
+                return;
+            }
+
             if (SetField(ref _useAutomaticPort, value))
             {
                 RaisePropertyChanged(nameof(UseSpecificPort));
@@ -564,20 +584,29 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public RelayCommand RemoveAllSessionsCommand { get; }
 
+    /// <summary>Which settings the user may change; machine policy can lock some (see SettingLocks).</summary>
+    public SettingLocks CanChange { get; }
+
     /// <param name="confirmCertificateTrust">Asks before trusting the root on macOS and Linux; null means always decline.</param>
     /// <param name="preferences">Null means the per-user file. Disposed with this view model.</param>
     /// <param name="chooseFormat">Null means no format picker.</param>
+    /// <param name="policy">Null means this machine's policy (see PolicySettings.LoadMachine).</param>
     public MainWindowViewModel(
         Func<Task<bool>>? confirmCertificateTrust = null,
         PreferenceStore? preferences = null,
-        Func<string, IReadOnlyList<FormatChoice>, string?, Task<FormatChoice?>>? chooseFormat = null)
+        Func<string, IReadOnlyList<FormatChoice>, string?, Task<FormatChoice?>>? chooseFormat = null,
+        PolicySettings? policy = null)
     {
         _confirmCertificateTrust = confirmCertificateTrust;
         _chooseFormat = chooseFormat;
 
         // Loaded into the backing fields, not the setters, so loading doesn't
         // write straight back out.
-        _preferences = preferences ?? CreateDefaultPreferences();
+        _preferences = new PolicyPreferenceStore(
+            preferences ?? CreateDefaultPreferences(),
+            policy ?? PolicySettings.LoadMachine(message => Console.WriteLine($"[Policy] {message}")),
+            message => Console.WriteLine($"[Policy] {message}"));
+        CanChange = new SettingLocks(_preferences);
         LoadPreferences();
         InitializeTimingViews();
 
@@ -723,6 +752,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             ? "Not started. Pick a port and click Start."
             : "Capturing isn't supported on this operating system: VioLens can trust its certificate and set the " +
               "system proxy on Windows, macOS and Linux only.";
+        if (CanChange.Any)
+        {
+            _statusText += " Some settings are set by your organization, so they can't be changed here.";
+        }
 
         InitializeUpdates();
         InitializeAutomation();
@@ -1576,6 +1609,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         SessionCount = Sessions.Count,
         ExtensionCount = LoadedExtensionCount,
         FiddlerScriptLoaded = _fiddlerScriptRunner.IsLoaded,
+        LockedSettings = [.. _preferences.Policy.Locked.Keys.Order(StringComparer.OrdinalIgnoreCase)],
+        PolicyDefaults = [.. _preferences.Policy.Defaults.Keys.Order(StringComparer.OrdinalIgnoreCase)],
         LastStatus = StatusText,
     });
 

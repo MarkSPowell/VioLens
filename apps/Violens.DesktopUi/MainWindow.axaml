@@ -179,7 +179,8 @@
              MainWindowViewModel.Automation.cs). -->
         <MenuItem Header="Accept Commands from _violens-exec"
                   ToggleType="CheckBox"
-                  IsChecked="{Binding AcceptExecCommands, Mode=TwoWay}" />
+                  IsChecked="{Binding AcceptExecCommands, Mode=TwoWay}"
+                  IsEnabled="{Binding CanChange.AcceptExecCommands}" />
         <Separator />
         <!-- Stops capturing and removes VioLens's root certificate from this
              account's certificate stores; the Windows uninstaller does the
@@ -197,7 +198,8 @@
         <MenuItem Header="Check for _Updates" Command="{Binding CheckForUpdatesNowCommand}" />
         <MenuItem Header="Check for Updates at _Start-up"
                   ToggleType="CheckBox"
-                  IsChecked="{Binding CheckForUpdatesAtStartup, Mode=TwoWay}" />
+                  IsChecked="{Binding CheckForUpdatesAtStartup, Mode=TwoWay}"
+                  IsEnabled="{Binding CanChange.CheckForUpdates}" />
         <Separator />
         <MenuItem Header="_About VioLens" Click="AboutMenuItem_Click" />
       </MenuItem>
@@ -234,6 +236,8 @@
       <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="12">
           <TextBlock Text="Port:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
+          <!-- Disabled as a group when machine policy sets the port. -->
+          <StackPanel Orientation="Horizontal" Spacing="12" IsEnabled="{Binding CanChange.Port}">
           <RadioButton Content="Auto"
                        GroupName="PortMode"
                        IsChecked="{Binding UseAutomaticPort, Mode=TwoWay}"
@@ -253,6 +257,7 @@
                           IsEnabled="{Binding !IsRunning}"
                           IsVisible="{Binding !UseAutomaticPort}"
                           Width="130" />
+          </StackPanel>
           <Button Content="Start" Command="{Binding StartCommand}" Classes="accent" />
           <Button Content="Stop" Command="{Binding StopCommand}" />
           <!-- Fiddler Classic's "Keep: N sessions", so a long capture doesn't
@@ -261,6 +266,7 @@
                no separate label to miss. -->
           <ComboBox ItemsSource="{Binding SessionsToKeepLabels}"
                     SelectedIndex="{Binding SessionsToKeepIndex, Mode=TwoWay}"
+                    IsEnabled="{Binding CanChange.SessionsToKeep}"
                     ToolTip.Tip="Once the session list holds this many sessions, the oldest are removed as new ones arrive. Choose a limit for long captures, so VioLens's memory use stays steady."
                     Margin="8,0,0,0"
                     VerticalAlignment="Center" />
@@ -319,6 +325,7 @@
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="Upstream proxy:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
             <TextBox Text="{Binding UpstreamProxySetting, Mode=TwoWay}"
+                     IsEnabled="{Binding CanChange.UpstreamProxy}"
                      PlaceholderText="Automatic (the system proxy)"
                      ToolTip.Tip="Where VioLens sends its own connections. Leave empty to use the proxy this computer was set to before capture started; type host:port for a specific proxy, or none to connect directly."
                      VerticalAlignment="Center"
@@ -328,6 +335,7 @@
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="Proxy sign-in:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
             <TextBox Text="{Binding ProxyUserName, Mode=TwoWay}"
+                     IsEnabled="{Binding CanChange.UpstreamProxyUserName}"
                      PlaceholderText="User name (optional)"
                      ToolTip.Tip="For an upstream proxy that asks for a sign-in. Leave empty to sign in as you (Windows sign-in), which is what most company proxies use. Type DOMAIN\user or a user name to use a different account."
                      VerticalAlignment="Center"
@@ -339,7 +347,7 @@
                      VerticalAlignment="Center"
                      Width="160" />
           </StackPanel>
-          <StackPanel Orientation="Horizontal" Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10" IsEnabled="{Binding CanChange.AllowRemoteClients}">
             <CheckBox Content="Allow remote computers to connect"
                       IsChecked="{Binding AllowRemoteClients, Mode=TwoWay}"
                       IsEnabled="{Binding !IsRunning}"
@@ -349,6 +357,7 @@
           </StackPanel>
           <CheckBox Content="Use HTTP/2 with browsers"
                     IsChecked="{Binding Http2Enabled, Mode=TwoWay}"
+                    IsEnabled="{Binding CanChange.Http2}"
                     ToolTip.Tip="On by default. Lets browsers talk to VioLens over HTTP/2 for HTTPS sites, as they would to the site itself. VioLens then uses HTTP/2 with the site too when it supports it, and HTTP/1.1 otherwise. Turn it off to see every request as HTTP/1.1. Applies to new connections straight away."
                     VerticalAlignment="Center" />
           <!-- Fiddler Classic's "Skip decryption for the following hosts",
@@ -356,6 +365,7 @@
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="Skip decryption for:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
             <TextBox Text="{Binding SkipDecryptionHostsText, Mode=TwoWay}"
+                     IsEnabled="{Binding CanChange.SkipDecryptionHosts}"
                      PlaceholderText="*.apple.com; login.example.com"
                      ToolTip.Tip="HTTPS traffic to these hosts passes through VioLens without being decrypted, so apps that only accept their server's own certificate keep working. Each shows as a single CONNECT session. Separate hosts with semicolons; * matches any part of a name. Applies to new connections straight away."
                      VerticalAlignment="Center"
@@ -363,7 +373,7 @@
           </StackPanel>
           <!-- Mutual TLS: the certificate VioLens sends when a server asks;
                to every server, or only the listed hosts. -->
-          <StackPanel Orientation="Horizontal" Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10" IsEnabled="{Binding CanChange.ClientCertificate}">
             <TextBlock Text="Client certificate:" VerticalAlignment="Center" Foreground="{DynamicResource AppMutedTextBrush}" />
             <ComboBox ItemsSource="{Binding ClientCertificateLabels}"
                       SelectedIndex="{Binding ClientCertificateIndex, Mode=TwoWay}"
@@ -496,7 +506,7 @@
                    FontFamily="Cascadia Mono,Consolas,monospace"
                    VerticalAlignment="Center"
                    Width="380" />
-          <Button Content="Browse…" Click="BrowseFiddlerScriptButton_Click" />
+          <Button Content="Browse…" Click="BrowseFiddlerScriptButton_Click" IsEnabled="{Binding CanChange.FiddlerScriptPath}" />
           <Button Content="Load" Command="{Binding LoadFiddlerScriptCommand}" Classes="accent" />
           <Button Content="Reload" Command="{Binding ReloadFiddlerScriptCommand}" />
         </StackPanel>
@@ -578,6 +588,7 @@
                    Text="Legacy Extension Host" />
         <CheckBox DockPanel.Dock="Top"
                    IsChecked="{Binding AutoLaunchLegacyHost, Mode=TwoWay}"
+                   IsEnabled="{Binding CanChange.AutoLaunchLegacyHost}"
                    Margin="0,0,0,8"
                    Content="Launch Violens.LegacyExtensionHost.exe automatically on Start"
                    ToolTip.Tip="Off by default -- when on, clicking Start also tries to launch the legacy extension host from its expected LegacyHost subfolder (if it isn't already running) before wiring up the session bridge. Never a hard dependency either way: Start still works exactly as before if this is off, or if the process can't be found." />
