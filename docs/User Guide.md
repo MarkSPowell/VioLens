@@ -157,6 +157,23 @@ tabs:
 
   A very large body shows only its first 10,000 values, and says so; the
   JSON or Hex tab has the rest.
+- **Markdown** (only for Markdown: `text/markdown`, or a `.md` or
+  `.markdown` file with no useful content type): the text rendered, with
+  headings, lists, quotes, code, tables and emphasis. Links are shown with
+  their address but can't be clicked, and images appear as their
+  description, so viewing a document never fetches anything. The source
+  is on the Raw tab.
+- **WebView** (only for an HTML page): the page's title, how many
+  scripts, style sheets, images, forms and frames it has, and its text as
+  a reader would see it, without the markup. VioLens can't draw web pages
+  itself, so **Preview in Browser** opens a copy in your web browser. The
+  copy can't run scripts, show frames, submit forms or redirect, and by
+  default it loads nothing from the network, so opening it sends nothing
+  anywhere. Tick **Load images and styles from the site** to let the
+  browser fetch the page's images, style sheets and fonts; scripts stay
+  blocked. (If your browser is using VioLens as its proxy, those requests
+  appear in the session list.) Copies go in a `VioLens-preview` folder in
+  your temp folder and are deleted after a day.
 - **WebForms** (request side, only when there's something to show): the
   query string and any form fields, one row per name and value, decoded.
   Form uploads (`multipart/form-data`) show each field, and each file's

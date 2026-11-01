@@ -220,9 +220,12 @@ Optional (welcome in 1.0, but none holds it up). Most come from
     greyed out and nothing can change them (User Guide, "Settings set by
     your organization").
 15. **An HTML preview and a Markdown inspector** (Clearinet #17, #26).
-    Render responses instead of showing their text. Avalonia has no
-    built-in browser control, so the preview needs a third-party control or
-    the system browser.
+    Done: a Markdown tab renders Markdown (VioLens's own parser, no
+    dependency), and a WebView tab shows an HTML page's text and opens a
+    copy in the system browser with scripts, frames, forms and redirects
+    blocked, and nothing loaded from the network unless asked. An
+    in-app rendering of HTML would still need a third-party browser
+    control.
 16. **Smaller touches:**
     - Done: right-click a column header to find in that column or
       highlight repeated values

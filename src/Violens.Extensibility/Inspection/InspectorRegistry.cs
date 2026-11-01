@@ -23,6 +23,8 @@ public sealed class InspectorRegistry
             new RawTextInspector(),
             new JsonInspector(),
             new TreeInspector(),
+            new MarkdownInspector(),
+            new HtmlInspector(),
             new WebFormsInspector(),
             new ImageInspector(),
             new HexInspector(),

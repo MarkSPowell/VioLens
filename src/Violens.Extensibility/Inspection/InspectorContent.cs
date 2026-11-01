@@ -138,3 +138,19 @@ public sealed record TreeNode(
         return line.Length <= MaxLabelValueLength ? line : string.Concat(line.AsSpan(0, MaxLabelValueLength), "…");
     }
 }
+
+/// <summary>
+/// Markdown for the host to render (the Markdown tab): <see cref="Document"/>
+/// parsed, and <see cref="Source"/> as sent, for a host that shows text.
+/// </summary>
+public sealed record MarkdownContent(Markdown.MarkdownDocument Document, string Source) : InspectorContent;
+
+/// <summary>
+/// An HTML page (the WebView tab). A host can show <see cref="Text"/>, the
+/// page's readable text, and offer a locked-down preview of
+/// <see cref="Html"/> (see <see cref="Html.HtmlPreview"/>). <see cref="PageUrl"/>
+/// is the address it came from, so a preview can load the page's images
+/// and styles when asked. <see cref="Summary"/> is a line about the page:
+/// its title, size, and how many scripts, styles, images and forms it has.
+/// </summary>
+public sealed record HtmlContent(string Html, string? PageUrl, string Summary, string Text) : InspectorContent;

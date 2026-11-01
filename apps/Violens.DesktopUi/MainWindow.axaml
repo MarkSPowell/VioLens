@@ -75,6 +75,14 @@
       <controls:TreeInspectorView />
     </DataTemplate>
 
+    <DataTemplate DataType="inspect:MarkdownContent">
+      <controls:MarkdownView />
+    </DataTemplate>
+
+    <DataTemplate DataType="inspect:HtmlContent">
+      <controls:HtmlPreviewView />
+    </DataTemplate>
+
     <DataTemplate DataType="inspect:ErrorContent">
       <TextBlock Text="{Binding Message}"
                  Foreground="IndianRed"
