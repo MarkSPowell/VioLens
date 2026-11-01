@@ -179,6 +179,10 @@ here yet. Feedback and issues are welcome.
   for everyone (Group Policy's registry key on Windows, or a
   `policy.json` file), for example to forbid remote connections or turn
   off the update check. See the User Guide.
+- **VioLens Capture**, a separate one-window app (like Fiddler's
+  FiddlerCap) for someone who isn't technical to record a capture and
+  save it as a `.saz` for a support team: Start, show the problem, Stop,
+  Save. On Windows it's a single `.exe` that runs without installing.
 - **Help > Documentation** in the running app opens the
   [User Guide](docs/User%20Guide.md) — see [Documentation](#documentation)
   below.
@@ -256,6 +260,8 @@ ever leaves the device on its own.
   `Violens.CompatShim` layer for extensions ported from source — see both
   design docs above for what's built and what's still scoped out.
 - `apps/Violens.DesktopUi` — the Avalonia desktop UI.
+- `apps/Violens.Capture` — VioLens Capture, the one-window capture app;
+  its logic is `CaptureSession` in `src/Violens.AppCore`.
 - `samples/EmbeddingSample` — the code from the Embedding ProxyCore guide,
   as a console app that builds with everything else (using only
   ProxyCore's public API), so the guide can't drift from the real thing.

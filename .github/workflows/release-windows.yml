@@ -129,6 +129,23 @@ jobs:
         shell: pwsh
         run: ./installer/build-extensions.ps1 -OutputDir publish/extensions
 
+      # VioLens Capture (apps/Violens.Capture): the one-window app for
+      # recording a capture for a support team. One self-contained .exe
+      # that runs without installing, attached to the release on its own
+      # and signed with everything else here.
+      - name: Publish VioLens Capture
+        run: >-
+          dotnet publish apps/Violens.Capture/Violens.Capture.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=none
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
+          --output publish/capture
+
       # The proxy host, for apps on .NET Framework that use the engine
       # through Violens.ProxyHost.Client (see docs/Embedding ProxyCore.md).
       # Self-contained and single-file, so the app's users don't need .NET
@@ -276,6 +293,17 @@ jobs:
           --configuration Release
           -p:Version=${{ steps.version.outputs.version }}
           --output packages
+
+      - name: Name VioLens Capture for the release
+        shell: pwsh
+        run: Copy-Item publish/capture/VioLensCapture.exe "packages/VioLensCapture-${{ steps.version.outputs.version }}-win-x64.exe"
+
+      - name: Attach VioLens Capture to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/VioLensCapture-*-win-x64.exe
+          fail_on_unmatched_files: true
 
       - name: Zip the proxy host
         shell: pwsh

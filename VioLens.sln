@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Violens.Automation", "src\V
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Violens.Exec", "tools\Violens.Exec\Violens.Exec.csproj", "{A4C81F37-2D6E-4B95-8E1A-7F0C3D9B6E25}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Violens.Capture", "apps\Violens.Capture\Violens.Capture.csproj", "{6ED403A6-8475-4D35-8870-F285411A2DCE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -123,6 +125,10 @@ Global
 		{A4C81F37-2D6E-4B95-8E1A-7F0C3D9B6E25}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A4C81F37-2D6E-4B95-8E1A-7F0C3D9B6E25}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A4C81F37-2D6E-4B95-8E1A-7F0C3D9B6E25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6ED403A6-8475-4D35-8870-F285411A2DCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6ED403A6-8475-4D35-8870-F285411A2DCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6ED403A6-8475-4D35-8870-F285411A2DCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6ED403A6-8475-4D35-8870-F285411A2DCE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

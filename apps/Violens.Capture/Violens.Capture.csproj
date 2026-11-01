@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    VioLens Capture (roadmap item 13): a one-window app, like Fiddler's
+    FiddlerCap, for someone who isn't technical to record a capture and
+    save it as a .saz for a support team. All the work is in
+    Violens.AppCore's CaptureSession; this is just its window.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Violens.Capture</RootNamespace>
+    <AssemblyName>VioLensCapture</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\Violens.DesktopUi\Assets\violens.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Stamped by the release workflow, as for the main app. -->
+    <Version>0.0.0-dev</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Violens.ProxyCore\Violens.ProxyCore.csproj" />
+    <ProjectReference Include="..\..\src\Violens.AppCore\Violens.AppCore.csproj" />
+  </ItemGroup>
+
+  <!-- The main app's icon, shared rather than copied. -->
+  <ItemGroup>
+    <AvaloniaResource Include="..\Violens.DesktopUi\Assets\violens-icon.png" Link="Assets\violens-icon.png" />
+  </ItemGroup>
+
+</Project>

@@ -211,9 +211,10 @@ Optional (welcome in 1.0, but none holds it up). Most come from
 12. **A tree data inspector.** Done: a Tree tab shows JSON, CBOR
     (Clearinet #40) and MessagePack as a tree, with Copy, Copy Subtree and
     Send to TextWizard. Extensions can return a tree too (`TreeContent`).
-13. **A capture-only app.** A very simple app, like Fiddler's FiddlerCap,
-    that lets a non-technical person record a SAZ for a support team. Built
-    on ProxyCore; suits VioLens's commercial users.
+13. **A capture-only app.** Done: VioLens Capture (`apps/Violens.Capture`),
+    like Fiddler's FiddlerCap: Start, Stop and Save a SAZ, HTTPS optional,
+    the certificate removed on close. A single self-contained `.exe` on the
+    Windows release; packages for macOS and Linux could follow.
 14. **Machine-wide policy settings** (Clearinet #9). Done: locked
     settings and defaults from `HKLM\SOFTWARE\Policies\VioLens` or a
     `policy.json` that only administrators can write; locked controls are

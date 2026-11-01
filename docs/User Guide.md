@@ -989,6 +989,32 @@ Any other name in `preferences.json` can be set the same way. A policy
 file VioLens can't read is skipped (and the reason written to the
 console), so a mistake in it never stops VioLens starting.
 
+## VioLens Capture: a capture from someone else
+
+When someone else sees a problem (a customer, say), they can record it
+for you with **VioLens Capture**, a separate app with one window and no
+settings to understand. It works like Fiddler's FiddlerCap:
+
+1. They run it. On Windows it's a single `VioLensCapture-<version>-win-x64.exe`
+   from the release page, which runs without installing.
+2. They click **Start Capture**. With **Include secure (HTTPS) websites**
+   ticked (the default) it adds VioLens's certificate, so Windows or macOS
+   may ask them to confirm. Unticked, nothing is trusted and HTTPS shows
+   only which sites were visited.
+3. They do whatever shows the problem in their browser, then click
+   **Stop Capture**, which puts their proxy setting back.
+4. **Save Capture…** writes a `.saz` file, which they send to you and you
+   open with **File > Open SAZ**.
+
+Closing the window stops capturing, and (unless they untick it) removes
+the certificate it added. The window reminds them that a capture can hold
+passwords and cookies. It records only: no breakpoints, rules, scripts or
+extensions run.
+
+It uses the same certificate, settings folder and proxy crash recovery as
+VioLens, so don't run both at once, and removing the certificate when
+Capture closes means VioLens asks to trust a new one next time.
+
 ## The Help menu
 
 - **Help > Documentation** opens this file with whatever your system uses
