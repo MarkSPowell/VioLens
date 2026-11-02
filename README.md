@@ -130,8 +130,8 @@ here yet. Feedback and issues are welcome.
   import/export are all supported; see the .NET Extension Compatibility
   Design doc.
 - A Fiddler-shaped compatibility layer (`Violens.CompatShim`) for
-  porting real Fiddler Classic extensions from their source, on both
-  Windows and macOS. Ported extensions can import sessions, work on live
+  porting real Fiddler Classic extensions from their source, on Windows,
+  macOS and Linux. Ported extensions can import sessions, work on live
   traffic (one session object per request, and answering requests
   themselves), and add their own menus, tabs, session-list columns and
   row colours. Working so far:
@@ -148,7 +148,7 @@ here yet. Feedback and issues are welcome.
   (Privacy Scanner off by default), and the macOS `.dmg` has an
   **Optional Extensions** folder to copy them from. See the User Guide.
 
-  CI builds and tests all three on both platforms. See
+  CI builds and tests all three on Windows, macOS and Linux. See
   `tests/ExtensionPorts/README.md` and the Extension Test Targets doc.
 - Optional legacy extension host: a separate, opt-in tool
   (`tools/Violens.LegacyExtensionHost`) that runs real, unmodified-source
@@ -169,7 +169,7 @@ here yet. Feedback and issues are welcome.
   Wireshark, tcpdump or pktmon.
 - An automatic or manually-specified listening port (defaults to Auto).
 - Settings that persist between runs (port choice, Tools-menu panels,
-  filter text and more), stored the same way on Windows and macOS in
+  filter text and more), stored the same way on every platform in
   `preferences.json` under `%LOCALAPPDATA%\VioLens\` or
   `~/Library/Application Support/VioLens/`. Unknown keys are kept, a
   corrupt file is set aside rather than overwritten, and two running
@@ -197,6 +197,9 @@ dotnet build VioLens.sln
 dotnet test VioLens.sln
 dotnet run --project apps/Violens.DesktopUi
 ```
+
+`dotnet run --project apps/Violens.Capture` runs VioLens Capture, the
+one-window app for recording a capture for someone else.
 
 The first time you click Start, you'll be asked to trust a new local root
 certificate (named `DO_NOT_TRUST_ViolensRoot...`, following Fiddler
@@ -246,12 +249,15 @@ ever leaves the device on its own.
   talk to it over a named pipe (sessions, hooks, breakpoints, SAZ). See
   the Embedding ProxyCore guide's "Apps on .NET Framework".
 - `src/Violens.AppCore` — VioLens's own app logic that isn't part of the
-  engine: Compare, TextWizard's conversions, QuickExec, the session-list
-  column layout, and the carry-over from the app's former name.
+  engine: Compare, TextWizard's conversions, QuickExec and its
+  suggestions, the session-list column layout, VioLens Capture's
+  `CaptureSession`, and the carry-over from the app's former name.
 - `src/Violens.Automation` — the pipe and protocol `violens-exec` uses to
   drive the running app, with no other dependencies.
 - `src/Violens.Extensibility` — the inspector contract and the built-in
-  inspectors (Headers, Raw, Hex, Cookies, Notes).
+  inspectors (Headers, Raw, JSON, Tree, Markdown, WebView, WebForms,
+  ImageView, Hex, Cookies, Notes), with their own JSON tree, CBOR,
+  MessagePack and Markdown readers.
 - `src/Violens.Compatibility` — FiddlerScript compatibility
   (`FiddlerScriptRunner`, the `Exchange`/`AppObject` shim, the directive
   scanner behind the Rules menu/Script Actions/custom columns) and
@@ -353,6 +359,11 @@ way:
   the hosts you list. Fiddler Classic's
   `ClientCertificate.cer` file and the `https-Client-Certificate` script
   flag aren't supported.
+- **No in-app web page rendering.** Avalonia has no browser control, so
+  the WebView tab shows a page's text and opens a locked-down copy in your
+  browser instead of drawing it.
+- **VioLens Capture is packaged for Windows only.** On macOS and Linux it
+  runs from source (`dotnet run --project apps/Violens.Capture`).
 - **No headless/CLI mode.** Left out of this milestone by design, not by
   oversight.
 - **Bodies are kept in memory.** Each is capped at 64 MB, and the **Keep**

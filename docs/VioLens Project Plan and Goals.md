@@ -154,7 +154,7 @@ with semicolon-separated values, read through `GetListPref`/`SetListPref`.
 
 Written up on 27 October 2026, after HTTP/2 went into preview
 (0.3.0-preview.1). 1.0 is the point where the app should hold up to
-all-day use on both platforms and ProxyCore's public API stops changing.
+all-day use on every platform and ProxyCore's public API stops changing.
 
 Must have:
 
@@ -244,9 +244,19 @@ Optional (welcome in 1.0, but none holds it up). Most come from
 Added since this list was written: **Linux** (October 2026). Built:
 certificate trust in the NSS databases Chrome and Firefox read
 (`certutil`), the system proxy in GNOME's and KDE Plasma's settings, an
-AppImage and a `.tar.gz` from `release-linux.yml`, and Linux in CI. Still
-to do: a hands-on test on GNOME and KDE, like the macOS one (item 3).
-The new classes are internal, so the API freeze isn't affected.
+AppImage and a `.tar.gz` from `release-linux.yml`, and Linux in CI
+(passing). Still to do: a hands-on test on GNOME and KDE, like the macOS
+one (item 3), and a first run of `release-linux.yml`. The new classes are
+internal, so the API freeze isn't affected.
+
+The optional items did add public API, which the review in item 2 has to
+cover: ProxyCore's `PolicySettings` and `PolicyPreferenceStore` (item
+14), and Violens.Extensibility's new inspector content cases
+(`TreeContent`, `MarkdownContent`, `HtmlContent`) and
+`KeyValueContent.Summary`.
+
+Released as 0.5.0-preview.1: everything since 0.4.0-preview.1, which is
+SAZ compatibility, `violens-exec`, Linux and items 11 to 16.
 
 Fine after 1.0: an about:config editor, SOCKS and Digest proxy sign-in,
 DHCP proxy discovery on macOS, built-in NetLog import, `CustomRules.cs`,

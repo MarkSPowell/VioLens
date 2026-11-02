@@ -14,8 +14,9 @@ for whenever this gets built:
   extensible app, as one of the few parts he's proud of. See "Lessons from
   Fiddler's own history" in the Project Plan.
 
-A hard requirement for this feature: **Windows and macOS behave the same.**
-The same keys, the same file format and the same semantics apply on both.
+A hard requirement for this feature: **Windows and macOS behave the same**
+(and Linux, added later, does too). The same keys, the same file format
+and the same semantics apply on every platform.
 A preferences file copied from one platform to the other loads without
 conversion. Everything that could differ between the platforms is covered
 in "Platform parity," below.

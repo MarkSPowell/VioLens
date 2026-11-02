@@ -79,6 +79,32 @@ whether a newer version is out; you can turn it off in the Help menu. It
 opens only release pages it builds itself on github.com, and never
 downloads or runs anything.
 
+**Captured content.** Responses are shown as data, never run:
+- The Markdown tab shows links and images without following or fetching
+  them.
+- The WebView tab's **Preview in Browser** writes a copy of the page to
+  the temp folder with a Content-Security-Policy that blocks scripts,
+  frames, plug-ins and form submission, and with any automatic redirect
+  removed. Nothing loads from the network unless you tick **Load images
+  and styles from the site**. Copies are deleted after a day.
+- Files you open (SAZ, HAR, packet captures) and bodies the inspectors
+  read (JSON, CBOR, MessagePack, Markdown, images) are treated as
+  hostile: sizes are checked before anything is allocated, nesting is
+  limited, and the Markdown reader limits how far it searches so crafted
+  text can't stall the window.
+
+**Machine policy.** Locked settings come from places only an
+administrator can write (`HKLM\SOFTWARE\Policies\VioLens`, or
+`policy.json` under ProgramData, `/Library/Application Support` or
+`/etc`). A policy that can't be read is skipped, so VioLens falls back to
+the user's own settings rather than refusing to start; an administrator
+relying on a lock should make sure the file is valid.
+
+**VioLens Capture.** It records only: no breakpoints, rules, scripts or
+extensions run. Unless you tick **Include secure (HTTPS) websites** it
+trusts nothing, and when it does, closing it removes the certificate
+again unless you untick that. It shares VioLens's certificate.
+
 **Listening.**
 - VioLens listens on 127.0.0.1 only, unless you turn on **Allow remote
   computers to connect**. That choice is remembered between runs, so turn

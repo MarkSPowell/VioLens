@@ -67,9 +67,11 @@ it (empty means every server that asks); a session's
   move across. If your app stays on .NET Framework, it uses the engine
   through a separate host process: see
   [Apps on .NET Framework](#apps-on-net-framework).
-- Windows or macOS for the parts that touch the operating system (trusting
-  the root certificate, setting the system proxy). Capturing traffic sent
-  straight to the proxy works on Linux too.
+- Windows, macOS or Linux for the parts that touch the operating system
+  (trusting the root certificate, setting the system proxy). On Linux
+  that means `certutil` for the browsers' certificate databases, and
+  GNOME's or KDE Plasma's proxy settings; on other desktops, capturing
+  traffic sent straight to the proxy still works.
 
 ## Installing
 

@@ -4,7 +4,7 @@ Real Fiddler Classic extensions, built from their own public source against
 VioLens's Fiddler-shaped compatibility layer (`Violens.CompatShim`, in
 `src/Violens.Compatibility/CompatShim/`), then loaded and run the way the
 app runs any extension. CI (`ci.yml`) fetches them and runs their tests on
-both Windows and macOS.
+Windows, macOS and Linux.
 
 This is the test of tenet 1 ("port an existing Fiddler workflow with
 minimal effort") against extensions other people wrote, not against

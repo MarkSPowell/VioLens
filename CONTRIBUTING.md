@@ -46,7 +46,7 @@ the project exists; see the project plan for the full reasoning.
 2. Install the [.NET SDK](https://dotnet.microsoft.com/download) matching
    the version in `global.json` (once one exists) or the current .NET LTS.
 3. `dotnet build` from the repository root should succeed with no
-   warnings-as-errors on Windows and macOS; CI checks both.
+   warnings-as-errors on Windows, macOS and Linux; CI checks all three.
 4. `dotnet test` should pass.
 
 ## Pull requests

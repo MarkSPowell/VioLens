@@ -788,8 +788,8 @@ one, it's used straight away.
 ### Fiddler Classic extensions ported from source
 
 If you have the source of a Fiddler Classic extension, you can usually
-rebuild it for VioLens with very small changes, and it then runs on both
-Windows and macOS. The first one ported this way is Eric Lawrence's
+rebuild it for VioLens with very small changes, and it then runs on
+Windows, macOS and Linux. The first one ported this way is Eric Lawrence's
 [NetLog importer](https://github.com/ericlaw1979/FiddlerImportNetlog),
 which imports Chromium/Edge NetLog captures (`.json`, `.json.gz` or a
 `.zip` containing one). The only change to its source is deleting its
@@ -998,7 +998,7 @@ settings to understand. It works like Fiddler's FiddlerCap:
 1. They run it. On Windows it's a single `VioLensCapture-<version>-win-x64.exe`
    from the release page, which runs without installing.
 2. They click **Start Capture**. With **Include secure (HTTPS) websites**
-   ticked (the default) it adds VioLens's certificate, so Windows or macOS
+   ticked (the default) it adds VioLens's certificate, so their computer
    may ask them to confirm. Unticked, nothing is trusted and HTTPS shows
    only which sites were visited.
 3. They do whatever shows the problem in their browser, then click
