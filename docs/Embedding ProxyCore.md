@@ -76,12 +76,12 @@ it (empty means every server that asks); a session's
 ## Installing
 
 ```
-dotnet add package Violens.ProxyCore --prerelease
+dotnet add package Violens.ProxyCore
 ```
 
-Versions match VioLens releases (0.2.0-preview.1 and so on). While the
-version starts with 0, a new minor version may change the public API. See
-[Versions and compatibility](#versions-and-compatibility).
+Versions match VioLens releases. Add `--prerelease` for a release
+candidate such as 1.0.0-rc.1. From 1.0 the public API follows semantic
+versioning; see [Versions and compatibility](#versions-and-compatibility).
 
 ## A minimal app
 

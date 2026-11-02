@@ -1031,15 +1031,15 @@ Capture closes means VioLens asks to trust a new one next time.
   [bug report](https://github.com/MarkSPowell/VioLens/issues/new?template=bug_report.yml).
 - **Checking for updates.** At start-up VioLens asks GitHub whether a
   newer release is out. If one is, a button beside the title says so and
-  opens the release's page. If you're running a preview you're offered
-  newer previews too; otherwise only full releases. **Help > Check for
+  opens the release's page. If you're running a preview or release
+  candidate you're offered newer ones too; otherwise only full releases. **Help > Check for
   Updates** asks straight away. To stop the start-up check, untick **Help
   > Check for Updates at Start-up**. The check is one request to GitHub's
   public releases list and sends nothing about you or your traffic.
   VioLens never downloads or installs anything itself.
 - **Help > About VioLens** shows which build you're running. That's
   useful when you report an issue or want to check you're on the latest
-  preview.
+  release.
 
 ## Known limitations
 

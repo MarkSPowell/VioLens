@@ -131,6 +131,6 @@ again unless you untick that. It shares VioLens's certificate.
 
 ## Supported versions
 
-VioLens is in preview: fixes go into the next release, and older previews
+Fixes go into the next release; older releases and release candidates
 aren't patched. Please check the problem is still there in the
 [latest release](https://github.com/MarkSPowell/VioLens/releases/latest).

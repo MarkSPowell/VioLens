@@ -1,10 +1,10 @@
 # VioLens
 
-An open source HTTP(S) inspection tool for developers — a spiritual
-successor to Fiddler Web Debugger (Fiddler Classic), whose licence
-Progress Software changed in 2026 to allow non-commercial use only.
-VioLens is free for any use, under the MIT licence. It's an independent
-project, not affiliated with Progress or Telerik (see
+VioLens is an open source tool for inspecting HTTP and HTTPS traffic,
+built as a successor to Fiddler Web Debugger (Fiddler Classic). Progress
+Software changed Fiddler Classic's licence in 2026 to allow only
+non-commercial use. VioLens is free for any use, under the MIT licence.
+It's an independent project, not affiliated with Progress or Telerik (see
 [Relationship to Fiddler](#relationship-to-fiddler)).
 
 VioLens was called CLeARINET until version 0.2. Settings, rules and
@@ -13,183 +13,103 @@ runs (see the User Guide's "Upgrading from CLeARINET").
 
 ![VioLens capturing a request to example.com, then showing its headers, the Composer and the Timing tab](https://violens.dev/assets/demo.gif)
 
-Downloads, the User Guide and more are at [violens.dev](https://violens.dev). Questions
-and ideas are welcome on [Discord](https://discord.gg/NJfnGnn4PT); bugs go in
-[issues](https://github.com/MarkSPowell/VioLens/issues).
+Downloads, the User Guide and more are at [violens.dev](https://violens.dev).
+Questions and ideas are welcome on [Discord](https://discord.gg/NJfnGnn4PT);
+bugs go in [issues](https://github.com/MarkSPowell/VioLens/issues).
 
 ## Status
 
-Early, working MVP. Not yet 1.0 — expect rough edges, and see
-[Known limitations](#known-limitations) below for what's deliberately not
-here yet. Feedback and issues are welcome.
+1.0 release candidate. The features planned for 1.0 are in, and the proxy
+engine's public API is frozen. What's left before 1.0 itself is hands-on
+testing on macOS and on Linux desktops (see
+[Known limitations](#known-limitations)). Feedback and issues are welcome.
 
-## What it does today
+## What it does
 
-- Captures plain `http://` and HTTPS traffic through a local proxy,
-  decrypting HTTPS with a per-install root certificate installed into the
-  current user's trusted root store — the same mechanism Fiddler Classic
-  uses. **Tools > Remove Root Certificate** (and the Windows uninstaller)
-  removes it again. Hosts that pin their certificates can be left
-  undecrypted (**Tools > Connections**).
-- Long captures: a **Keep** setting holds only the newest sessions, and
-  **Help > Copy Diagnostic Info** gathers what a bug report needs.
-- Runs on Windows, macOS and Linux (x86-64; an AppImage and a `.tar.gz`).
-- Registers itself as the system proxy while running — WinINET on
-  Windows, per network service via `networksetup` on macOS, GNOME's or
-  KDE Plasma's proxy settings on Linux — and recovers
-  cleanly if a previous run didn't shut down properly (crash, kill,
-  unclean shutdown).
-- A session list with live filtering: free-text search across the URL
-  and headers (never body content — see the filter grammar's own remarks
-  on why), plus `method:`, `host:`, and `status:` query tokens (exact,
-  class like `4xx`, comparison, and range forms). Edit > Find Sessions
-  (Ctrl+F) searches bodies too, decompressed, and highlights matches.
-- Timing like browsers' developer tools: a waterfall column with each
-  session's phases (DNS, connection, TLS, waiting, download), a Timing tab
-  for the selected session, a request summary, and a Statistics tab
-  (totals, by type, status and host, slowest requests, easy wins). Timings
-  are kept in SAZ and HAR files, and read from browsers' HAR exports.
-- HTTP/2 (on by default; **Tools > Connections** turns it off): browsers use
-  HTTP/2 with VioLens for HTTPS sites, and VioLens uses it with sites that
-  offer it, falling back to HTTP/1.1 for those that don't. Requests share
-  one connection per site, trailers (gRPC's `grpc-status`) come through,
-  and a Version column shows which version each side used. The Composer
-  can send HTTP/2 too.
-- A WebSocket tab showing each message sent and received on a WebSocket
-  connection, live, with compressed and fragmented messages put back
-  together; kept in HAR files.
-- QuickExec, Fiddler's command box under the session list (Alt+Q):
-  `?text`, `@host`, `=404`, `>40k`, `select`, `allbut`, `cls`, `tail`, the
-  `bpu`/`bpafter`/`bps`/`bpm` breakpoints and `go`, plus `dump`, `save`,
-  `open`, `filter` and `keep`; other commands go to FiddlerScript's
-  `OnExecAction` and extensions. Scripts send the same commands to the
-  running app with `violens-exec`, like Fiddler's ExecAction.exe.
-- Compare Sessions (Ctrl+W): two sessions' requests and responses side by
-  side, with each difference highlighted, bodies decompressed and JSON
-  formatted so changes line up.
-- TextWizard (Ctrl+E): Base64, URL, HTML, hex and JavaScript encoding and
-  decoding, JWT decoding, JSON formatting, Unix times, hashes, and SAML's
-  deflate+Base64.
-- A column chooser: right-click a column header to show or hide session-list
-  columns (Waterfall, Image Bloat, script and extension columns...). Which
-  columns are shown, their order and their widths are remembered.
-- Request/response inspector tabs: Headers, Raw (decoded text, with
-  automatic decompression), JSON (pretty-printed), Tree (JSON, CBOR or
-  MessagePack as a tree to expand and copy from), Markdown (rendered),
-  WebView (an HTML page's text, and a script-free preview in the
-  browser), WebForms (query string
-  and form fields, including multipart uploads), ImageView (the picture,
-  its format and pixel size, and any image bloat), Hex, Cookies (each cookie sent or set, with
-  its attributes, and a warning for ones browsers will refuse) and Notes
-  (flags an importer or extension attached to a session).
-- Image bloat detection: an Image Bloat column showing how much of each
-  PNG, JPEG, GIF or WebP is metadata, comments or other bytes that don't
-  change how it looks, with heavily bloated images highlighted.
-- A Composer tab for writing or editing a request and sending it, and
-  Replay (**R**) to send a captured request again. Both go through
-  VioLens itself, so the result is captured like any other traffic.
-- Forwarding through the network's own proxy: VioLens picks up the
-  proxy the computer used before it started, including an automatic
-  proxy configuration script (PAC) or "Automatically detect settings"
-  (WPAD), or uses one you set under **Tools > Connections**. A proxy
-  that asks for a sign-in gets one: as you (Windows sign-in, Negotiate or
-  NTLM), or with a user name and password entered there.
-- Capturing phones and other computers: "Allow remote computers to
-  connect", and a page at `http://violens/` for installing VioLens's
-  certificate on the other device.
-- Rows in the session list can be coloured, bold, italic, struck through
-  or hidden by an extension or importer (Fiddler's `ui-backcolor` and
-  related session flags), and sessions can be removed from the list
-  (**Edit > Remove Selected Session / Remove All Sessions**).
-- Automatic response decompression covering gzip, deflate (both the
-  common zlib-wrapped form and the older raw form some servers still
-  send), zstd, and chains of those applied together. bzip2 and the
-  historical `compress` encoding are deliberately not supported — neither
-  ever saw real use as a web encoding. SDCH is recognized in headers but
-  not decoded, since that needs a dictionary exchange this build doesn't
-  track. Content compressed with Zopfli needs no special handling — it's
-  a slower, better gzip encoder that still produces standard gzip output.
-- Fiddler-Classic-style breakpoints: break on all requests and/or all
-  responses, or on narrower conditions (URL contains, method, status
-  code); inspect and edit a paused message's raw text, then Resume or
-  Abort. The breakpoints panel only takes up space once it's actually
-  needed.
-- AutoResponder: an ordered list of match/action rules (substring,
-  wildcard, `EXACT:`/`regex:`/`NOT:`/`METHOD:` matches; redirect, delay,
-  header, reset, drop, serve-a-file, and other actions) that can answer a
-  matching request without it ever reaching the real server.
-- FiddlerScript compatibility: load a `CustomRules.js`-shaped script and
-  have it hook `OnBeforeRequest`/`OnBeforeResponse`, declare Rules-menu
-  options and string choices, add its own buttons and right-click context
-  actions, and add its own columns to the session grid — see the
-  FiddlerScript Compatibility Design doc for the full scope and cuts.
-- Compiled .NET extension compatibility: drop a compiled extension `.dll`
-  (the successor to Fiddler Classic's own extension model) into
-  VioLens's Extensions folder and it's loaded automatically at
-  startup — AutoTamper hooks, request/response inspectors, and session
-  import/export are all supported; see the .NET Extension Compatibility
-  Design doc.
-- A Fiddler-shaped compatibility layer (`Violens.CompatShim`) for
-  porting real Fiddler Classic extensions from their source, on Windows,
-  macOS and Linux. Ported extensions can import sessions, work on live
-  traffic (one session object per request, and answering requests
-  themselves), and add their own menus, tabs, session-list columns and
-  row colours. Working so far:
-  - **NetLog importer** (Eric Lawrence's): builds with only its
-    `using Fiddler;` lines removed.
-  - **CSP Rule Collector**: a VioLens-only fork,
-    [CSP-CLeARINET-Extension](https://github.com/MarkSPowell/CSP-CLeARINET-Extension),
-    with its tab rewritten in Avalonia.
-  - **Privacy Scanner** (cookies/P3P): ported as a test of the UI hooks;
-    cookie viewing itself is built in (the Cookies tab).
+**Capturing**
+- Captures `http://` and HTTPS traffic through a local proxy. HTTPS is
+  decrypted with a root certificate made for your install and trusted for
+  your account, as Fiddler Classic does it. **Tools > Remove Root
+  Certificate** (and the Windows uninstaller) takes it away again. Hosts
+  that pin their certificates can be left encrypted (**Tools >
+  Connections**).
+- Runs on Windows, macOS and Linux (x86-64, as an AppImage or a
+  `.tar.gz`).
+- Becomes the system proxy while it runs: WinINET on Windows,
+  `networksetup` on macOS, and GNOME's or KDE Plasma's settings on Linux.
+  If a previous run crashed or was killed, the next one puts your proxy
+  settings back.
+- HTTP/2, on by default: browsers use it with VioLens for HTTPS sites, and
+  VioLens uses it with sites that offer it, falling back to HTTP/1.1. A
+  Version column shows what each side used, and gRPC's trailers come
+  through.
+- WebSocket messages, live, in their own tab, with compressed and
+  fragmented messages put back together.
+- Forwards through your network's proxy, including PAC scripts and
+  automatic detection (WPAD), and signs in to it as you (Negotiate or
+  NTLM) or with a user name and password.
+- Phones and other computers can use it as their proxy (**Allow remote
+  computers to connect**), with a page at `http://violens/` for installing
+  the certificate on them.
 
-  All three come with the installers as optional extensions, each with
-  its own licence: the Windows installer offers them as ticked boxes
-  (Privacy Scanner off by default), and the macOS `.dmg` has an
-  **Optional Extensions** folder to copy them from. See the User Guide.
+**Looking at what was captured**
+- A session list with live filtering by text, `method:`, `host:` and
+  `status:`, and **Edit > Find Sessions** (Ctrl+F) for searching bodies.
+  Right-click a column header to find in that column, highlight repeated
+  values, or choose and arrange columns.
+- Timing like browsers' developer tools: a waterfall column, a Timing tab,
+  and a Statistics tab with totals, the slowest requests and easy wins.
+- Inspector tabs: Headers, Raw, JSON, Tree (JSON, CBOR or MessagePack as a
+  tree), Markdown, WebView (an HTML page's text, and a script-free preview
+  in your browser), WebForms, ImageView (with zoom, and a breakdown of any
+  image bloat), Hex, Cookies (with sizes, and warnings for cookies browsers
+  will refuse) and Notes.
+- Decompresses gzip, deflate, Brotli and zstd, alone or chained.
+- Compare Sessions (Ctrl+W) shows two sessions side by side, with each
+  difference highlighted.
+- TextWizard (Ctrl+E) encodes and decodes Base64, URLs, HTML, hex and
+  JavaScript escapes, and decodes JWTs, Unix times and SAML.
 
-  CI builds and tests all three on Windows, macOS and Linux. See
-  `tests/ExtensionPorts/README.md` and the Extension Test Targets doc.
-- Optional legacy extension host: a separate, opt-in tool
-  (`tools/Violens.LegacyExtensionHost`) that runs real, unmodified-source
-  Fiddler Classic extensions against real proxied traffic, bridged to the
-  main app over a local IPC connection, for extensions that reach into UI
-  surface removed from modern .NET — not part of the main app's own build,
-  but available as an unchecked-by-default optional component in the
-  Windows installer; see that tool's own README and the .NET Extension
-  Compatibility Design doc.
-- A **Tools** menu of checkable toggles that show or hide the
-  FiddlerScript, Extensions, breakpoint-condition, and AutoResponder
-  panels on the main screen, so only what you're actually using takes up
-  space.
-- Export captured sessions to a `.saz` (Session Archive Zip) file, or
-  import a previously saved one back in; export and import HTTP Archive
-  (`.har`) files, the format browsers' developer tools use; import the
-  plain HTTP traffic in a packet capture (`.pcap`, `.pcapng`) from
-  Wireshark, tcpdump or pktmon.
-- An automatic or manually-specified listening port (defaults to Auto).
-- Settings that persist between runs (port choice, Tools-menu panels,
-  filter text and more), stored the same way on every platform in
-  `preferences.json` under `%LOCALAPPDATA%\VioLens\` or
-  `~/Library/Application Support/VioLens/`. Unknown keys are kept, a
-  corrupt file is set aside rather than overwritten, and two running
-  copies don't clobber each other's changes. See the Preferences Design
-  doc.
-- Machine-wide policy: administrators can lock settings or set defaults
-  for everyone (Group Policy's registry key on Windows, or a
-  `policy.json` file), for example to forbid remote connections or turn
-  off the update check. See the User Guide.
-- **VioLens Capture**, a separate one-window app (like Fiddler's
-  FiddlerCap) for someone who isn't technical to record a capture and
-  save it as a `.saz` for a support team: Start, show the problem, Stop,
-  Save. On Windows it's a single `.exe` that runs without installing.
-- **Help > Documentation** in the running app opens the
-  [User Guide](docs/User%20Guide.md) — see [Documentation](#documentation)
-  below.
+**Changing traffic**
+- Breakpoints on requests, responses, or narrower conditions (URL, method,
+  status code): edit the paused message, then resume or abort it.
+- AutoResponder rules that answer matching requests without reaching the
+  server: a file, a redirect, a delay, a dropped connection and more.
+- The Composer, for writing or editing a request and sending it, and
+  Replay (**R**) for sending a captured one again.
+
+**Automating it**
+- QuickExec (Alt+Q), Fiddler's command box, with suggestions as you type.
+  `violens-exec` sends the same commands from scripts, like Fiddler's
+  ExecAction.exe.
+- FiddlerScript: a `CustomRules.js` script can hook requests and
+  responses, and add Rules-menu options, buttons, context-menu actions and
+  columns. See the FiddlerScript Compatibility Design.
+- Extensions: a compiled `.dll` in the Extensions folder can add hooks,
+  inspectors, and importers and exporters. Fiddler Classic extensions can
+  be ported from source with few changes (`Violens.CompatShim`); the NetLog
+  importer, the CSP Rule Collector and the Privacy Scanner are ported, and
+  the installers include them as optional extensions. An optional legacy
+  extension host on Windows runs extensions that need parts of WinForms
+  .NET no longer has.
+
+**Files and settings**
+- Saves and opens SAZ files, saves and imports HAR, and imports the plain
+  HTTP in packet captures (`.pcap`, `.pcapng`).
+- Remembers its settings in a `preferences.json` that's the same on every
+  platform. Administrators can lock settings or set defaults for everyone
+  on a machine (Group Policy on Windows, or a `policy.json` file).
+- **VioLens Capture**, a separate one-window app like Fiddler's
+  FiddlerCap: someone who isn't technical clicks Start, shows the problem,
+  clicks Stop and saves a `.saz` for you. On Windows it's a single `.exe`
+  that runs without installing.
+
+**Help > Documentation** opens the [User Guide](docs/User%20Guide.md), which
+covers all of this.
 
 ## Getting started
 
-Requires the .NET 10 SDK.
+You need the .NET 10 SDK.
 
 ```
 dotnet restore VioLens.sln
@@ -198,221 +118,176 @@ dotnet test VioLens.sln
 dotnet run --project apps/Violens.DesktopUi
 ```
 
-`dotnet run --project apps/Violens.Capture` runs VioLens Capture, the
-one-window app for recording a capture for someone else.
+`dotnet run --project apps/Violens.Capture` runs VioLens Capture.
 
-The first time you click Start, you'll be asked to trust a new local root
-certificate (named `DO_NOT_TRUST_ViolensRoot...`, following Fiddler
-Classic's own naming convention for the same purpose) — this is what lets
-VioLens see inside HTTPS traffic on this machine. On Windows that's the
-OS's own native prompt; on macOS, where the `security` CLI VioLens uses
-has no equivalent OS-level prompt, it's a confirmation dialog VioLens
-shows itself before ever touching your login keychain. On Linux the same
-dialog comes first, and then the root goes into your browsers'
-certificate databases with `certutil` (from `libnss3-tools` or
-`nss-tools`). Nothing captured
-ever leaves the device on its own.
+The first time you click Start, VioLens asks to trust a new root
+certificate, named `DO_NOT_TRUST_ViolensRoot...` after Fiddler Classic's
+convention. That's what lets it read HTTPS traffic on this computer.
+
+- **Windows** shows its own prompt.
+- **macOS** has no prompt for this, so VioLens asks first, then adds the
+  certificate to your login keychain.
+- **Linux**: VioLens asks first, then adds it to your browsers'
+  certificate databases with `certutil` (from `libnss3-tools` or
+  `nss-tools`, which you may need to install).
+
+Nothing you capture leaves your computer unless you send it somewhere.
 
 ## Documentation
 
-- **Using the app?** Start with the [User Guide](docs/User%20Guide.md) —
-  starting/stopping the proxy, the session grid and filtering, breakpoints,
-  AutoResponder, FiddlerScript, extensions, and SAZ import/export. It's
-  also one click away from inside the running app, via **Help >
-  Documentation**.
-- **Building your own tool on the proxy engine?** Read
-  [Embedding ProxyCore](docs/Embedding%20ProxyCore.md). The engine is
-  published on NuGet as `Violens.ProxyCore`, with the same version as each
-  VioLens release.
-- **Contributing or curious how something works?** The rest of `docs/` is
-  written for that: design rationale, scope cuts, and open follow-ups for
-  each area of the app (see [Project layout](#project-layout) below for
-  what's there).
+- **Using the app:** the [User Guide](docs/User%20Guide.md), also under
+  **Help > Documentation** in the app.
+- **Building your own tool on the proxy engine:**
+  [Embedding ProxyCore](docs/Embedding%20ProxyCore.md). The engine is on
+  NuGet as `Violens.ProxyCore`, with the same version as each VioLens
+  release.
+- **Contributing, or curious how something works:** the rest of `docs/`
+  has the design behind each part of the app, what was left out and why,
+  and what's still to do.
 
 ## Project layout
 
-- `docs/` — the [User Guide](docs/User%20Guide.md) for using the app, plus
-  design docs: the project
-  plan and tenets, the interception certificate design, the preferences
-  design, the FiddlerScript
-  compatibility design, the .NET extension compatibility design, the
-  Fiddler feature/tier inventory, and breakpoints research notes.
-- `src/Violens.ProxyCore` — the proxy engine, also published as a NuGet
-  package for other apps: the listener, HTTP message parsing, sessions,
-  breakpoints, AutoResponder, certificates, SAZ and HAR, system-proxy
-  registration on Windows, macOS and Linux, and the preferences store. Its
-  public types are what other apps build on, so anything else is
-  `internal` (VioLens's own assemblies are listed in its `AssemblyInfo.cs`).
-- `src/Violens.ProxyHost` and `src/Violens.ProxyHost.Client` — the engine
-  for apps on .NET Framework: a small .NET 10 program that hosts
-  ProxyCore, and a .NET Standard 2.0 library an app uses to run it and
-  talk to it over a named pipe (sessions, hooks, breakpoints, SAZ). See
-  the Embedding ProxyCore guide's "Apps on .NET Framework".
-- `src/Violens.AppCore` — VioLens's own app logic that isn't part of the
-  engine: Compare, TextWizard's conversions, QuickExec and its
-  suggestions, the session-list column layout, VioLens Capture's
-  `CaptureSession`, and the carry-over from the app's former name.
-- `src/Violens.Automation` — the pipe and protocol `violens-exec` uses to
-  drive the running app, with no other dependencies.
-- `src/Violens.Extensibility` — the inspector contract and the built-in
-  inspectors (Headers, Raw, JSON, Tree, Markdown, WebView, WebForms,
-  ImageView, Hex, Cookies, Notes), with their own JSON tree, CBOR,
-  MessagePack and Markdown readers.
-- `src/Violens.Compatibility` — FiddlerScript compatibility
-  (`FiddlerScriptRunner`, the `Exchange`/`AppObject` shim, the directive
-  scanner behind the Rules menu/Script Actions/custom columns) and
-  compiled .NET extension compatibility (`ExtensionHost` and the
-  `IFiddlerExtension`-family interfaces), and the Fiddler-shaped
-  `Violens.CompatShim` layer for extensions ported from source — see both
-  design docs above for what's built and what's still scoped out.
-- `apps/Violens.DesktopUi` — the Avalonia desktop UI.
-- `apps/Violens.Capture` — VioLens Capture, the one-window capture app;
-  its logic is `CaptureSession` in `src/Violens.AppCore`.
-- `samples/EmbeddingSample` — the code from the Embedding ProxyCore guide,
-  as a console app that builds with everything else (using only
-  ProxyCore's public API), so the guide can't drift from the real thing.
-- `tools/Violens.DevHost` — a console host used during early
-  development of the proxy core.
-- `tools/Violens.Exec` — `violens-exec`, which sends QuickExec commands to
-  the running app from scripts. Built with Native AOT and shipped beside
-  the app.
-- `tools/Violens.SampleExtension` — a small, separately-compiled .NET
-  extension used to validate `ExtensionHost` against a real `.dll` rather
-  than only in-process fakes; see its own README for what it demonstrates
-  and how to build it.
-- `tools/Violens.LegacyExtensionHost` — the optional, separate legacy
-  extension host: a `net48` process that can run real, unmodified-source
-  Fiddler Classic extensions, bridged to the main app's own proxied
-  traffic. Deliberately kept out of `VioLens.sln`/the main app's build
-  entirely, so nothing about it can affect either — see its own README and
-  the .NET Extension Compatibility Design doc.
-- `tests/` — unit tests for the projects above, plus `tests/ExtensionPorts`:
-  real Fiddler Classic extensions fetched at pinned commits, ported, and
-  tested (not part of `VioLens.sln`; see its README).
+- `docs/`: the [User Guide](docs/User%20Guide.md), and the design docs (the
+  project plan, the certificate, preferences, FiddlerScript and .NET
+  extension designs, the Fiddler feature inventory and breakpoint
+  research notes).
+- `src/Violens.ProxyCore`: the proxy engine, also on NuGet. The listener,
+  HTTP parsing, sessions, breakpoints, AutoResponder, certificates, SAZ,
+  HAR and packet capture files, the system proxy on each platform, and the
+  preferences store. Only what other apps need is public; VioLens's own
+  assemblies are listed in its `AssemblyInfo.cs`.
+- `src/Violens.ProxyHost` and `src/Violens.ProxyHost.Client`: the engine
+  for apps on .NET Framework, as a small .NET 10 host program and a .NET
+  Standard 2.0 library that talks to it over a named pipe. See the
+  Embedding guide's "Apps on .NET Framework".
+- `src/Violens.AppCore`: VioLens's own logic outside the engine, such as
+  Compare, TextWizard, QuickExec, the column layout, machine policy and
+  VioLens Capture's `CaptureSession`.
+- `src/Violens.Automation`: the pipe `violens-exec` uses.
+- `src/Violens.Extensibility`: the inspector contract and the built-in
+  inspectors, with their JSON tree, CBOR, MessagePack and Markdown readers.
+- `src/Violens.Compatibility`: FiddlerScript (`FiddlerScriptRunner`),
+  compiled extensions (`ExtensionHost`), and `Violens.CompatShim` for
+  extensions ported from source. The two compatibility design docs
+  describe what's built and what isn't.
+- `apps/Violens.DesktopUi`: the Avalonia desktop app.
+- `apps/Violens.Capture`: VioLens Capture.
+- `samples/EmbeddingSample`: the Embedding guide's code as a console app,
+  built with everything else so the guide stays accurate.
+- `tools/Violens.Exec`: `violens-exec`, built with Native AOT and shipped
+  beside the app.
+- `tools/Violens.SampleExtension`: a small compiled extension that tests
+  `ExtensionHost` against a real `.dll`.
+- `tools/Violens.LegacyExtensionHost`: the optional legacy extension host,
+  a `net48` process kept out of `VioLens.sln` so it can't affect the main
+  build. See its README.
+- `tools/Violens.DevHost`: a console host from early development.
+- `tests/`: tests for the projects above, and `tests/ExtensionPorts`, which
+  fetches real Fiddler Classic extensions at pinned commits, ports them and
+  tests them (not in `VioLens.sln`; see its README).
 
 ## Known limitations
 
-Listed here on purpose, rather than left for someone to discover the hard
-way:
-
-- **macOS has had less real-world use than Windows.**
-  - Certificate trust uses the `security` tool, into your login keychain,
-    after VioLens's own confirmation dialog, since macOS doesn't prompt.
-  - The system proxy is set with `networksetup`, for each network service.
+- **macOS has had less use than Windows.**
+  - Certificates are trusted with the `security` tool in your login
+    keychain, and the system proxy is set with `networksetup` for each
+    network service.
   - CI checks the macOS build's signature and that it launches, but its
     tests don't run `security` or `networksetup` for real.
   - A full hands-on test is still to come: trust and removal, whether
     `networksetup` needs admin rights, recovery after a crash, and the
-    notarized install. See the Interception Certificate Design's
-    "Platform status".
-  - Release builds of the `.dmg` are Developer ID signed and notarized
-    when the repository's signing secrets are set. Builds without them
-    (forks, test builds) are ad-hoc signed, and macOS asks you to allow
-    them once, in System Settings > Privacy & Security > Open Anyway.
-- **Linux is new, and hasn't had a hands-on test on a real desktop yet.**
-  - The root goes into the NSS databases Chrome, Chromium and other NSS
-    apps read (`~/.pki/nssdb`) and into each Firefox profile (including
-    the snap's and the Flatpak's), with `certutil`, which must be
-    installed. Firefox needs restarting if it was open.
-  - Not into the system store that curl, wget and most command-line tools
-    read: that needs root access, and differs by distribution. The User
-    Guide's "Linux" section has the commands.
-  - The system proxy is set in GNOME's settings (and desktops built on
-    them) and KDE Plasma's. On other desktops, and for programs that only
-    read `http_proxy`, point them at VioLens by hand.
-  - The root's private key is a file in your home folder (as .NET keeps
-    keys on Linux), not in an OS key store. See SECURITY.md.
-  - CI tests the Linux build and checks the packages launch, but doesn't
-    run `certutil`, `gsettings` or `kwriteconfig` for real. Wayland
-    sessions run VioLens through XWayland.
-  - x86-64 only; no Snap or Flatpak, since their sandboxes would stop
-    VioLens changing the proxy settings and certificate databases.
-- **No Preferences/`about:config` editor yet.** Settings, the window's
-  size and position, and AutoResponder rules are remembered between runs,
-  but changed only through the app's own controls. Breakpoints and the
-  AutoResponder's on/off switch deliberately always start off. See the
-  Preferences Design doc.
-- **No built-in Chromium NetLog import.** NetLog import works through
-  Eric Lawrence's ported NetLog importer extension (see above), an
-  optional extension in the installers.
-- **HTTP/2 has had real-world use on Windows only so far.** WebSockets
-  stay on HTTP/1.1 connections (browsers arrange that themselves), and
-  HTTP/3 isn't supported: browsers don't send it through a proxy, so they
-  use HTTP/2 instead.
-- **Upstream proxies: plain HTTP proxies only.** A SOCKS proxy can't be
-  used yet (a PAC script's SOCKS entries are skipped). Proxy sign-in
-  supports Negotiate (Kerberos), NTLM and Basic, not Digest. Automatic proxy detection on macOS and Linux looks only in
-  DNS (`wpad.<your domain>`), not DHCP.
-- **The main app's own compiled-extension support is source-level, not
-  binary.** An already-compiled Fiddler Classic extension `.dll` can't be
-  dropped straight into VioLens's own Extensions folder as-is; a new
-  extension has to be built against VioLens's own (source-level
-  compatible) interfaces. Real binary compatibility does exist, just not
-  here — see `tools/Violens.LegacyExtensionHost`, the separate, optional
-  legacy extension host above, which runs real unmodified-*source*
-  extensions (recompiled against its own compat assembly) against real
-  proxied traffic; it's not part of the main app's own build, but the
-  Windows installer can include it as an unchecked-by-default optional
-  component.
-- **One client certificate (mutual TLS) at a time.** Chosen under
-  **Tools > Connections**, it's sent to every server that asks, or only to
-  the hosts you list. Fiddler Classic's
-  `ClientCertificate.cer` file and the `https-Client-Certificate` script
-  flag aren't supported.
-- **No in-app web page rendering.** Avalonia has no browser control, so
-  the WebView tab shows a page's text and opens a locked-down copy in your
-  browser instead of drawing it.
-- **VioLens Capture is packaged for Windows only.** On macOS and Linux it
-  runs from source (`dotnet run --project apps/Violens.Capture`).
-- **No headless/CLI mode.** Left out of this milestone by design, not by
-  oversight.
+    notarized install.
+  - Release `.dmg` files are signed and notarized when the repository's
+    signing secrets are set. Other builds (forks, test builds) aren't, and
+    macOS asks you to allow them once, in System Settings > Privacy &
+    Security > Open Anyway.
+- **Linux hasn't had a hands-on test on a real desktop yet.**
+  - The certificate goes into the NSS databases Chrome and Chromium read
+    (`~/.pki/nssdb`) and into each Firefox profile, including the snap and
+    Flatpak ones, with `certutil`, which must be installed. Restart
+    Firefox if it was open.
+  - It doesn't go into the system store that curl and most command-line
+    tools read, because that needs root access and differs between
+    distributions. The User Guide's "Linux" section has the commands.
+  - The system proxy is set in GNOME's and KDE Plasma's settings. On other
+    desktops, and for programs that only read `http_proxy`, set it by hand.
+  - The certificate's private key is a file in your home folder, which is
+    where .NET keeps keys on Linux. See SECURITY.md.
+  - CI tests the Linux build and checks that the packages launch, but
+    doesn't run `certutil`, `gsettings` or `kwriteconfig` for real. On
+    Wayland, VioLens runs through XWayland.
+  - x86-64 only. There's no Snap or Flatpak, because their sandboxes would
+    stop VioLens changing proxy settings and certificate databases.
+- **HTTP/2 has been used for real only on Windows so far.** WebSockets stay
+  on HTTP/1.1 connections (browsers arrange that), and there's no HTTP/3:
+  browsers don't send it through a proxy, so they use HTTP/2.
+- **Upstream proxies must be HTTP proxies.** SOCKS isn't supported (a PAC
+  script's SOCKS entries are skipped), and proxy sign-in supports
+  Negotiate, NTLM and Basic, not Digest. On macOS and Linux, automatic
+  proxy detection looks in DNS (`wpad.<your domain>`), not DHCP.
+- **Compiled Fiddler Classic extensions need rebuilding.** The main app
+  loads extensions built against its own interfaces, which match
+  Fiddler's at source level, so an existing `.dll` can't be dropped in.
+  The optional legacy extension host runs unmodified extension source,
+  recompiled against its own compatibility assembly, against live
+  traffic.
+- **One client certificate (mutual TLS) at a time,** sent to every server
+  that asks or to the hosts you list. Fiddler Classic's
+  `ClientCertificate.cer` file and `https-Client-Certificate` flag aren't
+  supported.
+- **No web page rendering in the app.** Avalonia has no browser control,
+  so the WebView tab shows a page's text and opens a locked-down copy in
+  your browser.
+- **VioLens Capture is packaged for Windows only.** On macOS and Linux,
+  run it from source.
+- **No preferences editor (`about:config`), no headless mode, and no
+  built-in NetLog import.** NetLog files open through the ported NetLog
+  importer, one of the optional extensions.
 - **Bodies are kept in memory.** Each is capped at 64 MB, and the **Keep**
-  setting limits how many sessions are held, but large bodies aren't
-  spilled to disk.
+  setting limits how many sessions are held, but nothing is spilled to
+  disk.
 
-How the root certificate, the listener and the proxy host are protected,
-and what isn't covered yet, is in [SECURITY.md](SECURITY.md).
+[SECURITY.md](SECURITY.md) explains how the certificate, the listener and
+the proxy host are protected, and what isn't covered yet.
 
 ## Relationship to Fiddler
 
 VioLens is an independent open source project. It isn't affiliated
 with, endorsed by or sponsored by Progress Software Corporation or
 Telerik. Fiddler, Fiddler Classic, Fiddler Everywhere, FiddlerCore and
-Telerik are trademarks of Progress Software Corporation; VioLens uses
-those names only to describe what it's compatible with, and never
-presents itself, or anything it ships, as Fiddler.
+Telerik are trademarks of Progress Software Corporation. VioLens uses
+those names only to say what it's compatible with, and never presents
+itself, or anything it ships, as Fiddler.
 
-VioLens is built independently: from publicly available documentation,
-publicly observable behavior (such as the structure of `.saz` files
-produced by the real tool), and original design decisions — never from
-decompiled or leaked Fiddler source, and with no code from Fiddler. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for the full clean-room policy that
-governs every contribution here. The optional extensions included with
-the installers are separate works by their authors, under their own
-licences (see `THIRD-PARTY-NOTICES.txt` alongside them).
+VioLens is built from public documentation, the behavior anyone can
+observe (such as how the real tool lays out `.saz` files), and its own
+design, never from decompiled or leaked Fiddler source, and it contains no
+Fiddler code. [CONTRIBUTING.md](CONTRIBUTING.md) has the clean-room policy
+every contribution follows. The optional extensions in the installers are
+separate works by their authors, under their own licences (see
+`THIRD-PARTY-NOTICES.txt` beside them).
 
 VioLens is inspired by Eric Lawrence's public writing about Fiddler,
 including his post [Fiddler in 2026](https://textslashplain.com/2026/08/05/fiddler-in-2026/),
 and by his public [Clearinet](https://github.com/ericlaw1979/Clearinet)
 repository. It isn't his project, and he hasn't contributed code to it.
 It does build on some of his published open source work, under its own
-licences: the ported NetLog importer and the CSP Rule Collector fork
-(see above), and packet capture import, ported from Clearinet (see
+licences: the ported NetLog importer, the CSP Rule Collector fork, and
+packet capture import, ported from Clearinet (see
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 ## Credits
 
-Special thanks to:
+Thanks to:
 
 - **EJ Suter-Powell** and **Jose Gonzales**, for testing VioLens on
   macOS.
-- **Eric Lawrence**, who created Fiddler, for the inspiration and for
-  laying the groundwork: two decades of Fiddler itself, and his
-  generous public writing about how it works and what he'd do
-  differently, which shaped much of VioLens's design. (Thanks here
-  doesn't mean he endorses VioLens; see
+- **Eric Lawrence**, who created Fiddler, for the inspiration and the
+  groundwork: two decades of Fiddler itself, and his public writing about
+  how it works and what he'd do differently, which shaped much of
+  VioLens's design. (This doesn't mean he endorses VioLens; see
   [Relationship to Fiddler](#relationship-to-fiddler).)
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
