@@ -375,7 +375,7 @@ already the same in both.
 
 ## Machine policy
 
-`PolicyPreferenceStore` wraps the user's `PreferenceStore` with a
+`PolicyPreferenceStore` (in Violens.AppCore, since it names VioLens's own registry key and folders) wraps the user's `PreferenceStore` with a
 `PolicySettings` read once at start-up (`PolicySettings.LoadMachine`):
 the registry key `HKLM\SOFTWARE\Policies\VioLens` and its `Defaults`
 subkey on Windows, and `policy.json` under `%ProgramData%\VioLens`,

@@ -1,6 +1,7 @@
 using System.Globalization;
+using Violens.ProxyCore.Preferences;
 
-namespace Violens.ProxyCore.Preferences;
+namespace Violens.AppCore.Preferences;
 
 /// <summary>
 /// The user's <see cref="PreferenceStore"/> with a machine

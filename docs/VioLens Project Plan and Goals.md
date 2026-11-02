@@ -163,9 +163,12 @@ Must have:
    no problems. Still to do: browsing on macOS, and settling ProxyCore's
    representation of HTTP/2 requests with the API freeze (the Embedding
    guide still warns it may change).
-2. **ProxyCore's public API frozen.** One review of everything public;
-   anything not ready becomes internal. From 1.0, semantic versioning:
-   breaking changes wait for 2.0.
+2. **ProxyCore's public API frozen.** Done: reviewed, with the app-only
+   helpers made internal and machine policy moved to Violens.AppCore (it
+   names VioLens's own registry key and folders). Tests in
+   ProxyCore.Tests, Extensibility.Tests and ProxyHost.Tests compare each
+   shipped assembly's public API with a recorded list, so any change is
+   deliberate. From 1.0, semantic versioning: breaking changes wait for 2.0.
 3. **A full hands-on macOS test.** Certificate trust and removal, the
    system proxy (and whether `networksetup` needs admin rights), restoring
    proxy settings after a crash, and the notarized install. Then update the
@@ -249,11 +252,10 @@ AppImage and a `.tar.gz` from `release-linux.yml`, and Linux in CI
 one (item 3), and a first run of `release-linux.yml`. The new classes are
 internal, so the API freeze isn't affected.
 
-The optional items did add public API, which the review in item 2 has to
-cover: ProxyCore's `PolicySettings` and `PolicyPreferenceStore` (item
-14), and Violens.Extensibility's new inspector content cases
-(`TreeContent`, `MarkdownContent`, `HtmlContent`) and
-`KeyValueContent.Summary`.
+The optional items' public API went through the review in item 2:
+machine policy moved to Violens.AppCore, and Violens.Extensibility's new
+inspector content cases (`TreeContent`, `MarkdownContent`, `HtmlContent`)
+and `KeyValueContent.Summary` are part of the frozen surface.
 
 Released as 0.5.0-preview.1: everything since 0.4.0-preview.1, which is
 SAZ compatibility, `violens-exec`, Linux and items 11 to 16.

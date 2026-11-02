@@ -6,7 +6,7 @@ namespace Violens.ProxyCore.Extensions;
 /// Runs several hosts in order as one, each seeing the previous one's
 /// edits, so the listener needn't know about more than one extension source.
 /// </summary>
-public sealed class CompositeExtensionAutoTamperHost : IExtensionAutoTamperHost
+internal sealed class CompositeExtensionAutoTamperHost : IExtensionAutoTamperHost
 {
     private readonly IReadOnlyList<IExtensionAutoTamperHost> _hosts;
 

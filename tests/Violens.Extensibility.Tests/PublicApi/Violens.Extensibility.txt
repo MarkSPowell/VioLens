@@ -1,0 +1,576 @@
+Violens.Extensibility.Inspection.ErrorContent::.ctor(System.String Message)
+Violens.Extensibility.Inspection.ErrorContent::System.Boolean Equals(Violens.Extensibility.Inspection.ErrorContent other)
+Violens.Extensibility.Inspection.ErrorContent::System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.ErrorContent::System.String Message { get; init; }
+Violens.Extensibility.Inspection.ErrorContent::System.Void Deconstruct(out System.String Message)
+Violens.Extensibility.Inspection.ErrorContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.ErrorContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.ErrorContent::override System.String ToString()
+Violens.Extensibility.Inspection.ErrorContent::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.ErrorContent::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.ErrorContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.ErrorContent left, Violens.Extensibility.Inspection.ErrorContent right)
+Violens.Extensibility.Inspection.ErrorContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.ErrorContent left, Violens.Extensibility.Inspection.ErrorContent right)
+Violens.Extensibility.Inspection.ErrorContent::virtual Violens.Extensibility.Inspection.ErrorContent <Clone>$()
+Violens.Extensibility.Inspection.HeaderRow::.ctor(System.String Name, System.String Value)
+Violens.Extensibility.Inspection.HeaderRow::System.Boolean Equals(Violens.Extensibility.Inspection.HeaderRow other)
+Violens.Extensibility.Inspection.HeaderRow::System.String Name { get; init; }
+Violens.Extensibility.Inspection.HeaderRow::System.String Value { get; init; }
+Violens.Extensibility.Inspection.HeaderRow::System.Void Deconstruct(out System.String Name, out System.String Value)
+Violens.Extensibility.Inspection.HeaderRow::Violens.Extensibility.Inspection.HeaderRow <Clone>$()
+Violens.Extensibility.Inspection.HeaderRow::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.HeaderRow::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.HeaderRow::override System.String ToString()
+Violens.Extensibility.Inspection.HeaderRow::static System.Boolean op_Equality(Violens.Extensibility.Inspection.HeaderRow left, Violens.Extensibility.Inspection.HeaderRow right)
+Violens.Extensibility.Inspection.HeaderRow::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.HeaderRow left, Violens.Extensibility.Inspection.HeaderRow right)
+Violens.Extensibility.Inspection.HexContent::.ctor(System.Byte[] Bytes)
+Violens.Extensibility.Inspection.HexContent::System.Boolean Equals(Violens.Extensibility.Inspection.HexContent other)
+Violens.Extensibility.Inspection.HexContent::System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.HexContent::System.Byte[] Bytes { get; init; }
+Violens.Extensibility.Inspection.HexContent::System.Void Deconstruct(out System.Byte[] Bytes)
+Violens.Extensibility.Inspection.HexContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.HexContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.HexContent::override System.String ToString()
+Violens.Extensibility.Inspection.HexContent::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.HexContent::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.HexContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.HexContent left, Violens.Extensibility.Inspection.HexContent right)
+Violens.Extensibility.Inspection.HexContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.HexContent left, Violens.Extensibility.Inspection.HexContent right)
+Violens.Extensibility.Inspection.HexContent::virtual Violens.Extensibility.Inspection.HexContent <Clone>$()
+Violens.Extensibility.Inspection.Html.HtmlPreview::const System.String OfflinePolicy = "default-src 'none'; style-src 'unsafe-inline' data:; img-src data:; font-src data:; media-src data:; form-action 'none'; base-uri 'none'"
+Violens.Extensibility.Inspection.Html.HtmlPreview::const System.String ResourcesPolicy = "default-src 'none'; style-src 'unsafe-inline' data: http: https:; img-src data: http: https:; font-src data: http: https:; media-src data: http: https:; form-action 'none'"
+Violens.Extensibility.Inspection.Html.HtmlPreview::static System.String Build(System.String html, System.String pageUrl, System.Boolean loadImagesAndStyles)
+Violens.Extensibility.Inspection.Html.HtmlPreview::static System.String WriteFile(System.String html, System.String pageUrl, System.Boolean loadImagesAndStyles)
+Violens.Extensibility.Inspection.Html.HtmlText::const System.Int32 MaxHtmlChars = 2097152
+Violens.Extensibility.Inspection.Html.HtmlText::static System.String Summarize(System.String html)
+Violens.Extensibility.Inspection.Html.HtmlText::static System.String Title(System.String html)
+Violens.Extensibility.Inspection.Html.HtmlText::static System.String ToReadableText(System.String html)
+Violens.Extensibility.Inspection.HtmlContent::.ctor(System.String Html, System.String PageUrl, System.String Summary, System.String Text)
+Violens.Extensibility.Inspection.HtmlContent::System.Boolean Equals(Violens.Extensibility.Inspection.HtmlContent other)
+Violens.Extensibility.Inspection.HtmlContent::System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.HtmlContent::System.String Html { get; init; }
+Violens.Extensibility.Inspection.HtmlContent::System.String PageUrl { get; init; }
+Violens.Extensibility.Inspection.HtmlContent::System.String Summary { get; init; }
+Violens.Extensibility.Inspection.HtmlContent::System.String Text { get; init; }
+Violens.Extensibility.Inspection.HtmlContent::System.Void Deconstruct(out System.String Html, out System.String PageUrl, out System.String Summary, out System.String Text)
+Violens.Extensibility.Inspection.HtmlContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.HtmlContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.HtmlContent::override System.String ToString()
+Violens.Extensibility.Inspection.HtmlContent::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.HtmlContent::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.HtmlContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.HtmlContent left, Violens.Extensibility.Inspection.HtmlContent right)
+Violens.Extensibility.Inspection.HtmlContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.HtmlContent left, Violens.Extensibility.Inspection.HtmlContent right)
+Violens.Extensibility.Inspection.HtmlContent::virtual Violens.Extensibility.Inspection.HtmlContent <Clone>$()
+Violens.Extensibility.Inspection.IInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.IInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.IInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.IInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.IInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.ImageBloatAnalyzer::static Violens.Extensibility.Inspection.ImageBloatReport Analyze(System.Byte[] bytes)
+Violens.Extensibility.Inspection.ImageBloatAnalyzer::static Violens.Extensibility.Inspection.ImageBloatReport AnalyzeResponse(Violens.ProxyCore.Http.CapturedResponse response)
+Violens.Extensibility.Inspection.ImageBloatItem::.ctor(System.String Kind, System.Int64 Bytes)
+Violens.Extensibility.Inspection.ImageBloatItem::System.Boolean Equals(Violens.Extensibility.Inspection.ImageBloatItem other)
+Violens.Extensibility.Inspection.ImageBloatItem::System.Int64 Bytes { get; init; }
+Violens.Extensibility.Inspection.ImageBloatItem::System.String Kind { get; init; }
+Violens.Extensibility.Inspection.ImageBloatItem::System.Void Deconstruct(out System.String Kind, out System.Int64 Bytes)
+Violens.Extensibility.Inspection.ImageBloatItem::Violens.Extensibility.Inspection.ImageBloatItem <Clone>$()
+Violens.Extensibility.Inspection.ImageBloatItem::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.ImageBloatItem::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.ImageBloatItem::override System.String ToString()
+Violens.Extensibility.Inspection.ImageBloatItem::static System.Boolean op_Equality(Violens.Extensibility.Inspection.ImageBloatItem left, Violens.Extensibility.Inspection.ImageBloatItem right)
+Violens.Extensibility.Inspection.ImageBloatItem::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.ImageBloatItem left, Violens.Extensibility.Inspection.ImageBloatItem right)
+Violens.Extensibility.Inspection.ImageBloatReport::.ctor(System.String Format, System.Int64 TotalBytes, System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.ImageBloatItem> Items)
+Violens.Extensibility.Inspection.ImageBloatReport::System.Boolean Equals(Violens.Extensibility.Inspection.ImageBloatReport other)
+Violens.Extensibility.Inspection.ImageBloatReport::System.Boolean IsHeavy { get; }
+Violens.Extensibility.Inspection.ImageBloatReport::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.ImageBloatItem> Items { get; init; }
+Violens.Extensibility.Inspection.ImageBloatReport::System.Double Share { get; }
+Violens.Extensibility.Inspection.ImageBloatReport::System.Int64 BloatBytes { get; }
+Violens.Extensibility.Inspection.ImageBloatReport::System.Int64 TotalBytes { get; init; }
+Violens.Extensibility.Inspection.ImageBloatReport::System.String Breakdown { get; }
+Violens.Extensibility.Inspection.ImageBloatReport::System.String ColumnText { get; }
+Violens.Extensibility.Inspection.ImageBloatReport::System.String Format { get; init; }
+Violens.Extensibility.Inspection.ImageBloatReport::System.Void Deconstruct(out System.String Format, out System.Int64 TotalBytes, out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.ImageBloatItem> Items)
+Violens.Extensibility.Inspection.ImageBloatReport::Violens.Extensibility.Inspection.ImageBloatReport <Clone>$()
+Violens.Extensibility.Inspection.ImageBloatReport::const System.Double HeavyShare = 0.25
+Violens.Extensibility.Inspection.ImageBloatReport::const System.Int64 HeavyMinimumBytes = 1024
+Violens.Extensibility.Inspection.ImageBloatReport::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.ImageBloatReport::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.ImageBloatReport::override System.String ToString()
+Violens.Extensibility.Inspection.ImageBloatReport::static System.Boolean op_Equality(Violens.Extensibility.Inspection.ImageBloatReport left, Violens.Extensibility.Inspection.ImageBloatReport right)
+Violens.Extensibility.Inspection.ImageBloatReport::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.ImageBloatReport left, Violens.Extensibility.Inspection.ImageBloatReport right)
+Violens.Extensibility.Inspection.ImageContent::.ctor(System.Byte[] Bytes, System.String MediaType, System.String Summary)
+Violens.Extensibility.Inspection.ImageContent::System.Boolean Equals(Violens.Extensibility.Inspection.ImageContent other)
+Violens.Extensibility.Inspection.ImageContent::System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.ImageContent::System.Byte[] Bytes { get; init; }
+Violens.Extensibility.Inspection.ImageContent::System.String MediaType { get; init; }
+Violens.Extensibility.Inspection.ImageContent::System.String Summary { get; init; }
+Violens.Extensibility.Inspection.ImageContent::System.Void Deconstruct(out System.Byte[] Bytes, out System.String MediaType, out System.String Summary)
+Violens.Extensibility.Inspection.ImageContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.ImageContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.ImageContent::override System.String ToString()
+Violens.Extensibility.Inspection.ImageContent::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.ImageContent::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.ImageContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.ImageContent left, Violens.Extensibility.Inspection.ImageContent right)
+Violens.Extensibility.Inspection.ImageContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.ImageContent left, Violens.Extensibility.Inspection.ImageContent right)
+Violens.Extensibility.Inspection.ImageContent::virtual Violens.Extensibility.Inspection.ImageContent <Clone>$()
+Violens.Extensibility.Inspection.InspectorContent::.ctor()
+Violens.Extensibility.Inspection.InspectorContent::.ctor(Violens.Extensibility.Inspection.InspectorContent original)
+Violens.Extensibility.Inspection.InspectorContent::abstract Violens.Extensibility.Inspection.InspectorContent <Clone>$()
+Violens.Extensibility.Inspection.InspectorContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.InspectorContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.InspectorContent::override System.String ToString()
+Violens.Extensibility.Inspection.InspectorContent::protected virtual System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.InspectorContent::protected virtual System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.InspectorContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.InspectorContent left, Violens.Extensibility.Inspection.InspectorContent right)
+Violens.Extensibility.Inspection.InspectorContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.InspectorContent left, Violens.Extensibility.Inspection.InspectorContent right)
+Violens.Extensibility.Inspection.InspectorContent::virtual System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.InspectorContext::.ctor(Violens.ProxyCore.Sessions.Session session, Violens.Extensibility.Inspection.InspectorSide side)
+Violens.Extensibility.Inspection.InspectorContext::System.Byte[] Body { get; }
+Violens.Extensibility.Inspection.InspectorContext::System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Headers { get; }
+Violens.Extensibility.Inspection.InspectorContext::System.String FindHeader(System.String name)
+Violens.Extensibility.Inspection.InspectorContext::Violens.Extensibility.Inspection.InspectorSide Side { get; }
+Violens.Extensibility.Inspection.InspectorContext::Violens.ProxyCore.Sessions.Session Session { get; }
+Violens.Extensibility.Inspection.InspectorRegistry::.ctor(System.Collections.Generic.IEnumerable<Violens.Extensibility.Inspection.IInspector> inspectors)
+Violens.Extensibility.Inspection.InspectorRegistry::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.IInspector> GetApplicable(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.InspectorRegistry::static Violens.Extensibility.Inspection.InspectorRegistry CreateDefault()
+Violens.Extensibility.Inspection.InspectorRegistry::static Violens.Extensibility.Inspection.InspectorRegistry CreateDefault(System.Collections.Generic.IEnumerable<Violens.Extensibility.Inspection.IInspector> additional)
+Violens.Extensibility.Inspection.InspectorSide.Request = 0
+Violens.Extensibility.Inspection.InspectorSide.Response = 1
+Violens.Extensibility.Inspection.Inspectors.CookiesInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.CookiesInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.CookiesInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.CookiesInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.CookiesInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.CookiesInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.CookiesInspector::const System.Int32 MaxCookieBytes = 4096
+Violens.Extensibility.Inspection.Inspectors.HeadersInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.HeadersInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.HeadersInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.HeadersInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.HeadersInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.HeadersInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.HexInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.HexInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.HexInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.HexInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.HexInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.HexInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.HtmlInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.HtmlInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.HtmlInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.HtmlInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.HtmlInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.HtmlInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.ImageInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.ImageInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.ImageInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.ImageInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.ImageInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.ImageInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.ImageInspector::static System.Boolean TryGetDimensions(System.Byte[] bytes, System.String format, out System.Int32 width, out System.Int32 height)
+Violens.Extensibility.Inspection.Inspectors.ImageInspector::static System.String DetectFormat(System.Byte[] bytes)
+Violens.Extensibility.Inspection.Inspectors.JsonInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.JsonInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.JsonInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.JsonInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.JsonInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.JsonInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.MarkdownInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.MarkdownInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.MarkdownInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.MarkdownInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.MarkdownInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.MarkdownInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.MarkdownInspector::const System.Int32 MaxChars = 524288
+Violens.Extensibility.Inspection.Inspectors.NotesInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.NotesInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.NotesInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.NotesInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.NotesInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.NotesInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.RawTextInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.RawTextInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.RawTextInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.RawTextInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.RawTextInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.RawTextInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.TreeInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.TreeInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.TreeInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.TreeInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.TreeInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.TreeInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.WebFormsInspector::.ctor()
+Violens.Extensibility.Inspection.Inspectors.WebFormsInspector::System.Boolean CanInspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.Inspectors.WebFormsInspector::System.Int32 SortOrder { get; }
+Violens.Extensibility.Inspection.Inspectors.WebFormsInspector::System.String DisplayName { get; }
+Violens.Extensibility.Inspection.Inspectors.WebFormsInspector::System.String Id { get; }
+Violens.Extensibility.Inspection.Inspectors.WebFormsInspector::Violens.Extensibility.Inspection.InspectorContent Inspect(Violens.Extensibility.Inspection.InspectorContext context)
+Violens.Extensibility.Inspection.KeyValueContent::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.HeaderRow> Rows, System.String Summary = null)
+Violens.Extensibility.Inspection.KeyValueContent::System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.KeyValueContent::System.Boolean Equals(Violens.Extensibility.Inspection.KeyValueContent other)
+Violens.Extensibility.Inspection.KeyValueContent::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.HeaderRow> Rows { get; init; }
+Violens.Extensibility.Inspection.KeyValueContent::System.String Summary { get; init; }
+Violens.Extensibility.Inspection.KeyValueContent::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.HeaderRow> Rows, out System.String Summary)
+Violens.Extensibility.Inspection.KeyValueContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.KeyValueContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.KeyValueContent::override System.String ToString()
+Violens.Extensibility.Inspection.KeyValueContent::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.KeyValueContent::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.KeyValueContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.KeyValueContent left, Violens.Extensibility.Inspection.KeyValueContent right)
+Violens.Extensibility.Inspection.KeyValueContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.KeyValueContent left, Violens.Extensibility.Inspection.KeyValueContent right)
+Violens.Extensibility.Inspection.KeyValueContent::virtual Violens.Extensibility.Inspection.KeyValueContent <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::.ctor()
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::.ctor(Violens.Extensibility.Inspection.Markdown.MarkdownBlock original)
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::abstract Violens.Extensibility.Inspection.Markdown.MarkdownBlock <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::protected virtual System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::protected virtual System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownBlock left, Violens.Extensibility.Inspection.Markdown.MarkdownBlock right)
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownBlock left, Violens.Extensibility.Inspection.Markdown.MarkdownBlock right)
+Violens.Extensibility.Inspection.Markdown.MarkdownBlock::virtual System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::.ctor(System.String Code)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownCode other)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::System.String Code { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::System.Void Deconstruct(out System.String Code)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownCode left, Violens.Extensibility.Inspection.Markdown.MarkdownCode right)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownCode left, Violens.Extensibility.Inspection.Markdown.MarkdownCode right)
+Violens.Extensibility.Inspection.Markdown.MarkdownCode::virtual Violens.Extensibility.Inspection.Markdown.MarkdownCode <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::.ctor(System.String Language, System.String Code)
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::System.String Code { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::System.String Language { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::System.Void Deconstruct(out System.String Language, out System.String Code)
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock left, Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock right)
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock left, Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock right)
+Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock::virtual Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock> Blocks)
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownDocument other)
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock> Blocks { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock> Blocks)
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::Violens.Extensibility.Inspection.Markdown.MarkdownDocument <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownDocument left, Violens.Extensibility.Inspection.Markdown.MarkdownDocument right)
+Violens.Extensibility.Inspection.Markdown.MarkdownDocument::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownDocument left, Violens.Extensibility.Inspection.Markdown.MarkdownDocument right)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis other)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis left, Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis right)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis left, Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis right)
+Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis::virtual Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::.ctor(System.Int32 Level, System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownHeading other)
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::System.Int32 Level { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::System.Void Deconstruct(out System.Int32 Level, out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownHeading left, Violens.Extensibility.Inspection.Markdown.MarkdownHeading right)
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownHeading left, Violens.Extensibility.Inspection.Markdown.MarkdownHeading right)
+Violens.Extensibility.Inspection.Markdown.MarkdownHeading::virtual Violens.Extensibility.Inspection.Markdown.MarkdownHeading <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::.ctor(System.String AltText, System.String Url)
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownImage other)
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::System.String AltText { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::System.String Url { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::System.Void Deconstruct(out System.String AltText, out System.String Url)
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownImage left, Violens.Extensibility.Inspection.Markdown.MarkdownImage right)
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownImage left, Violens.Extensibility.Inspection.Markdown.MarkdownImage right)
+Violens.Extensibility.Inspection.Markdown.MarkdownImage::virtual Violens.Extensibility.Inspection.Markdown.MarkdownImage <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::.ctor()
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::.ctor(Violens.Extensibility.Inspection.Markdown.MarkdownInline original)
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::abstract Violens.Extensibility.Inspection.Markdown.MarkdownInline <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::protected virtual System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::protected virtual System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownInline left, Violens.Extensibility.Inspection.Markdown.MarkdownInline right)
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownInline left, Violens.Extensibility.Inspection.Markdown.MarkdownInline right)
+Violens.Extensibility.Inspection.Markdown.MarkdownInline::virtual System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::.ctor()
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak other)
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak left, Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak right)
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak left, Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak right)
+Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak::virtual Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines, System.String Url)
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownLink other)
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::System.String Url { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines, out System.String Url)
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownLink left, Violens.Extensibility.Inspection.Markdown.MarkdownLink right)
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownLink left, Violens.Extensibility.Inspection.Markdown.MarkdownLink right)
+Violens.Extensibility.Inspection.Markdown.MarkdownLink::virtual Violens.Extensibility.Inspection.Markdown.MarkdownLink <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownList::.ctor(System.Boolean Ordered, System.Int32 Start, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>> Items)
+Violens.Extensibility.Inspection.Markdown.MarkdownList::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownList::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownList other)
+Violens.Extensibility.Inspection.Markdown.MarkdownList::System.Boolean Ordered { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownList::System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>> Items { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownList::System.Int32 Start { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownList::System.Void Deconstruct(out System.Boolean Ordered, out System.Int32 Start, out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>> Items)
+Violens.Extensibility.Inspection.Markdown.MarkdownList::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownList::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownList::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownList::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownList::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownList::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownList left, Violens.Extensibility.Inspection.Markdown.MarkdownList right)
+Violens.Extensibility.Inspection.Markdown.MarkdownList::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownList left, Violens.Extensibility.Inspection.Markdown.MarkdownList right)
+Violens.Extensibility.Inspection.Markdown.MarkdownList::virtual Violens.Extensibility.Inspection.Markdown.MarkdownList <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownParagraph other)
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownParagraph left, Violens.Extensibility.Inspection.Markdown.MarkdownParagraph right)
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownParagraph left, Violens.Extensibility.Inspection.Markdown.MarkdownParagraph right)
+Violens.Extensibility.Inspection.Markdown.MarkdownParagraph::virtual Violens.Extensibility.Inspection.Markdown.MarkdownParagraph <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownParser::const System.Int32 MaxDepth = 32
+Violens.Extensibility.Inspection.Markdown.MarkdownParser::static Violens.Extensibility.Inspection.Markdown.MarkdownDocument Parse(System.String text)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock> Blocks)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownQuote other)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock> Blocks { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownBlock> Blocks)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownQuote left, Violens.Extensibility.Inspection.Markdown.MarkdownQuote right)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownQuote left, Violens.Extensibility.Inspection.Markdown.MarkdownQuote right)
+Violens.Extensibility.Inspection.Markdown.MarkdownQuote::virtual Violens.Extensibility.Inspection.Markdown.MarkdownQuote <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::.ctor()
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownRule other)
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownRule left, Violens.Extensibility.Inspection.Markdown.MarkdownRule right)
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownRule left, Violens.Extensibility.Inspection.Markdown.MarkdownRule right)
+Violens.Extensibility.Inspection.Markdown.MarkdownRule::virtual Violens.Extensibility.Inspection.Markdown.MarkdownRule <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough other)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough left, Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough right)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough left, Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough right)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough::virtual Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownStrong other)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline> Inlines)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownStrong left, Violens.Extensibility.Inspection.Markdown.MarkdownStrong right)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownStrong left, Violens.Extensibility.Inspection.Markdown.MarkdownStrong right)
+Violens.Extensibility.Inspection.Markdown.MarkdownStrong::virtual Violens.Extensibility.Inspection.Markdown.MarkdownStrong <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::.ctor(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline>> Header, System.Collections.Generic.IReadOnlyList<System.String> Alignments, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline>>> Rows)
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownBlock other)
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownTable other)
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline>>> Rows { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline>> Header { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::System.Collections.Generic.IReadOnlyList<System.String> Alignments { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline>> Header, out System.Collections.Generic.IReadOnlyList<System.String> Alignments, out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.Markdown.MarkdownInline>>> Rows)
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownTable left, Violens.Extensibility.Inspection.Markdown.MarkdownTable right)
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownTable left, Violens.Extensibility.Inspection.Markdown.MarkdownTable right)
+Violens.Extensibility.Inspection.Markdown.MarkdownTable::virtual Violens.Extensibility.Inspection.Markdown.MarkdownTable <Clone>$()
+Violens.Extensibility.Inspection.Markdown.MarkdownText::.ctor(System.String Text)
+Violens.Extensibility.Inspection.Markdown.MarkdownText::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownInline other)
+Violens.Extensibility.Inspection.Markdown.MarkdownText::System.Boolean Equals(Violens.Extensibility.Inspection.Markdown.MarkdownText other)
+Violens.Extensibility.Inspection.Markdown.MarkdownText::System.String Text { get; init; }
+Violens.Extensibility.Inspection.Markdown.MarkdownText::System.Void Deconstruct(out System.String Text)
+Violens.Extensibility.Inspection.Markdown.MarkdownText::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.Markdown.MarkdownText::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.Markdown.MarkdownText::override System.String ToString()
+Violens.Extensibility.Inspection.Markdown.MarkdownText::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.Markdown.MarkdownText::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.Markdown.MarkdownText::static System.Boolean op_Equality(Violens.Extensibility.Inspection.Markdown.MarkdownText left, Violens.Extensibility.Inspection.Markdown.MarkdownText right)
+Violens.Extensibility.Inspection.Markdown.MarkdownText::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.Markdown.MarkdownText left, Violens.Extensibility.Inspection.Markdown.MarkdownText right)
+Violens.Extensibility.Inspection.Markdown.MarkdownText::virtual Violens.Extensibility.Inspection.Markdown.MarkdownText <Clone>$()
+Violens.Extensibility.Inspection.MarkdownContent::.ctor(Violens.Extensibility.Inspection.Markdown.MarkdownDocument Document, System.String Source)
+Violens.Extensibility.Inspection.MarkdownContent::System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.MarkdownContent::System.Boolean Equals(Violens.Extensibility.Inspection.MarkdownContent other)
+Violens.Extensibility.Inspection.MarkdownContent::System.String Source { get; init; }
+Violens.Extensibility.Inspection.MarkdownContent::System.Void Deconstruct(out Violens.Extensibility.Inspection.Markdown.MarkdownDocument Document, out System.String Source)
+Violens.Extensibility.Inspection.MarkdownContent::Violens.Extensibility.Inspection.Markdown.MarkdownDocument Document { get; init; }
+Violens.Extensibility.Inspection.MarkdownContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.MarkdownContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.MarkdownContent::override System.String ToString()
+Violens.Extensibility.Inspection.MarkdownContent::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.MarkdownContent::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.MarkdownContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.MarkdownContent left, Violens.Extensibility.Inspection.MarkdownContent right)
+Violens.Extensibility.Inspection.MarkdownContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.MarkdownContent left, Violens.Extensibility.Inspection.MarkdownContent right)
+Violens.Extensibility.Inspection.MarkdownContent::virtual Violens.Extensibility.Inspection.MarkdownContent <Clone>$()
+Violens.Extensibility.Inspection.TextContent::.ctor(System.String Text, System.String SyntaxHint = null)
+Violens.Extensibility.Inspection.TextContent::System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.TextContent::System.Boolean Equals(Violens.Extensibility.Inspection.TextContent other)
+Violens.Extensibility.Inspection.TextContent::System.String SyntaxHint { get; init; }
+Violens.Extensibility.Inspection.TextContent::System.String Text { get; init; }
+Violens.Extensibility.Inspection.TextContent::System.Void Deconstruct(out System.String Text, out System.String SyntaxHint)
+Violens.Extensibility.Inspection.TextContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.TextContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.TextContent::override System.String ToString()
+Violens.Extensibility.Inspection.TextContent::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.TextContent::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.TextContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.TextContent left, Violens.Extensibility.Inspection.TextContent right)
+Violens.Extensibility.Inspection.TextContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.TextContent left, Violens.Extensibility.Inspection.TextContent right)
+Violens.Extensibility.Inspection.TextContent::virtual Violens.Extensibility.Inspection.TextContent <Clone>$()
+Violens.Extensibility.Inspection.TreeContent::.ctor(System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.TreeNode> Roots, System.String Summary)
+Violens.Extensibility.Inspection.TreeContent::System.Boolean Equals(Violens.Extensibility.Inspection.InspectorContent other)
+Violens.Extensibility.Inspection.TreeContent::System.Boolean Equals(Violens.Extensibility.Inspection.TreeContent other)
+Violens.Extensibility.Inspection.TreeContent::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.TreeNode> Roots { get; init; }
+Violens.Extensibility.Inspection.TreeContent::System.String Summary { get; init; }
+Violens.Extensibility.Inspection.TreeContent::System.Void Deconstruct(out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.TreeNode> Roots, out System.String Summary)
+Violens.Extensibility.Inspection.TreeContent::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.TreeContent::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.TreeContent::override System.String ToString()
+Violens.Extensibility.Inspection.TreeContent::protected override System.Boolean PrintMembers(System.Text.StringBuilder builder)
+Violens.Extensibility.Inspection.TreeContent::protected override System.Type EqualityContract { get; }
+Violens.Extensibility.Inspection.TreeContent::static System.Boolean op_Equality(Violens.Extensibility.Inspection.TreeContent left, Violens.Extensibility.Inspection.TreeContent right)
+Violens.Extensibility.Inspection.TreeContent::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.TreeContent left, Violens.Extensibility.Inspection.TreeContent right)
+Violens.Extensibility.Inspection.TreeContent::virtual Violens.Extensibility.Inspection.TreeContent <Clone>$()
+Violens.Extensibility.Inspection.TreeNode::.ctor(System.String Name, Violens.Extensibility.Inspection.TreeNodeKind Kind, System.String Value, System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.TreeNode> Children, System.String Note = null, System.Boolean NameIsLiteral = false)
+Violens.Extensibility.Inspection.TreeNode::.ctor(System.String name, Violens.Extensibility.Inspection.TreeNodeKind kind, System.String value, System.String note = null, System.Boolean nameIsLiteral = false)
+Violens.Extensibility.Inspection.TreeNode::System.Boolean Equals(Violens.Extensibility.Inspection.TreeNode other)
+Violens.Extensibility.Inspection.TreeNode::System.Boolean NameIsLiteral { get; init; }
+Violens.Extensibility.Inspection.TreeNode::System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.TreeNode> Children { get; init; }
+Violens.Extensibility.Inspection.TreeNode::System.String CopyText { get; }
+Violens.Extensibility.Inspection.TreeNode::System.String Label { get; }
+Violens.Extensibility.Inspection.TreeNode::System.String Name { get; init; }
+Violens.Extensibility.Inspection.TreeNode::System.String Note { get; init; }
+Violens.Extensibility.Inspection.TreeNode::System.String Value { get; init; }
+Violens.Extensibility.Inspection.TreeNode::System.Void Deconstruct(out System.String Name, out Violens.Extensibility.Inspection.TreeNodeKind Kind, out System.String Value, out System.Collections.Generic.IReadOnlyList<Violens.Extensibility.Inspection.TreeNode> Children, out System.String Note, out System.Boolean NameIsLiteral)
+Violens.Extensibility.Inspection.TreeNode::Violens.Extensibility.Inspection.TreeNode <Clone>$()
+Violens.Extensibility.Inspection.TreeNode::Violens.Extensibility.Inspection.TreeNodeKind Kind { get; init; }
+Violens.Extensibility.Inspection.TreeNode::override System.Boolean Equals(System.Object obj)
+Violens.Extensibility.Inspection.TreeNode::override System.Int32 GetHashCode()
+Violens.Extensibility.Inspection.TreeNode::override System.String ToString()
+Violens.Extensibility.Inspection.TreeNode::static System.Boolean op_Equality(Violens.Extensibility.Inspection.TreeNode left, Violens.Extensibility.Inspection.TreeNode right)
+Violens.Extensibility.Inspection.TreeNode::static System.Boolean op_Inequality(Violens.Extensibility.Inspection.TreeNode left, Violens.Extensibility.Inspection.TreeNode right)
+Violens.Extensibility.Inspection.TreeNodeKind.Array = 1
+Violens.Extensibility.Inspection.TreeNodeKind.Boolean = 4
+Violens.Extensibility.Inspection.TreeNodeKind.Bytes = 6
+Violens.Extensibility.Inspection.TreeNodeKind.Null = 5
+Violens.Extensibility.Inspection.TreeNodeKind.Number = 3
+Violens.Extensibility.Inspection.TreeNodeKind.Object = 0
+Violens.Extensibility.Inspection.TreeNodeKind.Omitted = 9
+Violens.Extensibility.Inspection.TreeNodeKind.Other = 8
+Violens.Extensibility.Inspection.TreeNodeKind.String = 2
+Violens.Extensibility.Inspection.TreeNodeKind.Tagged = 7
+Violens.Extensibility.Inspection.TreeText::static System.String Write(Violens.Extensibility.Inspection.TreeNode node)
+abstract class Violens.Extensibility.Inspection.InspectorContent : System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>
+abstract class Violens.Extensibility.Inspection.Markdown.MarkdownBlock : System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>
+abstract class Violens.Extensibility.Inspection.Markdown.MarkdownInline : System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>
+enum Violens.Extensibility.Inspection.InspectorSide : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+enum Violens.Extensibility.Inspection.TreeNodeKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+interface Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.ErrorContent : Violens.Extensibility.Inspection.InspectorContent, System.IEquatable<Violens.Extensibility.Inspection.ErrorContent>, System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>
+sealed class Violens.Extensibility.Inspection.HeaderRow : System.IEquatable<Violens.Extensibility.Inspection.HeaderRow>
+sealed class Violens.Extensibility.Inspection.HexContent : Violens.Extensibility.Inspection.InspectorContent, System.IEquatable<Violens.Extensibility.Inspection.HexContent>, System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>
+sealed class Violens.Extensibility.Inspection.HtmlContent : Violens.Extensibility.Inspection.InspectorContent, System.IEquatable<Violens.Extensibility.Inspection.HtmlContent>, System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>
+sealed class Violens.Extensibility.Inspection.ImageBloatItem : System.IEquatable<Violens.Extensibility.Inspection.ImageBloatItem>
+sealed class Violens.Extensibility.Inspection.ImageBloatReport : System.IEquatable<Violens.Extensibility.Inspection.ImageBloatReport>
+sealed class Violens.Extensibility.Inspection.ImageContent : Violens.Extensibility.Inspection.InspectorContent, System.IEquatable<Violens.Extensibility.Inspection.ImageContent>, System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>
+sealed class Violens.Extensibility.Inspection.InspectorContext
+sealed class Violens.Extensibility.Inspection.InspectorRegistry
+sealed class Violens.Extensibility.Inspection.Inspectors.CookiesInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.HeadersInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.HexInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.HtmlInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.ImageInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.JsonInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.MarkdownInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.NotesInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.RawTextInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.TreeInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.Inspectors.WebFormsInspector : Violens.Extensibility.Inspection.IInspector
+sealed class Violens.Extensibility.Inspection.KeyValueContent : Violens.Extensibility.Inspection.InspectorContent, System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>, System.IEquatable<Violens.Extensibility.Inspection.KeyValueContent>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownCode : Violens.Extensibility.Inspection.Markdown.MarkdownInline, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownCode>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock : Violens.Extensibility.Inspection.Markdown.MarkdownBlock, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownCodeBlock>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownDocument : System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownDocument>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis : Violens.Extensibility.Inspection.Markdown.MarkdownInline, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownEmphasis>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownHeading : Violens.Extensibility.Inspection.Markdown.MarkdownBlock, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownHeading>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownImage : Violens.Extensibility.Inspection.Markdown.MarkdownInline, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownImage>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak : Violens.Extensibility.Inspection.Markdown.MarkdownInline, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownLineBreak>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownLink : Violens.Extensibility.Inspection.Markdown.MarkdownInline, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownLink>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownList : Violens.Extensibility.Inspection.Markdown.MarkdownBlock, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownList>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownParagraph : Violens.Extensibility.Inspection.Markdown.MarkdownBlock, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownParagraph>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownQuote : Violens.Extensibility.Inspection.Markdown.MarkdownBlock, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownQuote>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownRule : Violens.Extensibility.Inspection.Markdown.MarkdownBlock, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownRule>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough : Violens.Extensibility.Inspection.Markdown.MarkdownInline, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownStrikethrough>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownStrong : Violens.Extensibility.Inspection.Markdown.MarkdownInline, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownStrong>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownTable : Violens.Extensibility.Inspection.Markdown.MarkdownBlock, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownBlock>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownTable>
+sealed class Violens.Extensibility.Inspection.Markdown.MarkdownText : Violens.Extensibility.Inspection.Markdown.MarkdownInline, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownInline>, System.IEquatable<Violens.Extensibility.Inspection.Markdown.MarkdownText>
+sealed class Violens.Extensibility.Inspection.MarkdownContent : Violens.Extensibility.Inspection.InspectorContent, System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>, System.IEquatable<Violens.Extensibility.Inspection.MarkdownContent>
+sealed class Violens.Extensibility.Inspection.TextContent : Violens.Extensibility.Inspection.InspectorContent, System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>, System.IEquatable<Violens.Extensibility.Inspection.TextContent>
+sealed class Violens.Extensibility.Inspection.TreeContent : Violens.Extensibility.Inspection.InspectorContent, System.IEquatable<Violens.Extensibility.Inspection.InspectorContent>, System.IEquatable<Violens.Extensibility.Inspection.TreeContent>
+sealed class Violens.Extensibility.Inspection.TreeNode : System.IEquatable<Violens.Extensibility.Inspection.TreeNode>
+static class Violens.Extensibility.Inspection.Html.HtmlPreview
+static class Violens.Extensibility.Inspection.Html.HtmlText
+static class Violens.Extensibility.Inspection.ImageBloatAnalyzer
+static class Violens.Extensibility.Inspection.Markdown.MarkdownParser
+static class Violens.Extensibility.Inspection.TreeText

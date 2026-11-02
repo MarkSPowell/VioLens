@@ -1,4 +1,4 @@
-using Violens.ProxyCore.Preferences;
+using Violens.AppCore.Preferences;
 
 namespace Violens.DesktopUi.ViewModels;
 

@@ -1,8 +1,9 @@
 using System.Text.Json;
+using Violens.AppCore.Preferences;
 using Violens.ProxyCore.Preferences;
 using Xunit;
 
-namespace Violens.ProxyCore.Tests;
+namespace Violens.AppCore.Tests;
 
 /// <summary>Machine policy: reading the policy file, and the store that enforces it.</summary>
 public class PolicySettingsTests

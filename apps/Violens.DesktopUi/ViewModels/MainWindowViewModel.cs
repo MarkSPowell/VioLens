@@ -4,6 +4,7 @@ using System.Reflection;
 using Avalonia.Threading;
 using Violens.AppCore.Diagnostics;
 using Violens.AppCore.Migration;
+using Violens.AppCore.Preferences;
 using Violens.Compatibility.Extensions;
 using Violens.Compatibility.FiddlerScript;
 using Violens.DesktopUi.Models;

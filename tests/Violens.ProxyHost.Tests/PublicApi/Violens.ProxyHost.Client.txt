@@ -1,0 +1,104 @@
+Violens.ProxyHost.Client.AppIdentity::.ctor(System.String productName)
+Violens.ProxyHost.Client.AppIdentity::System.String DataFolder { get; set; }
+Violens.ProxyHost.Client.AppIdentity::System.String ProductName { get; }
+Violens.ProxyHost.Client.AppIdentity::System.String ProductVersion { get; set; }
+Violens.ProxyHost.Client.AppIdentity::System.String RootCertificateName { get; set; }
+Violens.ProxyHost.Client.BreakpointEventArgs::System.Int32 SessionOrdinal { get; }
+Violens.ProxyHost.Client.BreakpointEventArgs::System.String Host { get; }
+Violens.ProxyHost.Client.BreakpointEventArgs::System.String RawText { get; }
+Violens.ProxyHost.Client.BreakpointEventArgs::System.Void Abort()
+Violens.ProxyHost.Client.BreakpointEventArgs::System.Void Resume(System.String editedRawText = null)
+Violens.ProxyHost.Client.BreakpointEventArgs::Violens.ProxyHost.Client.ExchangeStage Stage { get; }
+Violens.ProxyHost.Client.BreakpointSettings::.ctor()
+Violens.ProxyHost.Client.BreakpointSettings::System.Boolean BreakOnAllRequests { get; set; }
+Violens.ProxyHost.Client.BreakpointSettings::System.Boolean BreakOnAllResponses { get; set; }
+Violens.ProxyHost.Client.BreakpointSettings::System.Int32? ResponseStatusCodeEquals { get; set; }
+Violens.ProxyHost.Client.BreakpointSettings::System.String RequestMethodEquals { get; set; }
+Violens.ProxyHost.Client.BreakpointSettings::System.String RequestUrlContains { get; set; }
+Violens.ProxyHost.Client.BreakpointSettings::System.String ResponseUrlContains { get; set; }
+Violens.ProxyHost.Client.CapturedSession::.ctor()
+Violens.ProxyHost.Client.CapturedSession::System.Collections.Generic.Dictionary<System.String, System.String> Flags { get; set; }
+Violens.ProxyHost.Client.CapturedSession::System.DateTimeOffset StartedAt { get; set; }
+Violens.ProxyHost.Client.CapturedSession::System.Int32 Id { get; set; }
+Violens.ProxyHost.Client.CapturedSession::System.String Host { get; set; }
+Violens.ProxyHost.Client.CapturedSession::System.String Scheme { get; set; }
+Violens.ProxyHost.Client.CapturedSession::System.String Url { get; set; }
+Violens.ProxyHost.Client.CapturedSession::Violens.ProxyHost.Client.ProxyRequest Request { get; set; }
+Violens.ProxyHost.Client.CapturedSession::Violens.ProxyHost.Client.ProxyResponse Response { get; set; }
+Violens.ProxyHost.Client.ExchangeStage.Request = 1
+Violens.ProxyHost.Client.ExchangeStage.Response = 2
+Violens.ProxyHost.Client.HookContext::System.Collections.Generic.Dictionary<System.String, System.String> Flags { get; }
+Violens.ProxyHost.Client.HookContext::System.Int32 SessionId { get; }
+Violens.ProxyHost.Client.HookContext::System.String Host { get; }
+Violens.ProxyHost.Client.HookContext::System.String Scheme { get; }
+Violens.ProxyHost.Client.HookContext::System.Void RespondWith(Violens.ProxyHost.Client.ProxyResponse response)
+Violens.ProxyHost.Client.HookContext::Violens.ProxyHost.Client.ExchangeStage Stage { get; }
+Violens.ProxyHost.Client.HookContext::Violens.ProxyHost.Client.ProxyRequest Request { get; }
+Violens.ProxyHost.Client.HookContext::Violens.ProxyHost.Client.ProxyResponse Response { get; }
+Violens.ProxyHost.Client.HttpMessage::.ctor()
+Violens.ProxyHost.Client.HttpMessage::System.Byte[] Body { get; set; }
+Violens.ProxyHost.Client.HttpMessage::System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<System.String, System.String>> Headers { get; set; }
+Violens.ProxyHost.Client.HttpMessage::System.Int32 RemoveHeader(System.String name)
+Violens.ProxyHost.Client.HttpMessage::System.String GetHeader(System.String name)
+Violens.ProxyHost.Client.HttpMessage::System.String HttpVersion { get; set; }
+Violens.ProxyHost.Client.HttpMessage::System.Void SetBodyText(System.String text)
+Violens.ProxyHost.Client.HttpMessage::System.Void SetHeader(System.String name, System.String value)
+Violens.ProxyHost.Client.ProxyHostClient::System.Action<Violens.ProxyHost.Client.HookContext> OnBeforeRequest { get; set; }
+Violens.ProxyHost.Client.ProxyHostClient::System.Action<Violens.ProxyHost.Client.HookContext> OnBeforeResponse { get; set; }
+Violens.ProxyHost.Client.ProxyHostClient::System.Diagnostics.Process HostProcess { get; }
+Violens.ProxyHost.Client.ProxyHostClient::System.Threading.Tasks.Task ClearSessionsAsync(System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyHost.Client.ProxyHostClient::System.Threading.Tasks.Task SetBreakpointsAsync(Violens.ProxyHost.Client.BreakpointSettings settings, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyHost.Client.ProxyHostClient::System.Threading.Tasks.Task StopAsync(System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyHost.Client.ProxyHostClient::System.Threading.Tasks.Task UninstallRootCertificateAsync(System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyHost.Client.ProxyHostClient::System.Threading.Tasks.Task<System.Int32> LoadSazAsync(System.String path, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyHost.Client.ProxyHostClient::System.Threading.Tasks.Task<System.Int32> SaveSazAsync(System.String path, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyHost.Client.ProxyHostClient::System.Threading.Tasks.Task<Violens.ProxyHost.Client.StartResult> StartAsync(Violens.ProxyHost.Client.AppIdentity identity, Violens.ProxyHost.Client.StartOptions options, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyHost.Client.ProxyHostClient::System.Void Dispose()
+Violens.ProxyHost.Client.ProxyHostClient::event System.EventHandler Disconnected
+Violens.ProxyHost.Client.ProxyHostClient::event System.EventHandler<Violens.ProxyHost.Client.BreakpointEventArgs> BreakpointHit
+Violens.ProxyHost.Client.ProxyHostClient::event System.EventHandler<Violens.ProxyHost.Client.ProxyLogEventArgs> Log
+Violens.ProxyHost.Client.ProxyHostClient::event System.EventHandler<Violens.ProxyHost.Client.SessionCapturedEventArgs> SessionCaptured
+Violens.ProxyHost.Client.ProxyHostClient::static System.Threading.Tasks.Task<Violens.ProxyHost.Client.ProxyHostClient> ConnectAsync(System.IO.Stream stream, System.String token, System.TimeSpan? timeout = null)
+Violens.ProxyHost.Client.ProxyHostClient::static System.Threading.Tasks.Task<Violens.ProxyHost.Client.ProxyHostClient> LaunchAsync(System.String hostPath, System.TimeSpan? timeout = null, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyHost.Client.ProxyHostException::.ctor(System.String message)
+Violens.ProxyHost.Client.ProxyLogEventArgs::System.DateTimeOffset Time { get; }
+Violens.ProxyHost.Client.ProxyLogEventArgs::System.String Category { get; }
+Violens.ProxyHost.Client.ProxyLogEventArgs::System.String Message { get; }
+Violens.ProxyHost.Client.ProxyLogEventArgs::override System.String ToString()
+Violens.ProxyHost.Client.ProxyRequest::.ctor()
+Violens.ProxyHost.Client.ProxyRequest::System.String Method { get; set; }
+Violens.ProxyHost.Client.ProxyRequest::System.String Target { get; set; }
+Violens.ProxyHost.Client.ProxyRequest::Violens.ProxyHost.Client.ProxyRequest Clone()
+Violens.ProxyHost.Client.ProxyResponse::.ctor()
+Violens.ProxyHost.Client.ProxyResponse::System.Int32 StatusCode { get; set; }
+Violens.ProxyHost.Client.ProxyResponse::System.String ReasonPhrase { get; set; }
+Violens.ProxyHost.Client.ProxyResponse::Violens.ProxyHost.Client.ProxyResponse Clone()
+Violens.ProxyHost.Client.ProxyResponse::static Violens.ProxyHost.Client.ProxyResponse Text(System.Int32 statusCode, System.String reasonPhrase, System.String text)
+Violens.ProxyHost.Client.SessionCapturedEventArgs::Violens.ProxyHost.Client.CapturedSession Session { get; }
+Violens.ProxyHost.Client.StartOptions::.ctor()
+Violens.ProxyHost.Client.StartOptions::System.Boolean AllowRemoteClients { get; set; }
+Violens.ProxyHost.Client.StartOptions::System.Boolean HookRequests { get; set; }
+Violens.ProxyHost.Client.StartOptions::System.Boolean HookResponses { get; set; }
+Violens.ProxyHost.Client.StartOptions::System.Boolean IncludeBodies { get; set; }
+Violens.ProxyHost.Client.StartOptions::System.Boolean TrustRootCertificate { get; set; }
+Violens.ProxyHost.Client.StartOptions::System.Boolean UseSystemProxy { get; set; }
+Violens.ProxyHost.Client.StartOptions::System.Int32 PreferredPort { get; set; }
+Violens.ProxyHost.Client.StartOptions::System.TimeSpan HookTimeout { get; set; }
+Violens.ProxyHost.Client.StartResult::System.Byte[] RootCertificate { get; }
+Violens.ProxyHost.Client.StartResult::System.Int32 Port { get; }
+Violens.ProxyHost.Client.StartResult::System.String UpstreamDescription { get; }
+abstract class Violens.ProxyHost.Client.HttpMessage
+enum Violens.ProxyHost.Client.ExchangeStage : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+sealed class Violens.ProxyHost.Client.AppIdentity
+sealed class Violens.ProxyHost.Client.BreakpointEventArgs : System.EventArgs
+sealed class Violens.ProxyHost.Client.BreakpointSettings
+sealed class Violens.ProxyHost.Client.CapturedSession
+sealed class Violens.ProxyHost.Client.HookContext
+sealed class Violens.ProxyHost.Client.ProxyHostClient : System.IDisposable
+sealed class Violens.ProxyHost.Client.ProxyHostException : System.Exception, System.Runtime.Serialization.ISerializable
+sealed class Violens.ProxyHost.Client.ProxyLogEventArgs : System.EventArgs
+sealed class Violens.ProxyHost.Client.ProxyRequest : Violens.ProxyHost.Client.HttpMessage
+sealed class Violens.ProxyHost.Client.ProxyResponse : Violens.ProxyHost.Client.HttpMessage
+sealed class Violens.ProxyHost.Client.SessionCapturedEventArgs : System.EventArgs
+sealed class Violens.ProxyHost.Client.StartOptions
+sealed class Violens.ProxyHost.Client.StartResult

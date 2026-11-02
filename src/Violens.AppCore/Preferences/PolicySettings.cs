@@ -1,8 +1,9 @@
 using System.Runtime.Versioning;
 using System.Text.Json;
 using Microsoft.Win32;
+using Violens.ProxyCore.Preferences;
 
-namespace Violens.ProxyCore.Preferences;
+namespace Violens.AppCore.Preferences;
 
 /// <summary>
 /// Machine-wide settings an administrator sets for everyone on the machine
