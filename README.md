@@ -7,9 +7,10 @@ non-commercial use. VioLens is free for any use, under the MIT licence.
 It's an independent project, not affiliated with Progress or Telerik (see
 [Relationship to Fiddler](#relationship-to-fiddler)).
 
-VioLens was called CLeARINET until version 0.2. Settings, rules and
-extensions from a CLeARINET install carry over the first time VioLens
-runs (see the User Guide's "Upgrading from CLeARINET").
+VioLens was called CLeARINET until version 0.2. It isn't Eric Lawrence's
+Clearinet, a separate project (see [Clearinet](#clearinet)). Settings,
+rules and extensions from a CLeARINET install carry over the first time
+VioLens runs (see the User Guide's "Upgrading from CLeARINET").
 
 ![VioLens capturing a request to example.com, then showing its headers, the Composer and the Timing tab](https://violens.dev/assets/demo.gif)
 
@@ -277,7 +278,29 @@ licences: the ported NetLog importer, the CSP Rule Collector fork, and
 packet capture import, ported from Clearinet (see
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
-## Credits
+### Clearinet
+
+Eric Lawrence is building his own free successor to Fiddler Classic,
+[Clearinet](https://github.com/ericlaw1979/Clearinet), also under the MIT
+licence. It and VioLens are separate projects that set out differently:
+
+- **Clearinet** is by the person who created Fiddler. Its main app is for
+  Windows, built with WinForms to look and work like the Fiddler people
+  already know, and to make porting Fiddler extensions and scripts easy.
+  A cross-platform engine, Clearinet Core, is planned.
+- **VioLens** runs on Windows, macOS and Linux, with an Avalonia
+  interface that follows Fiddler's layout without copying its look. Its
+  engine is already on NuGet as `Violens.ProxyCore`, and Fiddler
+  extensions are ported from source through `Violens.CompatShim`.
+
+VioLens started as CLeARINET because Eric's [Fiddler in 2026](https://textslashplain.com/2026/08/05/fiddler-in-2026/)
+post read as a call to action, and this project set out to answer it.
+It chose Avalonia to run on
+every platform, while Eric chose to stay with WinForms so existing
+Windows workflows keep working. With the two heading in different
+directions, it was renamed VioLens in version 0.2. If you only need
+Windows and want the closest thing to Fiddler Classic, Clearinet is worth
+following too. Both are free for any use.
 
 Thanks to:
 
