@@ -261,9 +261,10 @@ Released as 0.5.0-preview.1: everything since 0.4.0-preview.1, which is
 SAZ compatibility, `violens-exec`, Linux and items 11 to 16.
 
 Then 1.0.0-rc.1: the API freeze (item 2) and the docs rewritten in plain
-language. 1.0 itself waits for the hands-on macOS test (item 3, which
+language. Then 1.0.0-rc.2, the first release on NuGet, after a fix to the
+publish step. 1.0 itself waits for the hands-on macOS test (item 3, which
 also covers HTTP/2 browsing on macOS for item 1) and the Linux test on
-GNOME and KDE.
+KDE Plasma (Ubuntu's GNOME is done).
 
 Fine after 1.0: an about:config editor, SOCKS and Digest proxy sign-in,
 DHCP proxy discovery on macOS, built-in NetLog import, `CustomRules.cs`,

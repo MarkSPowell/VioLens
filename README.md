@@ -21,7 +21,7 @@ bugs go in [issues](https://github.com/MarkSPowell/VioLens/issues).
 
 1.0 release candidate. The features planned for 1.0 are in, and the proxy
 engine's public API is frozen. What's left before 1.0 itself is hands-on
-testing on macOS and on Linux desktops (see
+testing on macOS and on KDE Plasma (see
 [Known limitations](#known-limitations)). Feedback and issues are welcome.
 
 ## What it does
@@ -201,7 +201,8 @@ Nothing you capture leaves your computer unless you send it somewhere.
     signing secrets are set. Other builds (forks, test builds) aren't, and
     macOS asks you to allow them once, in System Settings > Privacy &
     Security > Open Anyway.
-- **Linux hasn't had a hands-on test on a real desktop yet.**
+- **Linux has been tested by hand on Ubuntu (GNOME), not yet on KDE
+  Plasma.**
   - The certificate goes into the NSS databases Chrome and Chromium read
     (`~/.pki/nssdb`) and into each Firefox profile, including the snap and
     Flatpak ones, with `certutil`, which must be installed. Restart

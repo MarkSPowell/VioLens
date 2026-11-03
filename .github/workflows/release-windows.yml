@@ -330,10 +330,19 @@ jobs:
         with:
           user: ${{ vars.NUGET_USER }}
 
+      # Each package is named on its own: on Windows, dotnet nuget push
+      # doesn't expand "packages/*.nupkg" and fails with "File does not
+      # exist".
       - name: Publish the packages to nuget.org
         if: startsWith(github.ref, 'refs/tags/') && vars.NUGET_USER != ''
-        run: >-
-          dotnet nuget push "packages/*.nupkg"
-          --api-key ${{ steps.nuget.outputs.NUGET_API_KEY }}
-          --source https://api.nuget.org/v3/index.json
-          --skip-duplicate
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem packages -Filter *.nupkg
+          if (-not $packages) { throw "No .nupkg files in packages" }
+          foreach ($package in $packages) {
+            dotnet nuget push $package.FullName `
+              --api-key ${{ steps.nuget.outputs.NUGET_API_KEY }} `
+              --source https://api.nuget.org/v3/index.json `
+              --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "Pushing $($package.Name) failed" }
+          }

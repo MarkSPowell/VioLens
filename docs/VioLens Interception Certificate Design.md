@@ -300,15 +300,14 @@ environment.
 `release-linux.yml` checks the AppImage and tarball, including a launch
 under Xvfb. As on macOS, the tests stop at building arguments and parsing
 output (`LinuxCertificateTrustTests`, `LinuxSystemProxyTests`); nothing
-runs `certutil`, `gsettings` or `kwriteconfig` for real. A hands-on test
-on GNOME and KDE is still to come.
+runs `certutil`, `gsettings` or `kwriteconfig` for real. It has had a
+hands-on test on Ubuntu (GNOME); one on KDE Plasma is still to come.
 
 ## Open risks
 
-- Linux trust, removal and the system proxy are built but haven't been
-  tested on a real desktop (see "Linux"). That includes whether Chrome and
-  Firefox pick up the root without a restart, KDE Plasma 6's
-  `kwriteconfig6`, and Wayland sessions.
+- Linux trust, removal and the system proxy have been tested by hand on
+  Ubuntu (GNOME), but not on KDE Plasma (see "Linux"), so KDE Plasma 6's
+  `kwriteconfig6` is still unverified.
 - macOS keychain trust, removal and the system proxy have only been
   partly tested on a real Mac (see "Platform status"), including whether
   `networksetup` needs admin rights and whether the root's key can be
