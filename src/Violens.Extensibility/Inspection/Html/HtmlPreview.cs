@@ -36,8 +36,14 @@ public static partial class HtmlPreview
         // The page's own charset would contradict the UTF-8 this is written
         // in, and a refresh would navigate away from the copy. Every
         // http-equiv goes, not just refresh: a value written with character
-        // references (&#114;efresh) is still a refresh to a browser.
-        var body = HttpEquivRegex().Replace(html, string.Empty);
+        // references (&#114;efresh) is still a refresh to a browser. Two
+        // passes, so a tag goes however it's read: as a browser reads it
+        // (a ">" inside a quoted value doesn't end it), and up to the first
+        // ">" (in case the first pass reads something differently).
+        var body = MetaTagRegex().Replace(
+            html, tag => HttpEquivWordRegex().IsMatch(tag.Value) ? string.Empty : tag.Value);
+        body = MetaUpToFirstCloseRegex().Replace(
+            body, tag => HttpEquivWordRegex().IsMatch(tag.Value) ? string.Empty : tag.Value);
         body = CharsetRegex().Replace(body, string.Empty);
 
         // Ours go first, before anything that could run or load: browsers
@@ -80,10 +86,19 @@ public static partial class HtmlPreview
         return path;
     }
 
-    // Quoted values are skipped whole, so a ">" inside one (content="a>b")
-    // doesn't end the tag early.
-    [GeneratedRegex(@"<meta\b(?:[^>""']|""[^""]*""|'[^']*')*?\bhttp-equiv\b(?:[^>""']|""[^""]*""|'[^']*')*>", RegexOptions.IgnoreCase, 2000)]
-    private static partial Regex HttpEquivRegex();
+    // A <meta> tag read as browsers read it: attribute names, then values
+    // that are quoted only when the quote comes straight after "=" (so
+    // content="a>b" is one value, but in lang=a" the quote is just part of
+    // an unquoted value). Atomic groups, so a tag that doesn't close fails
+    // quickly instead of trying every way to split it.
+    [GeneratedRegex(@"<meta\b(?>\s+|/|[^\s/>=]+(?>\s*=\s*(?>""[^""]*""|'[^']*'|[^\s>]*))?)*>", RegexOptions.IgnoreCase, 2000)]
+    private static partial Regex MetaTagRegex();
+
+    [GeneratedRegex(@"<meta\b[^>]*>", RegexOptions.IgnoreCase, 2000)]
+    private static partial Regex MetaUpToFirstCloseRegex();
+
+    [GeneratedRegex(@"\bhttp-equiv\b", RegexOptions.IgnoreCase, 2000)]
+    private static partial Regex HttpEquivWordRegex();
 
     [GeneratedRegex(@"<meta\b[^>]*\bcharset\s*=[^>]*>", RegexOptions.IgnoreCase, 2000)]
     private static partial Regex CharsetRegex();

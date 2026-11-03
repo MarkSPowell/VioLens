@@ -247,12 +247,28 @@ public class MarkdownAndHtmlTests
     [InlineData("<meta content=\"a>b\" http-equiv=\"refresh\" content=\"0; url=https://elsewhere.test/\">")]
     [InlineData("<meta content='0; url=https://elsewhere.test/?a>b' http-equiv=refresh>")]
     [InlineData("<META HTTP-EQUIV=\"&#114;efresh\" CONTENT=\"0; url=https://elsewhere.test/\">")]
+    [InlineData("<meta lang=a\" http-equiv=refresh content=0;url=https://elsewhere.test/ title=\"z\">")]
+    [InlineData("<meta lang=a' http-equiv=refresh content=0;url=https://elsewhere.test/>")]
+    [InlineData("<meta lang=a\" http-equiv=refresh content=0;url=https://elsewhere.test/>")]
+    [InlineData("<meta http-equiv=refresh content=0;url=https://elsewhere.test/ />")]
     public void ThePreviewRemovesRefreshesWrittenToSlipPastIt(string meta)
     {
         var preview = HtmlPreview.Build($"<!DOCTYPE html><head>{meta}</head><p>hi</p>", null, loadImagesAndStyles: false);
 
         Assert.DoesNotContain("elsewhere.test", preview);
         Assert.Contains("<p>hi</p>", preview);
+    }
+
+    [Fact]
+    public void ThePreviewKeepsOtherMetaTagsAndTheTextAroundThem()
+    {
+        var preview = HtmlPreview.Build(
+            "<head><meta name=\"viewport\" content=\"width=device-width\"><meta lang=a\"></head><p>keep \"this\"</p>",
+            null,
+            loadImagesAndStyles: false);
+
+        Assert.Contains("<meta name=\"viewport\" content=\"width=device-width\">", preview);
+        Assert.Contains("<p>keep \"this\"</p>", preview);
     }
 
     [Fact]
