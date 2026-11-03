@@ -48,6 +48,12 @@ Reviewed before 1.0 (October 2026). What's in place, and what isn't:
   trusted for your account only.
 - It's still a key in your account: a program running as you can ask the
   OS to sign with it, as with any per-user key. Other accounts can't.
+  That includes any program built on ProxyCore (which anyone can download
+  from NuGet) that asks for VioLens's root by name: it gets a root your
+  browsers already trust, with no prompt. A program running as you could
+  already read your browsers' data, so this isn't a new way in, but it's a
+  reason to remove the root (below) when you've finished debugging HTTPS.
+  VioLens Capture does that for you when it closes.
 - **Tools > Remove Root Certificate**, and the Windows uninstaller, remove
   it and its key (on Linux, from every browser database VioLens added it
   to).
