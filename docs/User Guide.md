@@ -667,8 +667,11 @@ proxy set, open `http://violens/` to download VioLens's root
 certificate, and follow the instructions on that page to install and trust
 it. Anyone on your network can use the proxy while this is on, so turn it
 off when you've finished, and remove the certificate from the other device.
-Other devices can't reach this computer's own `localhost` services
-through VioLens; they get a "403 Forbidden" page instead.
+Other devices can't reach this computer's own `localhost` services, or
+link-local addresses such as a cloud server's metadata service, through
+VioLens; they get a "403 Forbidden" page instead. Anything else this
+computer can reach, they can too, including networks it's on through a
+VPN, so don't turn this on over a network you don't trust.
 
 **Use HTTP/2 with browsers.** Lets browsers use HTTP/2 with
 VioLens for HTTPS sites, as they would with the site itself. VioLens then

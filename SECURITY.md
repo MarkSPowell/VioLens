@@ -32,10 +32,13 @@ For example:
 - the proxy host (`Violens.ProxyHost`) accepting commands from anything
   other than the app that started it, or the app accepting `violens-exec`
   commands from another account
+- the app sending sessions to a legacy extension host run by another
+  account
 
 ## How VioLens protects you
 
-Reviewed before 1.0 (October 2026). What's in place, and what isn't:
+Reviewed before 1.0 (October 2026, and again in November 2026). What's in
+place, and what isn't:
 
 **The root certificate.**
 - Each computer and user account gets its own root, made on that computer.
@@ -54,6 +57,10 @@ Reviewed before 1.0 (October 2026). What's in place, and what isn't:
   already read your browsers' data, so this isn't a new way in, but it's a
   reason to remove the root (below) when you've finished debugging HTTPS.
   VioLens Capture does that for you when it closes.
+- VioLens only picks up a root from your store that's shaped like one it
+  made (self-signed, path length 0, an ECDSA P-256 key), not any
+  certificate that shares the name. A program running as you could still
+  make one that passes, so this guards against mistakes, not that program.
 - **Tools > Remove Root Certificate**, and the Windows uninstaller, remove
   it and its key (on Linux, from every browser database VioLens added it
   to).
@@ -90,8 +97,8 @@ downloads or runs anything.
   them.
 - The WebView tab's **Preview in Browser** writes a copy of the page to
   the temp folder with a Content-Security-Policy that blocks scripts,
-  frames, plug-ins and form submission, and with any automatic redirect
-  removed. Nothing loads from the network unless you tick **Load images
+  frames, plug-ins and form submission, and with the page's own
+  `http-equiv` settings, including any automatic redirect, removed. Nothing loads from the network unless you tick **Load images
   and styles from the site**. Copies are deleted after a day.
 - Files you open (SAZ, HAR, packet captures) and bodies the inspectors
   read (JSON, CBOR, MessagePack, Markdown, images) are treated as
@@ -118,10 +125,19 @@ again unless you untick that. It shares VioLens's certificate.
 - While remote computers are allowed, anyone on your network can use the
   proxy. There's no proxy password.
 - Other devices can't use VioLens to reach this computer's own localhost
-  services: they get a 403 instead. A name that resolves to a local
-  address one moment and another address the next (DNS rebinding) is a
-  narrow gap that remains.
+  services, or link-local addresses such as a cloud server's metadata
+  service (`169.254.169.254`): they get a 403 instead. A name that
+  resolves to one of those one moment and another address the next (DNS
+  rebinding) is a narrow gap that remains.
+- Everything else this computer can reach, they can reach too. That
+  includes sites served from this computer's own network address (which
+  is how a phone tests them), and any network it's on through a VPN, such
+  as your company's intranet. Don't allow remote computers on a network
+  you don't trust.
 - A connection that doesn't send its request within 2 minutes is closed.
+- Proxy auto-config scripts, which can come from the network through
+  automatic detection, run in a JavaScript interpreter with no access to
+  .NET and limits on time, recursion and memory.
 
 **The proxy host (`Violens.ProxyHost`).**
 - The app makes a pipe with a random name that takes one connection, and
@@ -134,6 +150,12 @@ again unless you untick that. It shares VioLens's certificate.
 - Not yet covered: the app's pipe uses the operating system's default
   permissions. On Windows, another account could connect to it first and
   make the start-up time out. It can't send commands or read anything.
+
+**The legacy extension host (optional, Windows).** The app sends each
+session to it over a named pipe that only your account can open, and
+never from another computer. The app refuses a pipe of that name made by
+another account, so another user on a shared computer can't stand in for
+the host and read your decrypted traffic.
 
 ## Supported versions
 

@@ -20,11 +20,16 @@ namespace Violens.ProxyCore.Proxy.AutoConfig;
 /// preference when a script defines them.
 ///
 /// The script comes from the network, so it's treated as untrusted: no
-/// access to .NET types, and a time limit on every call.
+/// access to .NET types, and limits on time, recursion and memory on every
+/// call, so a hostile automatic-detection server can't hang or exhaust
+/// VioLens.
 /// </summary>
 internal sealed class PacScript
 {
     private static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>Far more than any real PAC script allocates.</summary>
+    private const long MemoryLimitBytes = 64 * 1024 * 1024;
 
     private readonly Engine _engine;
     private readonly IPacHost _host;
@@ -43,7 +48,8 @@ internal sealed class PacScript
         _host = host ?? SystemPacHost.Instance;
         _engine = new Engine(options => options
             .TimeoutInterval(callTimeout)
-            .LimitRecursion(256));
+            .LimitRecursion(256)
+            .LimitMemory(MemoryLimitBytes));
 
         _engine.SetValue("__violensResolve", new Func<string, string?>(ResolveIPv4));
         _engine.SetValue("__violensResolveEx", new Func<string, string>(ResolveAll));

@@ -554,7 +554,7 @@ public sealed class InterceptingProxyListener
             }
 
             var (targetHost, targetPort) = ParseConnectTarget(first.Target);
-            if (isRemoteClient && await IsThisComputerAsync(targetHost, cancellationToken))
+            if (isRemoteClient && await IsOffLimitsToRemoteClientsAsync(targetHost, cancellationToken))
             {
                 await AnswerAsync(clientStream, first, ProxyHomePage.NotForThisComputer(first.Target), cancellationToken);
                 return;
@@ -693,38 +693,60 @@ public sealed class InterceptingProxyListener
     }
 
     /// <summary>
-    /// Whether <paramref name="host"/> is this computer through a loopback
-    /// address: <c>localhost</c>, <c>*.localhost</c>, a loopback or
-    /// unspecified address (<c>0.0.0.0</c> reaches this computer on macOS),
-    /// or a name that resolves to one. A name that can't be resolved isn't;
-    /// connecting to it fails anyway. The answer could change between here
-    /// and the connection (DNS rebinding), a narrow gap that remains.
+    /// Whether another computer must not reach <paramref name="host"/>
+    /// through this proxy: this computer's loopback (<c>localhost</c>,
+    /// <c>*.localhost</c>, a loopback or unspecified address, since
+    /// <c>0.0.0.0</c> reaches this computer on macOS), or a link-local
+    /// address, where cloud machines answer metadata and credential requests
+    /// (<c>169.254.169.254</c>). This computer's own network addresses stay
+    /// reachable: a phone testing a site served from it needs them, and what
+    /// listens there is open to the network already. A name counts if it
+    /// resolves to one. A name that can't be resolved doesn't; connecting to
+    /// it fails anyway. The answer could change between here and the
+    /// connection (DNS rebinding), a narrow gap that remains.
     /// </summary>
-    internal static async Task<bool> IsThisComputerAsync(string host, CancellationToken cancellationToken)
+    internal static async Task<bool> IsOffLimitsToRemoteClientsAsync(string host, CancellationToken cancellationToken)
     {
         if (UpstreamProxy.IsLoopback(host) || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
+        IPAddress[] addresses;
         if (IPAddress.TryParse(host.Trim('[', ']'), out var literal))
         {
-            return IsLoopbackOrUnspecified(literal);
+            addresses = [literal];
+        }
+        else
+        {
+            try
+            {
+                addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
         }
 
-        try
+        return addresses.Any(IsOffLimits);
+    }
+
+    internal static bool IsOffLimits(IPAddress address)
+    {
+        if (address.IsIPv4MappedToIPv6)
         {
-            var addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
-            return addresses.Any(IsLoopbackOrUnspecified);
-        }
-        catch (SocketException)
-        {
-            return false;
+            address = address.MapToIPv4();
         }
 
-        static bool IsLoopbackOrUnspecified(IPAddress address) =>
-            IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any) ||
-            (address.IsIPv4MappedToIPv6 && IsLoopbackOrUnspecified(address.MapToIPv4()));
+        if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any) ||
+            address.IsIPv6LinkLocal)
+        {
+            return true;
+        }
+
+        var bytes = address.GetAddressBytes();
+        return bytes.Length == 4 && bytes[0] == 169 && bytes[1] == 254;
     }
 
     /// <summary>Drains a plain request's body, sends VioLens's own answer, and logs it.</summary>
@@ -829,7 +851,7 @@ public sealed class InterceptingProxyListener
                     return;
                 }
 
-                if (isRemoteClient && await IsThisComputerAsync(plainHost, cancellationToken))
+                if (isRemoteClient && await IsOffLimitsToRemoteClientsAsync(plainHost, cancellationToken))
                 {
                     await AnswerAsync(clientTls, requestPreamble, ProxyHomePage.NotForThisComputer(requestPreamble.Target), cancellationToken);
                     return;

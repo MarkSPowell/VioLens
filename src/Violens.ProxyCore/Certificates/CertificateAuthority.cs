@@ -83,7 +83,7 @@ public sealed class CertificateAuthority
         var existing = store.Certificates
             .Find(X509FindType.FindBySubjectName, rootCertificateName, validOnly: false)
             .Cast<X509Certificate2>()
-            .Where(c => c.NotAfter > DateTime.UtcNow && c.HasPrivateKey)
+            .Where(c => c.NotAfter > DateTime.UtcNow && c.HasPrivateKey && IsRootLikeOurs(c))
             .OrderByDescending(c => c.NotBefore)
             .FirstOrDefault();
 
@@ -97,6 +97,37 @@ public sealed class CertificateAuthority
 
         using var generated = GenerateRoot(notBefore, notAfter, rootCertificateName);
         return PersistNonExportable(store, generated);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="certificate"/> is shaped like a root
+    /// <see cref="GenerateRoot(DateTimeOffset, DateTimeOffset, string)"/>
+    /// makes: self-signed, a CA that can only sign site certificates
+    /// directly, with an ECDSA P-256 key. A certificate that only shares the
+    /// name isn't picked up and trusted. A program running as the user could
+    /// still make one that passes (see SECURITY.md).
+    /// </summary>
+    internal static bool IsRootLikeOurs(X509Certificate2 certificate)
+    {
+        if (!certificate.SubjectName.RawData.AsSpan().SequenceEqual(certificate.IssuerName.RawData))
+        {
+            return false;
+        }
+
+        var constraints = certificate.Extensions.OfType<X509BasicConstraintsExtension>().FirstOrDefault();
+        if (constraints is not { CertificateAuthority: true, HasPathLengthConstraint: true, PathLengthConstraint: 0 })
+        {
+            return false;
+        }
+
+        var usage = certificate.Extensions.OfType<X509KeyUsageExtension>().FirstOrDefault();
+        if (usage is null || !usage.KeyUsages.HasFlag(X509KeyUsageFlags.KeyCertSign))
+        {
+            return false;
+        }
+
+        using var key = certificate.GetECDsaPublicKey();
+        return key is not null && key.KeySize == 256;
     }
 
     private static X509Certificate2 PersistNonExportable(X509Store store, X509Certificate2 certWithKey)

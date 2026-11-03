@@ -243,6 +243,18 @@ public class MarkdownAndHtmlTests
         Assert.Contains("<h1>Welcome</h1>", preview);
     }
 
+    [Theory]
+    [InlineData("<meta content=\"a>b\" http-equiv=\"refresh\" content=\"0; url=https://elsewhere.test/\">")]
+    [InlineData("<meta content='0; url=https://elsewhere.test/?a>b' http-equiv=refresh>")]
+    [InlineData("<META HTTP-EQUIV=\"&#114;efresh\" CONTENT=\"0; url=https://elsewhere.test/\">")]
+    public void ThePreviewRemovesRefreshesWrittenToSlipPastIt(string meta)
+    {
+        var preview = HtmlPreview.Build($"<!DOCTYPE html><head>{meta}</head><p>hi</p>", null, loadImagesAndStyles: false);
+
+        Assert.DoesNotContain("elsewhere.test", preview);
+        Assert.Contains("<p>hi</p>", preview);
+    }
+
     [Fact]
     public void ThePreviewCanLoadImagesAndStylesFromTheSite()
     {

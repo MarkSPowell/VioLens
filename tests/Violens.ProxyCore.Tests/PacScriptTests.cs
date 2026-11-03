@@ -149,6 +149,18 @@ public class PacScriptTests
     }
 
     [Fact]
+    public void AScriptThatEatsMemoryIsStopped()
+    {
+        var script = new PacScript(
+            "function FindProxyForURL(url, host) { var all = []; while (true) { all.push(new Array(10000).join('x')); } }",
+            new StubPacHost(),
+            TimeSpan.FromSeconds(60));
+
+        var thrown = Assert.Throws<PacScriptException>(() => script.FindProxyForUrl("http://a/", "a"));
+        Assert.IsType<Jint.Runtime.MemoryLimitExceededException>(thrown.InnerException);
+    }
+
+    [Fact]
     public void ReadsTheRoutesInOrder()
     {
         var routes = PacResult.Parse("PROXY a.proxy:8080; HTTP b.proxy:3128;DIRECT; PROXY a.proxy:8080", out var unsupported);

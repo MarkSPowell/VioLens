@@ -34,8 +34,10 @@ public static partial class HtmlPreview
         }
 
         // The page's own charset would contradict the UTF-8 this is written
-        // in, and a refresh would navigate away from the copy.
-        var body = RefreshRegex().Replace(html, string.Empty);
+        // in, and a refresh would navigate away from the copy. Every
+        // http-equiv goes, not just refresh: a value written with character
+        // references (&#114;efresh) is still a refresh to a browser.
+        var body = HttpEquivRegex().Replace(html, string.Empty);
         body = CharsetRegex().Replace(body, string.Empty);
 
         // Ours go first, before anything that could run or load: browsers
@@ -78,8 +80,10 @@ public static partial class HtmlPreview
         return path;
     }
 
-    [GeneratedRegex(@"<meta\b[^>]*http-equiv\s*=\s*[""']?refresh[^>]*>", RegexOptions.IgnoreCase, 2000)]
-    private static partial Regex RefreshRegex();
+    // Quoted values are skipped whole, so a ">" inside one (content="a>b")
+    // doesn't end the tag early.
+    [GeneratedRegex(@"<meta\b(?:[^>""']|""[^""]*""|'[^']*')*?\bhttp-equiv\b(?:[^>""']|""[^""]*""|'[^']*')*>", RegexOptions.IgnoreCase, 2000)]
+    private static partial Regex HttpEquivRegex();
 
     [GeneratedRegex(@"<meta\b[^>]*\bcharset\s*=[^>]*>", RegexOptions.IgnoreCase, 2000)]
     private static partial Regex CharsetRegex();

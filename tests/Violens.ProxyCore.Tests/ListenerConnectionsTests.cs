@@ -327,10 +327,14 @@ public class ListenerConnectionsTests
     [InlineData("[::1]", true)]
     [InlineData("0.0.0.0", true)]
     [InlineData("::ffff:127.0.0.1", true)]
+    [InlineData("169.254.169.254", true)]
+    [InlineData("fe80::1", true)]
+    [InlineData("::ffff:169.254.169.254", true)]
     [InlineData("192.0.2.10", false)]
+    [InlineData("10.0.0.5", false)]
     [InlineData("does-not-exist.invalid", false)]
-    public async Task RemoteClientsCantReachThisComputersLoopback(string host, bool isThisComputer) =>
-        Assert.Equal(isThisComputer, await InterceptingProxyListener.IsThisComputerAsync(host, CancellationToken.None));
+    public async Task RemoteClientsCantReachLoopbackOrLinkLocal(string host, bool offLimits) =>
+        Assert.Equal(offLimits, await InterceptingProxyListener.IsOffLimitsToRemoteClientsAsync(host, CancellationToken.None));
 
     [Fact]
     public void CanListenForRemoteComputers()

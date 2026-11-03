@@ -48,6 +48,51 @@ public class CertificateAuthorityTests
     }
 
     [Fact]
+    public void IsRootLikeOurs_AcceptsGeneratedRoots()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddYears(5));
+
+        Assert.True(CertificateAuthority.IsRootLikeOurs(root));
+    }
+
+    [Fact]
+    public void IsRootLikeOurs_RefusesCertificatesThatOnlyShareTheName()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        var name = new X500DistinguishedName($"CN={CertificateAuthority.SubjectPrefix} (impostor)");
+
+        // Not a CA at all.
+        using var ecKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var notCa = new CertificateRequest(name, ecKey, HashAlgorithmName.SHA256)
+            .CreateSelfSigned(notBefore, notBefore.AddYears(1));
+        Assert.False(CertificateAuthority.IsRootLikeOurs(notCa));
+
+        // A CA without the path length limit.
+        var unlimited = new CertificateRequest(name, ecKey, HashAlgorithmName.SHA256);
+        unlimited.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        unlimited.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
+        using var unlimitedCa = unlimited.CreateSelfSigned(notBefore, notBefore.AddYears(1));
+        Assert.False(CertificateAuthority.IsRootLikeOurs(unlimitedCa));
+
+        // The right shape, but an RSA key.
+        using var rsaKey = RSA.Create(2048);
+        var rsa = new CertificateRequest(name, rsaKey, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        rsa.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
+        rsa.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
+        using var rsaCa = rsa.CreateSelfSigned(notBefore, notBefore.AddYears(1));
+        Assert.False(CertificateAuthority.IsRootLikeOurs(rsaCa));
+
+        // Issued by a real root rather than self-signed.
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddYears(5));
+        var issued = new CertificateRequest(name, ecKey, HashAlgorithmName.SHA256);
+        issued.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, true, 0, true));
+        issued.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
+        using var issuedCa = issued.Create(root, notBefore, notBefore.AddYears(1), [1, 2, 3, 4]);
+        Assert.False(CertificateAuthority.IsRootLikeOurs(issuedCa));
+    }
+
+    [Fact]
     public void RemoveRootsFromStores_RemovesMatchingRootsAndTheirKeysOnly()
     {
         if (!OperatingSystem.IsWindows())

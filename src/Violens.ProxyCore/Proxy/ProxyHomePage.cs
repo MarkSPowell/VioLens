@@ -98,13 +98,15 @@ internal static class ProxyHomePage
 
     /// <summary>
     /// The answer to another computer asking for this computer's own
-    /// loopback address (see InterceptingProxyListener.IsThisComputerAsync).
+    /// loopback address, or a link-local one (see
+    /// InterceptingProxyListener.IsOffLimitsToRemoteClientsAsync).
     /// </summary>
     internal static CapturedResponse NotForThisComputer(string target) =>
         Text(
             403,
             "Forbidden",
-            $"{ProxyEngine.Identity.ProductName} doesn't let other devices reach the computer it runs on through localhost ({target}): " +
+            $"{ProxyEngine.Identity.ProductName} doesn't let other devices reach the computer it runs on through localhost, " +
+            $"or link-local addresses such as a cloud server's metadata service ({target}): " +
             "that would expose services meant only for that computer.");
 
     private static CapturedResponse Text(int status, string reason, string message)
