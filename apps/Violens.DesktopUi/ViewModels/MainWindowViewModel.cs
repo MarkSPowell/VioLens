@@ -56,6 +56,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     private readonly Func<Task<bool>>? _confirmCertificateTrust;
 
+    /// <summary>
+    /// Asks the user before the proxy password goes to a proxy (named by the
+    /// first argument) in plain text; see
+    /// <see cref="InterceptingProxyListener.ConfirmPlaintextSignIn"/>. Null
+    /// means send it without asking.
+    /// </summary>
+    private readonly Func<string, CancellationToken, Task<bool>>? _confirmPlaintextPassword;
+
     /// <summary>Stops a second Start/Stop from beginning while one is still in progress.</summary>
     private bool _starting;
 
@@ -592,13 +600,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// <param name="preferences">Null means the per-user file. Disposed with this view model.</param>
     /// <param name="chooseFormat">Null means no format picker.</param>
     /// <param name="policy">Null means this machine's policy (see PolicySettings.LoadMachine).</param>
+    /// <param name="confirmPlaintextPassword">Asks before the proxy password goes to a proxy in plain text; null means send it.</param>
     public MainWindowViewModel(
         Func<Task<bool>>? confirmCertificateTrust = null,
         PreferenceStore? preferences = null,
         Func<string, IReadOnlyList<FormatChoice>, string?, Task<FormatChoice?>>? chooseFormat = null,
-        PolicySettings? policy = null)
+        PolicySettings? policy = null,
+        Func<string, CancellationToken, Task<bool>>? confirmPlaintextPassword = null)
     {
         _confirmCertificateTrust = confirmCertificateTrust;
+        _confirmPlaintextPassword = confirmPlaintextPassword;
         _chooseFormat = chooseFormat;
 
         // Loaded into the backing fields, not the setters, so loading doesn't
@@ -931,6 +942,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 allowRemoteClients: AllowRemoteClients);
             _proxy.Http2Enabled = Http2Enabled;
             _proxy.SkipDecryptionHosts = SkipDecryptionHosts;
+            if (_confirmPlaintextPassword is { } confirmPlaintextPassword)
+            {
+                _proxy.ConfirmPlaintextSignIn = (route, cancellationToken) => confirmPlaintextPassword(route.ToString(), cancellationToken);
+            }
+
             ApplyClientCertificate();
             IsRunning = true;
             ShowBoundPort(_proxy.Port);

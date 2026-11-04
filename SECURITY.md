@@ -130,6 +130,10 @@ again unless you untick that. It shares VioLens's certificate.
   account), and doesn't send your client certificate on their
   connections. A proxy that asks them to sign in gets its 407 back to
   them, as it would if they used it directly.
+- A proxy password from Tools > Connections is never sent in plain text
+  (Basic) without asking you first, once per proxy. VioLens can't tell
+  which proxies are your network's own: one named by an automatic
+  configuration script could belong to anyone on the network.
 - Other devices can't use VioLens to reach this computer's own localhost
   services, or link-local addresses such as a cloud server's metadata
   service (`169.254.169.254`): they get a 403 instead. A name that

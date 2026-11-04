@@ -200,8 +200,17 @@ public sealed record UpstreamProxy(string Host, int Port, IReadOnlyList<string> 
     /// For a client the user's identity isn't lent to (see
     /// <see cref="InterceptingProxyListener.AllowsRemoteClients"/>).
     /// </summary>
+    internal Task<TcpClient> ConnectTunnelAsync(
+        string targetHost, int targetPort, NetworkCredential? credential, bool signIn, CancellationToken cancellationToken) =>
+        ConnectTunnelAsync(targetHost, targetPort, credential, signIn, confirmPlaintext: null, cancellationToken);
+
     internal async Task<TcpClient> ConnectTunnelAsync(
-        string targetHost, int targetPort, NetworkCredential? credential, bool signIn, CancellationToken cancellationToken)
+        string targetHost,
+        int targetPort,
+        NetworkCredential? credential,
+        bool signIn,
+        Func<CancellationToken, Task<bool>>? confirmPlaintext,
+        CancellationToken cancellationToken)
     {
         using var authenticator = new ProxyAuthenticator(Host, credential);
         string? authorization = null;
@@ -228,7 +237,7 @@ public sealed record UpstreamProxy(string Host, int Port, IReadOnlyList<string> 
                         throw Refused(reply, targetHost, targetPort, ToString());
                     }
 
-                    authorization = authenticator.Respond(reply.Headers)
+                    authorization = await authenticator.RespondAsync(reply.Headers, confirmPlaintext, cancellationToken)
                         ?? throw new IOException(SignInFailedMessage(authenticator, credential));
 
                     if (KeepsConnection(reply))
@@ -290,6 +299,11 @@ public sealed record UpstreamProxy(string Host, int Port, IReadOnlyList<string> 
     internal static string SignInFailedMessage(ProxyAuthenticator authenticator, NetworkCredential? credential)
     {
         var offered = authenticator.OfferedSchemes.Count == 0 ? "no sign-in method" : string.Join(", ", authenticator.OfferedSchemes);
+        if (authenticator.PlaintextDeclined)
+        {
+            return "The proxy asked for the password in plain text (Basic), and you chose not to send it.";
+        }
+
         return credential is null
             ? $"The proxy asked for a sign-in (it offers {offered}) and signing in as you didn't work. " +
               "Enter a user name and password for the proxy under Tools > Connections."
