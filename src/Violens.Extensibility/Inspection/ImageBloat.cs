@@ -89,6 +89,16 @@ public static class ImageBloatAnalyzer
     /// <summary>Analyses a response's body (decoding any Content-Encoding first), or returns null when it isn't a recognised image.</summary>
     public static ImageBloatReport? AnalyzeResponse(CapturedResponse response)
     {
+        // Worked out for every response, unasked, so a compressed body is
+        // only decoded when it might be an image: one that says it's
+        // something else isn't decompressed for nothing.
+        var contentType = ContentDecoder.MediaType(ContentDecoder.FindHeader(response.Headers, "Content-Type"));
+        if (contentType.Length > 0 && !contentType.StartsWith("image/", StringComparison.Ordinal) &&
+            ContentDecoder.FindHeader(response.Headers, "Content-Encoding") is not null)
+        {
+            return null;
+        }
+
         if (response.Body.Length == 0 ||
             !ContentDecoder.TryDecode(response.Body, response.Headers, out var bytes, out _))
         {

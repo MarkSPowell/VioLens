@@ -104,7 +104,8 @@ downloads or runs anything.
   read (JSON, CBOR, MessagePack, Markdown, images) are treated as
   hostile: sizes are checked before anything is allocated, nesting is
   limited, and the Markdown reader limits how far it searches so crafted
-  text can't stall the window.
+  text can't stall the window. A compressed body is decoded only up to
+  256 MB, so a small one that would expand without end is shown raw.
 
 **Machine policy.** Locked settings come from places only an
 administrator can write (`HKLM\SOFTWARE\Policies\VioLens`, or
@@ -124,6 +125,11 @@ again unless you untick that. It shares VioLens's certificate.
   it off when you've finished.
 - While remote computers are allowed, anyone on your network can use the
   proxy. There's no proxy password.
+- Other devices never get your identity: VioLens doesn't sign in to your
+  network's proxy for them (with your saved password or your Windows
+  account), and doesn't send your client certificate on their
+  connections. A proxy that asks them to sign in gets its 407 back to
+  them, as it would if they used it directly.
 - Other devices can't use VioLens to reach this computer's own localhost
   services, or link-local addresses such as a cloud server's metadata
   service (`169.254.169.254`): they get a 403 instead. A name that

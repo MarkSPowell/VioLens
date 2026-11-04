@@ -11,13 +11,15 @@ namespace Violens.ProxyCore.Proxy;
 /// first time a request has to reach it, then reused. Directly, through the
 /// network's proxy, or as its PAC script says. A plain HTTP client can move
 /// on to another server, which replaces the connection.
+/// <c>proxyCredential</c> null means never sign in to a proxy for this
+/// client, not even as the Windows account: a 407 goes back to it.
 /// </summary>
 internal sealed class Http1Upstream(
     bool isTls,
     string targetHost,
     int targetPort,
     Func<bool, string, int, string, CancellationToken, Task<IReadOnlyList<UpstreamProxy?>>> chooseRoutes,
-    Func<NetworkCredential?> proxyCredential,
+    Func<NetworkCredential?>? proxyCredential,
     RemoteCertificateValidationCallback? validateServer = null,
     bool offerHttp2 = false,
     Func<string, X509Certificate2?>? chooseClientCertificate = null) : IUpstream
@@ -167,7 +169,8 @@ internal sealed class Http1Upstream(
     {
         if (route is not null && isTls)
         {
-            return await route.ConnectTunnelAsync(TargetHost, TargetPort, proxyCredential(), cancellationToken);
+            return await route.ConnectTunnelAsync(
+                TargetHost, TargetPort, proxyCredential?.Invoke(), signIn: proxyCredential is not null, cancellationToken);
         }
 
         var client = new TcpClient();
@@ -265,7 +268,7 @@ internal sealed class Http1Upstream(
         CapturedRequest request, CapturedResponse response, CancellationToken cancellationToken)
     {
         // For HTTPS the sign-in happened when the tunnel was opened.
-        if (response.StatusCode != 407 || isTls || _route is null)
+        if (response.StatusCode != 407 || isTls || _route is null || proxyCredential is null)
         {
             return response;
         }

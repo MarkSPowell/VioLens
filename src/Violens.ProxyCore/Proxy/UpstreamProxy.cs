@@ -190,8 +190,18 @@ public sealed record UpstreamProxy(string Host, int Port, IReadOnlyList<string> 
     /// <see cref="ProxyAuthenticator"/>: as the signed-in Windows account,
     /// or with <paramref name="credential"/> when given.
     /// </summary>
-    public async Task<TcpClient> ConnectTunnelAsync(
-        string targetHost, int targetPort, NetworkCredential? credential, CancellationToken cancellationToken)
+    public Task<TcpClient> ConnectTunnelAsync(
+        string targetHost, int targetPort, NetworkCredential? credential, CancellationToken cancellationToken) =>
+        ConnectTunnelAsync(targetHost, targetPort, credential, signIn: true, cancellationToken);
+
+    /// <summary>
+    /// As the public overloads; <paramref name="signIn"/> false never signs
+    /// in at all, not even as the Windows account, so a 407 is a refusal.
+    /// For a client the user's identity isn't lent to (see
+    /// <see cref="InterceptingProxyListener.AllowsRemoteClients"/>).
+    /// </summary>
+    internal async Task<TcpClient> ConnectTunnelAsync(
+        string targetHost, int targetPort, NetworkCredential? credential, bool signIn, CancellationToken cancellationToken)
     {
         using var authenticator = new ProxyAuthenticator(Host, credential);
         string? authorization = null;
@@ -213,7 +223,7 @@ public sealed record UpstreamProxy(string Host, int Port, IReadOnlyList<string> 
                         return client;
                     }
 
-                    if (reply.StatusCode != 407)
+                    if (reply.StatusCode != 407 || !signIn)
                     {
                         throw Refused(reply, targetHost, targetPort, ToString());
                     }

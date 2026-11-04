@@ -165,6 +165,24 @@ public class ImageBloatTests
     }
 
     [Fact]
+    public void AnEncodedResponseThatIsntAnImageIsntDecoded()
+    {
+        // Worked out for every response, unasked (the Image Bloat column), so
+        // it mustn't decompress a body that says it isn't an image: that's
+        // where a decompression bomb would go off with no click at all.
+        var png = Png(textLength: 10);
+        using var buffer = new MemoryStream();
+        using (var gzip = new GZipStream(buffer, CompressionMode.Compress, leaveOpen: true))
+        {
+            gzip.Write(png);
+        }
+
+        var response = new CapturedResponse("HTTP/1.1", 200, "OK", [("Content-Type", "text/html"), ("Content-Encoding", "gzip")], buffer.ToArray());
+
+        Assert.Null(ImageBloatAnalyzer.AnalyzeResponse(response));
+    }
+
+    [Fact]
     public void TheImageViewTabListsTheBloat()
     {
         var response = new CapturedResponse("HTTP/1.1", 200, "OK", [("Content-Type", "image/png")], Png(textLength: 10));

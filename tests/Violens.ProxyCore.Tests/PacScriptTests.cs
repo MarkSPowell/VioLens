@@ -194,6 +194,11 @@ public class PacScriptTests
     [InlineData("corp.example.", new[] { "wpad.corp.example" })]
     [InlineData("corp", new string[0])]
     [InlineData(null, new string[0])]
+    [InlineData("corp.example.co.uk", new[] { "wpad.corp.example.co.uk", "wpad.example.co.uk" })]
+    [InlineData("branch.example.com.au", new[] { "wpad.branch.example.com.au", "wpad.example.com.au" })]
+    [InlineData("office.example.ac.jp", new[] { "wpad.office.example.ac.jp", "wpad.example.ac.jp" })]
+    [InlineData("example.co.uk", new[] { "wpad.example.co.uk" })]
+    [InlineData("a.example.io", new[] { "wpad.a.example.io", "wpad.example.io" })]
     public void WpadLooksInEachParentDomainButNotPastTheLastTwo(string? domain, string[] expected)
     {
         Assert.Equal(expected, WpadDiscovery.CandidateHosts(domain));
