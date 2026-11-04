@@ -144,6 +144,67 @@ public class ProxyAuthenticationTests
     }
 
     [Fact]
+    public async Task AClientOnAnotherComputerDoesntGetTheUsersProxySignIn()
+    {
+        // A "remote" client: one connecting from this computer's own network
+        // address rather than loopback, which the listener treats the same as
+        // another computer. Without such an address there's nothing to test.
+        if (NetworkAddress() is not { } address)
+        {
+            return;
+        }
+
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        await using var proxy = ScriptedProxy.Start(AskForBasic, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello");
+        var listener = InterceptingProxyListener.StartOnAvailablePort(
+            0, new LeafCertificateProvider(root), new SessionStore(), allowRemoteClients: true);
+        listener.Gateway = new UpstreamProxy("127.0.0.1", proxy.Port);
+        listener.ProxyCredential = new NetworkCredential("alice", "s3cret");
+        try
+        {
+            using var timeout = new CancellationTokenSource(TestTimeout);
+            using var client = new TcpClient(new IPEndPoint(address, 0));
+            await client.ConnectAsync(address, listener.Port, timeout.Token);
+            var stream = client.GetStream();
+            await stream.WriteAsync(Encoding.ASCII.GetBytes("GET http://example.test/ HTTP/1.1\r\nHost: example.test\r\n\r\n"), timeout.Token);
+
+            // The proxy's 407 reaches the client, as it would from any proxy
+            // the client used directly; the user's password isn't sent.
+            var response = await Http1MessageReader.ReadResponseAsync(stream, isResponseToHeadRequest: false, timeout.Token);
+            Assert.Equal(407, response!.StatusCode);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public void AClientOnAnotherComputerDoesntGetTheUsersClientCertificate()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        using var certificate = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        var listener = new InterceptingProxyListener(0, new LeafCertificateProvider(root), new SessionStore())
+        {
+            ClientCertificate = certificate,
+        };
+
+        Assert.Same(certificate, listener.ClientCertificateFor("example.test", remoteClient: false));
+        Assert.Null(listener.ClientCertificateFor("example.test", remoteClient: true));
+    }
+
+    /// <summary>One of this computer's own non-loopback IPv4 addresses, if it has one.</summary>
+    private static IPAddress? NetworkAddress() =>
+        System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+            .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up)
+            .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+            .Select(a => a.Address)
+            .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a) &&
+                                 !a.ToString().StartsWith("169.254.", StringComparison.Ordinal));
+
+    [Fact]
     public async Task TheClientGetsThe407WhenSigningInDoesntWork()
     {
         var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);

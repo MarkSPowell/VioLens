@@ -436,6 +436,41 @@ public class ListenerConnectionsTests
     public void SkipDecryptionHostsUseTheBypassListFormat(string host, bool matches) =>
         Assert.Equal(matches, UpstreamProxy.MatchesHostList(host, ["*.example.com", " pinned.test "]));
 
+    [Fact]
+    public async Task KeepsAcceptingAfterClientsResetTheirConnectionsBeforeTheyreAccepted()
+    {
+        using var root = NewRoot();
+        var listener = InterceptingProxyListener.StartOnAvailablePort(0, new LeafCertificateProvider(root), new SessionStore());
+        try
+        {
+            // Connect and reset at once (linger 0), many times: some of these
+            // are reset while still queued, which fails the accept.
+            for (var i = 0; i < 50; i++)
+            {
+                using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                socket.LingerState = new LingerOption(true, 0);
+                try
+                {
+                    socket.Connect(IPAddress.Loopback, listener.Port);
+                }
+                catch (SocketException)
+                {
+                }
+
+                socket.Close();
+            }
+
+            await Task.Delay(500);
+            var page = await SendPlainAsync(listener.Port, "GET http://violens/ HTTP/1.1\r\nHost: violens\r\n\r\n")
+                .WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(200, page.StatusCode);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
     private static (SessionStore Store, TaskCompletionSource<Session> Recorded) RecordingStore()
     {
         var store = new SessionStore();

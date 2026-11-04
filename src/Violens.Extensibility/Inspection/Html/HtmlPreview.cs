@@ -40,11 +40,21 @@ public static partial class HtmlPreview
         // passes, so a tag goes however it's read: as a browser reads it
         // (a ">" inside a quoted value doesn't end it), and up to the first
         // ">" (in case the first pass reads something differently).
-        var body = MetaTagRegex().Replace(
-            html, tag => HttpEquivWordRegex().IsMatch(tag.Value) ? string.Empty : tag.Value);
-        body = MetaUpToFirstCloseRegex().Replace(
-            body, tag => HttpEquivWordRegex().IsMatch(tag.Value) ? string.Empty : tag.Value);
-        body = CharsetRegex().Replace(body, string.Empty);
+        // Repeated until nothing changes: taking a tag out can join the
+        // text either side into a new one (<met<meta ...>a http-equiv=...>).
+        // Each round that changes anything makes the text shorter, so it ends.
+        var body = html;
+        string before;
+        do
+        {
+            before = body;
+            body = MetaTagRegex().Replace(
+                body, tag => HttpEquivWordRegex().IsMatch(tag.Value) ? string.Empty : tag.Value);
+            body = MetaUpToFirstCloseRegex().Replace(
+                body, tag => HttpEquivWordRegex().IsMatch(tag.Value) ? string.Empty : tag.Value);
+            body = CharsetRegex().Replace(body, string.Empty);
+        }
+        while (body.Length != before.Length);
 
         // Ours go first, before anything that could run or load: browsers
         // apply a meta policy only to what comes after it. A doctype stays

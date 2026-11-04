@@ -251,6 +251,9 @@ public class MarkdownAndHtmlTests
     [InlineData("<meta lang=a' http-equiv=refresh content=0;url=https://elsewhere.test/>")]
     [InlineData("<meta lang=a\" http-equiv=refresh content=0;url=https://elsewhere.test/>")]
     [InlineData("<meta http-equiv=refresh content=0;url=https://elsewhere.test/ />")]
+    [InlineData("<met<meta =http-equiv>a http-equiv=\"refresh\" content=\"0;url=https://elsewhere.test/\">")]
+    [InlineData("<met<met<meta =http-equiv>a =http-equiv>a http-equiv=refresh content=0;url=https://elsewhere.test/>")]
+    [InlineData("<met<meta charset=x>a http-equiv=refresh content=0;url=https://elsewhere.test/>")]
     public void ThePreviewRemovesRefreshesWrittenToSlipPastIt(string meta)
     {
         var preview = HtmlPreview.Build($"<!DOCTYPE html><head>{meta}</head><p>hi</p>", null, loadImagesAndStyles: false);

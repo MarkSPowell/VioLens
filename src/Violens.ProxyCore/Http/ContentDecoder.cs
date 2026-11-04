@@ -35,7 +35,13 @@ public static class ContentDecoder
     /// <paramref name="error"/> instead, and <paramref name="decoded"/> left
     /// as the original bytes.
     /// </summary>
-    public static bool TryDecode(byte[] body, string? contentEncodingHeader, out byte[] decoded, out string? error)
+    public static bool TryDecode(byte[] body, string? contentEncodingHeader, out byte[] decoded, out string? error) =>
+        TryDecode(body, contentEncodingHeader, MaxDecodedBytes, out decoded, out error);
+
+    /// <summary>The most bytes a body may decode to (see <see cref="TryDecode(byte[], string?, out byte[], out string?)"/>).</summary>
+    internal const int MaxDecodedBytes = 256 * 1024 * 1024;
+
+    internal static bool TryDecode(byte[] body, string? contentEncodingHeader, int maxDecodedBytes, out byte[] decoded, out string? error)
     {
         decoded = body;
         error = null;
@@ -60,7 +66,7 @@ public static class ContentDecoder
                 return false;
             }
 
-            if (!TryDecodeOne(current, token, out current, out var decodeError))
+            if (!TryDecodeOne(current, token, maxDecodedBytes, out current, out var decodeError))
             {
                 error = decodeError;
                 return false;
@@ -147,20 +153,27 @@ public static class ContentDecoder
         return Encoding.UTF8;
     }
 
-    private static bool TryDecodeOne(byte[] input, string token, out byte[] output, out string? error)
+    private static bool TryDecodeOne(byte[] input, string token, int maxDecodedBytes, out byte[] output, out string? error)
     {
         error = null;
         try
         {
             output = token.ToLowerInvariant() switch
             {
-                "gzip" or "x-gzip" => ReadAllFrom(new GZipStream(new MemoryStream(input), CompressionMode.Decompress)),
-                "deflate" => InflateDeflate(input),
-                "br" => ReadAllFrom(new BrotliStream(new MemoryStream(input), CompressionMode.Decompress)),
-                "zstd" => ReadAllFrom(new DecompressionStream(new MemoryStream(input))),
+                "gzip" or "x-gzip" => ReadAllFrom(new GZipStream(new MemoryStream(input), CompressionMode.Decompress), maxDecodedBytes),
+                "deflate" => InflateDeflate(input, maxDecodedBytes),
+                "br" => ReadAllFrom(new BrotliStream(new MemoryStream(input), CompressionMode.Decompress), maxDecodedBytes),
+                "zstd" => ReadAllFrom(new DecompressionStream(new MemoryStream(input)), maxDecodedBytes),
                 _ => input,
             };
             return true;
+        }
+        catch (DecodedTooLargeException)
+        {
+            output = input;
+            error = $"The body decodes to larger than {maxDecodedBytes / (1024 * 1024)} MB as \"{token}\", so it isn't decoded. " +
+                    "See the Hex tab for the raw bytes.";
+            return false;
         }
         catch (Exception ex)
         {
@@ -171,25 +184,41 @@ public static class ContentDecoder
         }
     }
 
-    private static byte[] InflateDeflate(byte[] input)
+    private static byte[] InflateDeflate(byte[] input, int maxDecodedBytes)
     {
         try
         {
-            return ReadAllFrom(new ZLibStream(new MemoryStream(input), CompressionMode.Decompress));
+            return ReadAllFrom(new ZLibStream(new MemoryStream(input), CompressionMode.Decompress), maxDecodedBytes);
         }
         catch (InvalidDataException)
         {
-            return ReadAllFrom(new DeflateStream(new MemoryStream(input), CompressionMode.Decompress));
+            return ReadAllFrom(new DeflateStream(new MemoryStream(input), CompressionMode.Decompress), maxDecodedBytes);
         }
     }
 
-    private static byte[] ReadAllFrom(Stream decompressor)
+    // Stops at maxDecodedBytes: a few kilobytes of compressed body can
+    // claim gigabytes, and this runs unasked for every response (the
+    // inspectors, search, the Image Bloat column).
+    private static byte[] ReadAllFrom(Stream decompressor, int maxDecodedBytes)
     {
         using (decompressor)
         {
             using var destination = new MemoryStream();
-            decompressor.CopyTo(destination);
+            var buffer = new byte[81920];
+            int read;
+            while ((read = decompressor.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                if (destination.Length + read > maxDecodedBytes)
+                {
+                    throw new DecodedTooLargeException();
+                }
+
+                destination.Write(buffer, 0, read);
+            }
+
             return destination.ToArray();
         }
     }
+
+    private sealed class DecodedTooLargeException : Exception;
 }

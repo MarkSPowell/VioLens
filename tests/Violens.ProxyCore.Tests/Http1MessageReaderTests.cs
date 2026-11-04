@@ -242,5 +242,101 @@ public class Http1MessageReaderTests
         Assert.Equal(5, captured.Length);
     }
 
+    [Fact]
+    public async Task ReadRequestPreambleAsync_RefusesMoreHeaderLinesThanTheLimit()
+    {
+        var raw = new StringBuilder("GET / HTTP/1.1\r\n");
+        for (var i = 0; i <= Http1MessageReader.MaxHeaderCount; i++)
+        {
+            raw.Append("X-Flood: a\r\n");
+        }
+
+        using var source = StreamOf(raw.Append("\r\n").ToString());
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            Http1MessageReader.ReadRequestPreambleAsync(source, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ReadResponsePreambleAsync_RefusesHeadersLargerInTotalThanTheLimit()
+    {
+        // Each line is under the per-line cap, and there are few enough of
+        // them to pass the count limit, but together they're too big.
+        var value = new string('a', 15 * 1024);
+        var raw = new StringBuilder("HTTP/1.1 200 OK\r\n");
+        for (var i = 0; i < Http1MessageReader.MaxHeaderBytes / value.Length + 1; i++)
+        {
+            raw.Append("X-Flood: ").Append(value).Append("\r\n");
+        }
+
+        using var source = StreamOf(raw.Append("\r\n").ToString());
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            Http1MessageReader.ReadResponsePreambleAsync(source, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ReadResponsePreambleAsync_AcceptsManyOrdinaryHeaders()
+    {
+        var raw = new StringBuilder("HTTP/1.1 200 OK\r\n");
+        for (var i = 0; i < 200; i++)
+        {
+            raw.Append("Set-Cookie: c").Append(i).Append("=value; Path=/; HttpOnly\r\n");
+        }
+
+        using var source = StreamOf(raw.Append("\r\n").ToString());
+
+        var response = await Http1MessageReader.ReadResponsePreambleAsync(source, CancellationToken.None);
+
+        Assert.Equal(200, response!.Headers.Count);
+    }
+
+    [Fact]
+    public async Task ReadBodyAsync_DoesNotAllocateTheDeclaredLengthBeforeTheBytesArrive()
+    {
+        // A 2 GB Content-Length followed by one byte and a close: memory
+        // should follow the bytes received, not the length claimed.
+        var headers = new List<(string Name, string Value)> { ("Content-Length", "2000000000") };
+        using var source = StreamOf("x");
+        var before = GC.GetTotalAllocatedBytes(precise: true);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            Http1MessageReader.ReadBodyAsync(source, headers, CancellationToken.None));
+
+        Assert.True(GC.GetTotalAllocatedBytes(precise: true) - before < 256L * 1024 * 1024);
+    }
+
+    [Fact]
+    public async Task ReadBodyAsync_RefusesAContentLengthTooLargeToBuffer()
+    {
+        var headers = new List<(string Name, string Value)> { ("Content-Length", "9000000000") };
+        using var source = StreamOf("x");
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            Http1MessageReader.ReadBodyAsync(source, headers, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ReadBodyAsync_StillReadsABodyThatArrivesInPieces()
+    {
+        var body = new byte[300_000];
+        Random.Shared.NextBytes(body);
+        var headers = new List<(string Name, string Value)> { ("Content-Length", body.Length.ToString()) };
+        using var source = new TrickleStream(body, 4096);
+
+        var read = await Http1MessageReader.ReadBodyAsync(source, headers, CancellationToken.None);
+
+        Assert.Equal(body, read);
+    }
+
     private static MemoryStream StreamOf(string text) => new(Encoding.ASCII.GetBytes(text));
+
+    /// <summary>Returns at most <c>piece</c> bytes per read, like a socket.</summary>
+    private sealed class TrickleStream(byte[] data, int piece) : MemoryStream(data)
+    {
+        public override int Read(byte[] buffer, int offset, int count) => base.Read(buffer, offset, Math.Min(count, piece));
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            base.ReadAsync(buffer[..Math.Min(buffer.Length, piece)], cancellationToken);
+    }
 }
