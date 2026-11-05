@@ -204,61 +204,91 @@ public sealed record UpstreamProxy(string Host, int Port, IReadOnlyList<string> 
         string targetHost, int targetPort, NetworkCredential? credential, bool signIn, CancellationToken cancellationToken) =>
         ConnectTunnelAsync(targetHost, targetPort, credential, signIn, confirmPlaintext: null, cancellationToken);
 
-    internal async Task<TcpClient> ConnectTunnelAsync(
+    internal Task<TcpClient> ConnectTunnelAsync(
         string targetHost,
         int targetPort,
         NetworkCredential? credential,
         bool signIn,
         Func<CancellationToken, Task<bool>>? confirmPlaintext,
+        CancellationToken cancellationToken) =>
+        ConnectTunnelAsync(targetHost, targetPort, () => credential, () => signIn, confirmPlaintext, cancellationToken);
+
+    /// <summary>
+    /// As the other overloads, with the credential and whether to sign in at
+    /// all asked only if the proxy asks for a sign-in.
+    /// </summary>
+    internal async Task<TcpClient> ConnectTunnelAsync(
+        string targetHost,
+        int targetPort,
+        Func<NetworkCredential?> credential,
+        Func<bool> signIn,
+        Func<CancellationToken, Task<bool>>? confirmPlaintext,
         CancellationToken cancellationToken)
     {
-        using var authenticator = new ProxyAuthenticator(Host, credential);
+        // Made at the first 407, so a proxy that never asks costs no
+        // decision about who's asking.
+        ProxyAuthenticator? authenticator = null;
+        NetworkCredential? signingInWith = null;
         string? authorization = null;
 
-        // A proxy may close the connection after a 407; the sign-in then
-        // carries on over a new one.
-        for (var connection = 0; connection < 3; connection++)
+        try
         {
-            var client = new TcpClient();
-            try
+            // A proxy may close the connection after a 407; the sign-in then
+            // carries on over a new one.
+            for (var connection = 0; connection < 3; connection++)
             {
-                await client.ConnectAsync(Host, Port, cancellationToken);
-                var stream = client.GetStream();
-                while (true)
+                var client = new TcpClient();
+                try
                 {
-                    var reply = await SendConnectAsync(stream, targetHost, targetPort, authorization, ToString(), cancellationToken);
-                    if (reply.StatusCode is >= 200 and <= 299)
+                    await client.ConnectAsync(Host, Port, cancellationToken);
+                    var stream = client.GetStream();
+                    while (true)
                     {
-                        return client;
+                        var reply = await SendConnectAsync(stream, targetHost, targetPort, authorization, ToString(), cancellationToken);
+                        if (reply.StatusCode is >= 200 and <= 299)
+                        {
+                            return client;
+                        }
+
+                        if (reply.StatusCode != 407 || (authenticator is null && !signIn()))
+                        {
+                            throw Refused(reply, targetHost, targetPort, ToString());
+                        }
+
+                        if (authenticator is null)
+                        {
+                            signingInWith = credential();
+                            authenticator = new ProxyAuthenticator(Host, signingInWith);
+                        }
+
+                        authorization = await authenticator.RespondAsync(reply.Headers, confirmPlaintext, cancellationToken)
+                            ?? throw new IOException(SignInFailedMessage(authenticator, signingInWith));
+
+                        if (KeepsConnection(reply))
+                        {
+                            await Http1MessageReader.ReadBodyAsync(stream, reply.Headers, cancellationToken);
+                            continue;
+                        }
+
+                        break; // reconnect and carry on
                     }
-
-                    if (reply.StatusCode != 407 || !signIn)
-                    {
-                        throw Refused(reply, targetHost, targetPort, ToString());
-                    }
-
-                    authorization = await authenticator.RespondAsync(reply.Headers, confirmPlaintext, cancellationToken)
-                        ?? throw new IOException(SignInFailedMessage(authenticator, credential));
-
-                    if (KeepsConnection(reply))
-                    {
-                        await Http1MessageReader.ReadBodyAsync(stream, reply.Headers, cancellationToken);
-                        continue;
-                    }
-
-                    break; // reconnect and carry on
                 }
-            }
-            catch
-            {
+                catch
+                {
+                    client.Dispose();
+                    throw;
+                }
+
                 client.Dispose();
-                throw;
             }
 
-            client.Dispose();
+            // Only a 407 gets here, so a sign-in was started.
+            throw new IOException(SignInFailedMessage(authenticator!, signingInWith));
         }
-
-        throw new IOException(SignInFailedMessage(authenticator, credential));
+        finally
+        {
+            authenticator?.Dispose();
+        }
     }
 
     /// <summary>

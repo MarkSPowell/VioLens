@@ -366,6 +366,52 @@ public class ProxyAuthenticationTests
     }
 
     [Fact]
+    public async Task AProgramOfAnotherAccountOnThisComputerDoesntGetTheUsersProxySignIn()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        await using var proxy = ScriptedProxy.Start(AskForBasic, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello");
+        var listener = InterceptingProxyListener.StartOnAvailablePort(0, new LeafCertificateProvider(root), new SessionStore());
+        listener.Gateway = new UpstreamProxy("127.0.0.1", proxy.Port);
+        listener.ProxyCredential = new NetworkCredential("alice", "s3cret");
+
+        // Stands in for the lookup finding another account at the other end.
+        listener.LoopbackOwnerCheck = (_, _) => false;
+        try
+        {
+            var response = await SendThroughAsync(listener.Port, "GET http://example.test/ HTTP/1.1\r\nHost: example.test\r\n\r\n");
+
+            Assert.Equal(407, response.StatusCode);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task WhenTheOwnerCantBeFoundOutTheSignInGoesAheadAsBefore()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        await using var proxy = ScriptedProxy.Start(AskForBasic, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello");
+        var listener = InterceptingProxyListener.StartOnAvailablePort(0, new LeafCertificateProvider(root), new SessionStore());
+        listener.Gateway = new UpstreamProxy("127.0.0.1", proxy.Port);
+        listener.ProxyCredential = new NetworkCredential("alice", "s3cret");
+        listener.LoopbackOwnerCheck = (_, _) => null;
+        try
+        {
+            var response = await SendThroughAsync(listener.Port, "GET http://example.test/ HTTP/1.1\r\nHost: example.test\r\n\r\n");
+
+            Assert.Equal(200, response.StatusCode);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
     public void AClientOnAnotherComputerDoesntGetTheUsersClientCertificate()
     {
         var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
