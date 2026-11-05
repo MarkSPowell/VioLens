@@ -389,6 +389,10 @@
                      VerticalAlignment="Center"
                      Width="260" />
           </StackPanel>
+          <TextBlock Text="{Binding ClientCertificateWarning}"
+                     IsVisible="{Binding ShowsClientCertificateWarning}"
+                     Foreground="{DynamicResource AppErrorBrush}"
+                     TextWrapping="Wrap" />
         </StackPanel>
       </Grid>
     </Border>
