@@ -1061,7 +1061,8 @@ Capture closes means VioLens asks to trust a new one next time.
 
 ## Known limitations
 
-VioLens is still a preview. The main gaps are SOCKS proxies and Digest
-proxy sign-in, sending only one client certificate, and the Mac build
-having had less use than the Windows one. The full list is in the Known
+VioLens is a 1.0 release candidate. The main gaps are SOCKS proxies and
+Digest proxy sign-in, sending only one client certificate, and that the
+Mac build and KDE Plasma haven't had as much hands-on testing as Windows
+and Ubuntu. The full list is in the Known
 limitations section of [README.md](../README.md).
