@@ -656,6 +656,13 @@ a domain account. The password is kept only while VioLens is running
 and is never saved. If signing in doesn't work, the 502 page VioLens
 shows says what the proxy offered.
 
+Basic sends the password as plain text, which anyone who can see the
+traffic to that proxy can read. So the first time a proxy asks for it,
+VioLens asks you first, naming the proxy. **Send** sends it to that
+proxy for the rest of the session. **Don't Send** (or no answer within
+2 minutes) passes the proxy's sign-in request on to the browser instead.
+VioLens asks again only if you change the password.
+
 VioLens can't yet use a SOCKS proxy.
 
 **Allow remote computers to connect.** Lets phones, tablets and other
