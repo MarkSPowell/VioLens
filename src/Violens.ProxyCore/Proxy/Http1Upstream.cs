@@ -13,6 +13,8 @@ namespace Violens.ProxyCore.Proxy;
 /// on to another server, which replaces the connection.
 /// <c>proxyCredential</c> null means never sign in to a proxy for this
 /// client, not even as the Windows account: a 407 goes back to it.
+/// <c>confirmPlaintext</c> is asked before the password goes to a proxy in
+/// plain text (Basic); null sends it.
 /// <c>forRemoteClient</c>: the client is on another computer, so a direct
 /// connection is refused when the server's name resolves to an address
 /// that's off-limits to it (see
@@ -29,6 +31,7 @@ internal sealed class Http1Upstream(
     RemoteCertificateValidationCallback? validateServer = null,
     bool offerHttp2 = false,
     Func<string, X509Certificate2?>? chooseClientCertificate = null,
+    Func<UpstreamProxy, CancellationToken, Task<bool>>? confirmPlaintext = null,
     bool forRemoteClient = false) : IUpstream
 {
     private TcpClient? _client;
@@ -170,6 +173,9 @@ internal sealed class Http1Upstream(
         _key = key;
     }
 
+    private Func<CancellationToken, Task<bool>>? ConfirmFor(UpstreamProxy proxy) =>
+        confirmPlaintext is null ? null : cancellationToken => confirmPlaintext(proxy, cancellationToken);
+
     // One route: a CONNECT tunnel through a proxy for HTTPS, a plain
     // connection to the proxy for HTTP, or straight to the server.
     private async Task<TcpClient> OpenRouteAsync(UpstreamProxy? route, CancellationToken cancellationToken)
@@ -177,7 +183,7 @@ internal sealed class Http1Upstream(
         if (route is not null && isTls)
         {
             return await route.ConnectTunnelAsync(
-                TargetHost, TargetPort, proxyCredential?.Invoke(), signIn: proxyCredential is not null, cancellationToken);
+                TargetHost, TargetPort, proxyCredential?.Invoke(), signIn: proxyCredential is not null, ConfirmFor(route), cancellationToken);
         }
 
         var client = new TcpClient();
@@ -295,7 +301,7 @@ internal sealed class Http1Upstream(
         var reply = response;
         while (reply.StatusCode == 407)
         {
-            var authorization = authenticator.Respond(reply.Headers);
+            var authorization = await authenticator.RespondAsync(reply.Headers, ConfirmFor(proxy), cancellationToken);
             if (authorization is null)
             {
                 ProxyEngine.Log("proxy", $"{proxy}: {UpstreamProxy.SignInFailedMessage(authenticator, credential)}");

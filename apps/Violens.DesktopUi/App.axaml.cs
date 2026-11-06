@@ -48,7 +48,16 @@ public partial class App : Application
             // Import/Export via Extension's format picker.
             chooseFormat: (heading, choices, rememberedKey) =>
                 new FormatPickerWindow(heading, choices, rememberedKey)
-                    .ShowDialog<Violens.Compatibility.Extensions.FormatChoice?>(mainWindow!));
+                    .ShowDialog<Violens.Compatibility.Extensions.FormatChoice?>(mainWindow!),
+            // Asked from a proxy connection's thread, so it hops to the UI
+            // thread. Closed unanswered when VioLens stops waiting (that
+            // counts as Don't Send).
+            confirmPlaintextPassword: (proxy, cancellationToken) => Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var window = new PlaintextPasswordWindow(proxy);
+                using var _ = cancellationToken.Register(() => Dispatcher.UIThread.Post(() => window.Close(false)));
+                return await window.ShowDialog<bool>(mainWindow!);
+            }));
 
         mainWindow = new MainWindow { DataContext = viewModel };
 

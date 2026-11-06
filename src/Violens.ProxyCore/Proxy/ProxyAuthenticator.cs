@@ -76,6 +76,30 @@ internal sealed class ProxyAuthenticator : IDisposable
         return null;
     }
 
+    /// <summary>
+    /// <see cref="Respond"/>, except that a Basic answer, which carries the
+    /// password readably, is sent only if <paramref name="confirmPlaintext"/>
+    /// agrees (null: always). Basic has one round, so that's asked at most
+    /// once per sign-in.
+    /// </summary>
+    public async Task<string?> RespondAsync(
+        IReadOnlyList<(string Name, string Value)> challengeHeaders,
+        Func<CancellationToken, Task<bool>>? confirmPlaintext,
+        CancellationToken cancellationToken)
+    {
+        var answer = Respond(challengeHeaders);
+        if (answer is not null && _scheme == "Basic" && confirmPlaintext is not null && !await confirmPlaintext(cancellationToken))
+        {
+            PlaintextDeclined = true;
+            return null;
+        }
+
+        return answer;
+    }
+
+    /// <summary>Whether the user chose not to send the password in plain text (see <see cref="RespondAsync"/>).</summary>
+    public bool PlaintextDeclined { get; private set; }
+
     public void Dispose() => _negotiate?.Dispose();
 
     /// <summary>

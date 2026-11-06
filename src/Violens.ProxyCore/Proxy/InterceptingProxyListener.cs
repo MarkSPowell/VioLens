@@ -123,7 +123,60 @@ public sealed class InterceptingProxyListener
     public NetworkCredential? ProxyCredential
     {
         get => Volatile.Read(ref _proxyCredential);
-        set => Volatile.Write(ref _proxyCredential, value);
+        set
+        {
+            Volatile.Write(ref _proxyCredential, value);
+
+            // A new password is a new question for every proxy.
+            _plaintextAnswers.Clear();
+        }
+    }
+
+    private readonly ConcurrentDictionary<string, Lazy<Task<bool>>> _plaintextAnswers = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Asks the user whether to send <see cref="ProxyCredential"/>'s
+    /// password to a proxy that wants it in plain text (Basic), which anyone
+    /// watching the connection to that proxy could read. Asked once per
+    /// proxy until the password changes; the answer applies to every request
+    /// meanwhile. Null, the default, sends it without asking. The token is
+    /// cancelled when <see cref="PlaintextSignInTimeout"/> passes, which
+    /// counts as no.
+    /// </summary>
+    internal Func<UpstreamProxy, CancellationToken, Task<bool>>? ConfirmPlaintextSignIn { get; set; }
+
+    internal TimeSpan PlaintextSignInTimeout { get; set; } = TimeSpan.FromMinutes(2);
+
+    /// <summary>Whether to send the password to <paramref name="proxy"/> in plain text (see <see cref="ConfirmPlaintextSignIn"/>).</summary>
+    internal Task<bool> ApprovePlaintextSignInAsync(UpstreamProxy proxy, CancellationToken cancellationToken)
+    {
+        if (ConfirmPlaintextSignIn is not { } confirm)
+        {
+            return Task.FromResult(true);
+        }
+
+        // Lazy, so requests arriving together share one question. Not
+        // cancelled with any one request: the others still want the answer.
+        var answer = _plaintextAnswers.GetOrAdd(proxy.ToString(), _ => new Lazy<Task<bool>>(() => AskAboutPlaintextAsync(confirm, proxy)));
+        return answer.Value.WaitAsync(cancellationToken);
+    }
+
+    private async Task<bool> AskAboutPlaintextAsync(Func<UpstreamProxy, CancellationToken, Task<bool>> confirm, UpstreamProxy proxy)
+    {
+        using var timeout = new CancellationTokenSource(PlaintextSignInTimeout);
+        try
+        {
+            var send = await confirm(proxy, timeout.Token).WaitAsync(timeout.Token);
+            ProxyEngine.Log("proxy", send
+                ? $"{proxy}: sending the proxy password in plain text, as you chose."
+                : $"{proxy}: not sending the proxy password in plain text, as you chose.");
+            return send;
+        }
+        catch (OperationCanceledException)
+        {
+            ProxyEngine.Log("proxy", $"{proxy}: asked for the password in plain text; no answer in time, so it isn't sent.");
+            return false;
+        }
     }
 
     private long _maxCapturedBodyBytes = Http1MessageReader.DefaultMaxCapturedBodyBytes;
@@ -631,7 +684,7 @@ public sealed class InterceptingProxyListener
                     isTls: false, string.Empty, PlainHttpRequest.DefaultPort, client, clientStream, first, _sessionStore,
                     _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, ProxyCredentialFor(isRemoteClient), _proxyUrl, Port,
                     () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient,
-                    ClientCertificateChooser(isRemoteClient), cancellationToken);
+                    ClientCertificateChooser(isRemoteClient), ApprovePlaintextSignInAsync, cancellationToken);
                 return;
             }
 
@@ -689,7 +742,7 @@ public sealed class InterceptingProxyListener
                 isTls: true, targetHost, targetPort, client, new ReadBufferedStream(clientTls), firstRequest: null, _sessionStore, _breakpointManager,
                 _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, ProxyCredentialFor(isRemoteClient), _proxyUrl, Port,
                 () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient,
-                ClientCertificateChooser(isRemoteClient), cancellationToken);
+                ClientCertificateChooser(isRemoteClient), ApprovePlaintextSignInAsync, cancellationToken);
         }
         catch (BreakpointAbortedException ex)
         {
@@ -755,7 +808,8 @@ public sealed class InterceptingProxyListener
                 if (route is not null)
                 {
                     return await route.ConnectTunnelAsync(
-                        targetHost, targetPort, remoteClient ? null : ProxyCredential, signIn: !remoteClient, cancellationToken);
+                        targetHost, targetPort, remoteClient ? null : ProxyCredential, signIn: !remoteClient,
+                        cancellationToken => ApprovePlaintextSignInAsync(route, cancellationToken), cancellationToken);
                 }
 
                 var direct = new TcpClient { NoDelay = true };
@@ -942,6 +996,7 @@ public sealed class InterceptingProxyListener
         RemoteCertificateValidationCallback? validateServer,
         bool isRemoteClient,
         Func<string, X509Certificate2?> chooseClientCertificate,
+        Func<UpstreamProxy, CancellationToken, Task<bool>> confirmPlaintext,
         CancellationToken cancellationToken)
     {
         // isRemoteClient: a connection from another computer, whose requests
@@ -959,7 +1014,7 @@ public sealed class InterceptingProxyListener
         var client = new Http1ClientExchange(clientConnection, clientTls);
         using var upstream = new Http1Upstream(
             isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer, chooseClientCertificate: chooseClientCertificate,
-            forRemoteClient: isRemoteClient);
+            confirmPlaintext: confirmPlaintext, forRemoteClient: isRemoteClient);
         var pendingRequest = firstRequest;
 
         while (true)
@@ -1073,7 +1128,7 @@ public sealed class InterceptingProxyListener
             targetPort,
             offerHttp2 => new Http1Upstream(
                 isTls: true, targetHost, targetPort, ChooseRoutesAsync, ProxyCredentialFor(remoteClient), validateServer, offerHttp2,
-                ClientCertificateChooser(remoteClient), forRemoteClient: remoteClient));
+                ClientCertificateChooser(remoteClient), ApprovePlaintextSignInAsync, forRemoteClient: remoteClient));
 
         var exchanges = new List<Task>();
         var inProgress = 0;
