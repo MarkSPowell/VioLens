@@ -26,12 +26,24 @@ public sealed class ExecutablePathTests : IDisposable
     {
         // "." or an empty entry means the current folder, where anyone who
         // can write there could leave a program of the same name. A relative
-        // entry that leads to the program is still skipped.
-        File.WriteAllText(Path.Combine(_folder, "gsettings"), string.Empty);
-        var relative = Path.GetRelativePath(Environment.CurrentDirectory, _folder);
-        Assert.False(Path.IsPathFullyQualified(relative));
+        // entry that leads to the program is still skipped. The folder is
+        // under the current one: the temp folder can be on another drive
+        // (as on the Windows CI runner), with no relative path to it.
+        var relative = "violens-exe-" + Guid.NewGuid().ToString("N");
+        var folder = Directory.CreateDirectory(Path.Combine(Environment.CurrentDirectory, relative)).FullName;
+        try
+        {
+            File.WriteAllText(Path.Combine(folder, "gsettings"), string.Empty);
+            File.WriteAllText(Path.Combine(Environment.CurrentDirectory, "gsettings"), string.Empty);
+            Assert.True(File.Exists(Path.Combine(relative, "gsettings")));
 
-        Assert.Null(ExecutablePath.Find("gsettings", $".{Path.PathSeparator}{Path.PathSeparator}{relative}", isMacOS: false, isWindows: false));
+            Assert.Null(ExecutablePath.Find("gsettings", $".{Path.PathSeparator}{Path.PathSeparator}{relative}", isMacOS: false, isWindows: false));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+            File.Delete(Path.Combine(Environment.CurrentDirectory, "gsettings"));
+        }
     }
 
     [Fact]
