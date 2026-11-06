@@ -57,7 +57,7 @@ public sealed class ImageInspector : IInspector
         parts.Add($"{bytes.Length:N0} bytes");
         if (format is null)
         {
-            parts.Add("not a recognised image format, so it may not display");
+            parts.Add("not a recognized image format, so it may not display");
         }
 
         var summary = string.Join(", ", parts);

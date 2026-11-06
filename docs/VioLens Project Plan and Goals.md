@@ -8,7 +8,7 @@ development slowed after its original author left in 2016. In August 2026
 Progress limited Fiddler Classic to non-commercial use, pointing commercial
 users at Fiddler Everywhere (see Progress's
 [commercial-use page](https://www.telerik.com/fiddler/fiddler-classic/commercial-use)).
-VioLens is a free, open source tool for the same workflows, under a licence
+VioLens is a free, open source tool for the same workflows, under a license
 that can't later be withdrawn (see `CONTRIBUTING.md`).
 
 ## Tenets
@@ -29,7 +29,7 @@ that can't later be withdrawn (see `CONTRIBUTING.md`).
 5. **Don't get sued.** VioLens never presents itself as Fiddler. No shipped
    assembly, namespace or file is named "Fiddler"; the word appears only to
    describe compatibility. No Fiddler code is used, and third-party code is
-   used only under its licence. This costs something: compiled Fiddler
+   used only under its license. This costs something: compiled Fiddler
    Classic extensions don't load unmodified (see the .NET Extension
    Compatibility Design). This tenet wins when it conflicts with tenet 1.
 
@@ -37,7 +37,7 @@ that can't later be withdrawn (see `CONTRIBUTING.md`).
 
 VioLens is built from public documentation (the
 [Fiddler Classic docs](https://github.com/telerik/fiddler-docs)), publicly
-observable behaviour such as the structure of `.saz` files, and its own
+observable behavior such as the structure of `.saz` files, and its own
 design decisions. Never from decompiled or leaked Fiddler source. The full
 policy is in `CONTRIBUTING.md`.
 

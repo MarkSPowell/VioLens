@@ -98,7 +98,7 @@ downloads or runs anything.
 - The WebView tab's **Preview in Browser** writes a copy of the page to
   the temp folder with a Content-Security-Policy that blocks scripts,
   frames, plug-ins and form submission, and with the page's own
-  `http-equiv` settings, including any automatic redirect, removed. Nothing loads from the network unless you tick **Load images
+  `http-equiv` settings, including any automatic redirect, removed. Nothing loads from the network unless you check **Load images
   and styles from the site**. Copies are deleted after a day.
 - Files you open (SAZ, HAR, packet captures) and bodies the inspectors
   read (JSON, CBOR, MessagePack, Markdown, images) are treated as
@@ -115,9 +115,9 @@ the user's own settings rather than refusing to start; an administrator
 relying on a lock should make sure the file is valid.
 
 **VioLens Capture.** It records only: no breakpoints, rules, scripts or
-extensions run. Unless you tick **Include secure (HTTPS) websites** it
+extensions run. Unless you check **Include secure (HTTPS) websites** it
 trusts nothing, and when it does, closing it removes the certificate
-again unless you untick that. It shares VioLens's certificate.
+again unless you uncheck that. It shares VioLens's certificate.
 
 **Listening.**
 - VioLens listens on 127.0.0.1 only, unless you turn on **Allow remote
