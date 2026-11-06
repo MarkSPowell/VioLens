@@ -1,6 +1,6 @@
 # Third-party notices
 
-VioLens includes code from the projects below, used under their licences.
+VioLens includes code from the projects below, used under their licenses.
 The optional extensions the installers offer have their own notices, in
 the Extensions folder's `THIRD-PARTY-NOTICES.txt`.
 

@@ -214,7 +214,7 @@ tunnels aren't passed to extensions, and `x-replywithtunnel` is ignored:
 VioLens always answers CONNECT itself and opens the upstream connection
 lazily, which is what that flag asked for.
 
-**Menus, columns and row colours** (tested by porting Eric Lawrence's
+**Menus, columns and row colors** (tested by porting Eric Lawrence's
 Privacy Scanner sample):
 
 - `Violens.CompatShim.FiddlerApplication.UI` (a `frmViewer`, as in
@@ -307,7 +307,7 @@ Fiddler was created by Eric Lawrence and was free from the start. Telerik
 bought it in 2012, and Progress Software bought Telerik in 2014. In August
 2026 Progress limited Fiddler Classic to non-commercial use (see its
 [commercial-use page](https://www.telerik.com/fiddler/fiddler-classic/commercial-use)).
-None of VioLens's research used Progress's binaries, so their licence
+None of VioLens's research used Progress's binaries, so their license
 doesn't govern it, but it made the naming question below matter more.
 
 The legacy host's shim was first an assembly named `Fiddler`, so compiled
@@ -412,7 +412,7 @@ A development build copies the host's output into the app's
 `LegacyHost` folder after building
 (`CopyOutputToDesktopUiLegacyHostFolder`, on the host's project, so the
 main build knows nothing about it). The Windows release builds it
-(`publish/legacyhost`), and the installer offers it as an unticked task
+(`publish/legacyhost`), and the installer offers it as an unchecked task
 that copies it to `{app}\LegacyHost`.
 
 ## Alternatives considered
@@ -451,6 +451,6 @@ live-traffic wiring with fake extensions.
   window; reparenting across processes is fragile).
 - On a real machine: the legacy host's automatic launch and the
   five-second wait, stopping it with `CloseMainWindow`/`Kill`, and a
-  release install with the legacy host task ticked.
+  release install with the legacy host task checked.
 - Whether `ProgressCallbackEventArgs.PercentComplete` matters to real
   extensions.

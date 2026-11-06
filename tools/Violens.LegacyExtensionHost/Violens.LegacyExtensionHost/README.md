@@ -80,7 +80,7 @@ The `LegacyHost` folder gets there two ways:
   `CopyOutputToDesktopUiLegacyHostFolder` target copies its output into
   `apps/Violens.DesktopUi`'s output folder after each build.
 - **Releases:** `release-windows.yml` builds it into `publish/legacyhost`,
-  and the installer offers it as an optional task, unticked by default,
+  and the installer offers it as an optional task, unchecked by default,
   that installs it to `LegacyHost`. That hasn't yet been checked with a
   real installer.
 

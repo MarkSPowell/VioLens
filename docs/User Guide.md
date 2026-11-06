@@ -142,7 +142,7 @@ tabs:
 - **Tree** (only for JSON, CBOR or MessagePack): the body as a tree. The
   top level opens expanded; each line shows a name and its value, or how
   many members (`{3}`) or items (`[5]`) it holds. CBOR and MessagePack are
-  recognised by their content type (`application/cbor`, any `+cbor` type,
+  recognized by their content type (`application/cbor`, any `+cbor` type,
   `application/msgpack`), and a body holding several values one after
   another (a CBOR sequence, say) shows each one. Binary data is shown as
   `h'0a1b'`, and a few values get a note in brackets: the date a CBOR
@@ -169,7 +169,7 @@ tabs:
   itself, so **Preview in Browser** opens a copy in your web browser. The
   copy can't run scripts, show frames, submit forms or redirect, and by
   default it loads nothing from the network, so opening it sends nothing
-  anywhere. Tick **Load images and styles from the site** to let the
+  anywhere. Check **Load images and styles from the site** to let the
   browser fetch the page's images, style sheets and fonts; scripts stay
   blocked. (If your browser is using VioLens as its proxy, those requests
   appear in the session list.) Copies go in a `VioLens-preview-` folder in
@@ -181,12 +181,12 @@ tabs:
   name, type and size.
 - **ImageView** (only for an image): the picture itself, with its format,
   pixel size and size in bytes. PNG, JPEG, GIF, WebP, BMP and ICO are
-  recognised even when the Content-Type is wrong. For PNG, JPEG, GIF and
+  recognized even when the Content-Type is wrong. For PNG, JPEG, GIF and
   WebP it also lists any **image bloat**: bytes that don't change how the
   image looks, such as EXIF camera data, XMP, editing-program data,
   comments, text, or data after the end of the image. Removing them makes
   the file smaller with no visible change. (EXIF can hold the photo's
-  orientation, which browsers honour, so keep that tag if the image relies
+  orientation, which browsers honor, so keep that tag if the image relies
   on it.) Double-click the picture, or click **View…**, to open it in a
   window of its own: zoom with **+** and **−**, **Ctrl+scroll** (Cmd on a
   Mac) or the buttons, **0** for actual size and **F** to fit. **F11**
@@ -232,10 +232,10 @@ Protocol column showed HTTP or HTTPS; here that's the start of the URL.)
 The **Image Bloat** column shows, for image responses, the bloat bytes out
 of the file's size and the percentage. Rows where bloat is at least a
 quarter of the file (and at least 1 KB) are tinted orange, unless something
-else has already coloured the row.
+else has already colored the row.
 
 Importers, extensions and scripts can also mark sessions for the list: a
-row can have its own background or text colour, be bold, italic or struck
+row can have its own background or text color, be bold, italic or struck
 through, or be hidden (it's still captured and saved). Extensions can add
 columns to the list, too.
 
@@ -245,7 +245,7 @@ Every column can be hidden except **#** and **URL**, including the
 Waterfall and Image Bloat columns and columns a script or extension added;
 **Show All Columns** brings them all back. Drag a header to move its
 column, or drag the edge between headers to resize it. **Customize
-Columns…**, in the same menu, does it all in one dialog: tick the columns
+Columns…**, in the same menu, does it all in one dialog: check the columns
 to show and move them up or down (**Alt+Up** and **Alt+Down**) into the
 order you want.
 
@@ -285,10 +285,10 @@ browsers' developer tools do:
 
 - The **Waterfall** column in the session list draws each session on a
   shared time axis, from the first session shown to the last one finishing.
-  Each bar is split into phases: **Queueing** (grey: reading the request,
+  Each bar is split into phases: **Queueing** (gray: reading the request,
   scripts and extensions, breakpoints), **DNS lookup** (teal), **Initial
   connection** (orange), **TLS handshake** (purple), **Request sent**
-  (blue-grey), **Waiting for server** (green: time to first byte) and
+  (blue-gray), **Waiting for server** (green: time to first byte) and
   **Content download** (blue). A request that reused an open connection
   has no DNS, connection or TLS phases. Hover over a bar for the numbers.
 - The line under the list sums up what's shown: how many requests, how much
@@ -317,8 +317,10 @@ certificate, it asks VioLens, and the browser never sees the request (or
 shows its certificate prompt). VioLens records it instead: the Timing tab
 says the server asked, and which certificate authorities it accepts, and the
 session gets a **Notes** tab with the `x-client-certificate-requested` note.
-VioLens doesn't send a client certificate yet, so a server that requires
-one refuses the connection; the 502 page then says that's the likely reason.
+VioLens sends a client certificate only once you choose one (see **Client
+certificate** under Tools > Connections); without one, a server that
+requires one refuses the connection, and the 502 page then says that's the
+likely reason.
 
 ### Finding sessions
 
@@ -417,7 +419,7 @@ the same with a node and everything under it.
 | Deflate to Base64 / Inflate from Base64 (SAML) | The compression SAML's redirect binding uses. Inflating also accepts a URL-encoded value copied from `SAMLRequest=`, and zlib or gzip data |
 
 **Characters as** chooses how text becomes bytes, and bytes text: UTF-8
-(the default), Latin-1 or UTF-16. It's greyed out for the conversions where
+(the default), Latin-1 or UTF-16. It's grayed out for the conversions where
 it doesn't matter. When decoded bytes aren't text in that encoding (an
 image, or compressed data, say), the output is a hex dump and a note says
 so. **Use output as input** moves the result up to convert it again, for
@@ -621,7 +623,7 @@ violens-exec stop
   mistake, and 3 when it couldn't reach VioLens (not running, or busy with
   another command for longer than `--timeout`, 10 seconds by default).
 - **Who can use it:** only programs running as you on this computer.
-  Nothing listens on the network. To stop it accepting commands, untick
+  Nothing listens on the network. To stop it accepting commands, uncheck
   **Tools > Accept Commands from violens-exec**. If two copies of VioLens
   are running, the first one gets the commands.
 
@@ -687,7 +689,7 @@ uses HTTP/2 with each site that offers it, with all that site's requests
 sharing one connection, and HTTP/1.1 with sites that don't. It's on by
 default; turn it off if you'd rather every request went over HTTP/1.1, as
 in Fiddler Classic. If you turned it off while it was a preview, it stays
-off until you tick it. Changes apply straight away to new
+off until you check it. Changes apply straight away to new
 connections, so reload the page (or restart the browser) to move off
 connections it already has open. The session list's **Version** column
 shows which version each side used. WebSockets still use HTTP/1.1, and
@@ -712,9 +714,11 @@ request reaches VioLens, not the browser, so VioLens answers it.
   servers; on Windows that's the Personal store, on macOS your login
   keychain.
 - With the box after **for** left empty, the certificate goes to every
-  server that asks for one, as a browser would offer it. To keep it from
-  other servers, list the hosts it's for there, in the same format as
-  above.
+  server that asks for one, as a browser would offer it. A certificate
+  usually names who it belongs to, so any site could ask for it to learn
+  who you are; VioLens shows a warning under the row while the box is
+  empty. To keep it from other servers, list the hosts it's for there, in
+  the same format as above.
 - The Timing tab and Notes say whether the server asked, and which
   certificate VioLens sent.
 - VioLens sends one certificate. Fiddler Classic's `ClientCertificate.cer`
@@ -741,7 +745,7 @@ Besides the request and response hooks, a loaded script can add to the
 app in these places:
 
 - **Rules menu** (in the menu bar): filled from the rule options and
-  choices the script declares. It's empty and greyed out when no script is
+  choices the script declares. It's empty and grayed out when no script is
   loaded or the script declares none; hover over it to see why.
 - **Script Actions** (a row of buttons in the FiddlerScript panel, below
   Load and Reload): one button per action the script declares. The row
@@ -765,14 +769,14 @@ in your Documents folder is used.
 ### Optional extensions included with VioLens
 
 Three extensions come with the installers. Each is a separate work by its
-author, under its own licence (see `THIRD-PARTY-NOTICES.txt` and the
+author, under its own license (see `THIRD-PARTY-NOTICES.txt` and the
 `licenses` folder that come with them):
 
 | Extension | What it does | Windows installer |
 |---|---|---|
-| NetLog importer (`VioLensNetLog.dll`) | Imports Chromium/Edge NetLog captures | Ticked by default |
-| CSP Rule Collector (`VioLensCSP.dll`) | Builds a Content-Security-Policy for the sites you browse | Ticked by default |
-| Privacy Scanner (`PrivacyScanner.dll`) | Colours responses that set cookies and checks P3P headers | Unticked (P3P is obsolete; mostly an example extension) |
+| NetLog importer (`VioLensNetLog.dll`) | Imports Chromium/Edge NetLog captures | Checked by default |
+| CSP Rule Collector (`VioLensCSP.dll`) | Builds a Content-Security-Policy for the sites you browse | Checked by default |
+| Privacy Scanner (`PrivacyScanner.dll`) | Colors responses that set cookies and checks P3P headers | Unchecked (P3P is obsolete; mostly an example extension) |
 
 - **Windows:** choose them on the installer's "Select Additional Tasks"
   page. Run the installer again to add or remove one.
@@ -791,7 +795,7 @@ from the File menu:
 - **File > Import via Extension…**
 - **File > Export via Extension…**
 
-Each is greyed out (with a tooltip saying why) until a loaded extension
+Each is grayed out (with a tooltip saying why) until a loaded extension
 supports it. If your extensions offer more than one format, you're asked
 which to use, with last time's choice already selected. If there's only
 one, it's used straight away.
@@ -820,19 +824,19 @@ Content-Security-Policy a page needs, has a VioLens-only version:
 [CSP-CLeARINET-Extension](https://github.com/MarkSPowell/CSP-CLeARINET-Extension),
 a fork of the Fiddler extension with an Avalonia tab. It's one of the
 optional extensions above (or build it yourself; see its README). Open
-the **CSP Rule Collector** tab, tick **Enable Rule Collection**, clear the
-browser's cache and browse the site. Untick it when you're done: while
+the **CSP Rule Collector** tab, check **Enable Rule Collection**, clear the
+browser's cache and browse the site. Uncheck it when you're done: while
 it's on, responses get extra
 report-only CSP headers and aren't cached. While it's collecting, the
 browser sends many report requests to `fiddlercsp.deletethis.net`; the
-extension answers them itself, and they're shown struck through. Tick
+extension answers them itself, and they're shown struck through. Check
 **Tools > Hide CSP Report Requests** to leave new ones out of the list,
 and use **Edit > Remove All Sessions** to clear ones already there.
 
 Ported extensions can add their own menus (before **Help**, or in
-**Tools**), session-list columns and row colours. The optional Privacy
+**Tools**), session-list columns and row colors. The optional Privacy
 Scanner, for example, adds a **Privacy** menu, a **Privacy Info** column
-and row colours. See `docs/Extension Test Targets.md` for what's supported
+and row colors. See `docs/Extension Test Targets.md` for what's supported
 so far.
 
 ## Legacy Fiddler Classic extensions
@@ -868,7 +872,7 @@ Classic extension of this kind that you want to keep using.
   `.saz` (Session Archive Zip) file on your Desktop. A `.saz` file is a zip:
   unzip it and open `_index.htm` for a list of the sessions, with links to
   each one's request and response. Each session's notes (comments,
-  colours, and what the Notes tab shows) are saved with it, as Fiddler
+  colors, and what the Notes tab shows) are saved with it, as Fiddler
   Classic saves session flags, and come back when the file is opened.
 - **File > Open SAZ…** imports sessions from a previously saved `.saz` file
   back into the session list, exactly as if they'd just been captured live.
@@ -947,7 +951,7 @@ had is lost. To reset every setting, quit VioLens and delete the file.
 An administrator can set VioLens's settings for everyone on a machine,
 for example to forbid **Allow remote computers to connect** or to turn
 off the update check. A **locked** setting can't be changed: its control
-is greyed out, and FiddlerScripts, extensions and QuickExec can't change
+is grayed out, and FiddlerScripts, extensions and QuickExec can't change
 it either. A **default** applies until the user picks something else.
 When anything is locked, the status line says so at start-up, and
 **Help > Copy Diagnostic Info** lists which settings policy sets (names
@@ -1009,15 +1013,15 @@ settings to understand. It works like Fiddler's FiddlerCap:
 1. They run it. On Windows it's a single `VioLensCapture-<version>-win-x64.exe`
    from the release page, which runs without installing.
 2. They click **Start Capture**. With **Include secure (HTTPS) websites**
-   ticked (the default) it adds VioLens's certificate, so their computer
-   may ask them to confirm. Unticked, nothing is trusted and HTTPS shows
+   checked (the default) it adds VioLens's certificate, so their computer
+   may ask them to confirm. Unchecked, nothing is trusted and HTTPS shows
    only which sites were visited.
 3. They do whatever shows the problem in their browser, then click
    **Stop Capture**, which puts their proxy setting back.
 4. **Save Capture…** writes a `.saz` file, which they send to you and you
    open with **File > Open SAZ**.
 
-Closing the window stops capturing, and (unless they untick it) removes
+Closing the window stops capturing, and (unless they uncheck it) removes
 the certificate it added. The window reminds them that a capture can hold
 passwords and cookies. It records only: no breakpoints, rules, scripts or
 extensions run.
@@ -1044,7 +1048,7 @@ Capture closes means VioLens asks to trust a new one next time.
   newer release is out. If one is, a button beside the title says so and
   opens the release's page. If you're running a preview or release
   candidate you're offered newer ones too; otherwise only full releases. **Help > Check for
-  Updates** asks straight away. To stop the start-up check, untick **Help
+  Updates** asks straight away. To stop the start-up check, uncheck **Help
   > Check for Updates at Start-up**. The check is one request to GitHub's
   public releases list and sends nothing about you or your traffic.
   VioLens never downloads or installs anything itself.

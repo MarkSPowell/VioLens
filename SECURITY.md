@@ -79,7 +79,9 @@ deleted when its certificate is released.
 **Real servers.** VioLens checks each server's certificate the normal way
 and doesn't hide a failure. It doesn't turn certificate checks off. VioLens
 sends no client certificate unless you choose one. Once you do, it goes to
-every server that asks for one, unless you list the hosts it's for.
+every server that asks for one, unless you list the hosts it's for; Tools >
+Connections shows a warning until you do, since a certificate can tell any
+site that asks who you are.
 
 **violens-exec.** Scripts drive VioLens through a named pipe that only
 your own account can open; nothing listens on the network. A program
@@ -99,7 +101,7 @@ downloads or runs anything.
   a folder of its own in the temp folder, with a random name and, on
   Linux and macOS, open only to your account, with a Content-Security-Policy that blocks scripts,
   frames, plug-ins and form submission, and with the page's own
-  `http-equiv` settings, including any automatic redirect, removed. Nothing loads from the network unless you tick **Load images
+  `http-equiv` settings, including any automatic redirect, removed. Nothing loads from the network unless you check **Load images
   and styles from the site**. Copies are deleted after a day.
 - Files you open (SAZ, HAR, packet captures) and bodies the inspectors
   read (JSON, CBOR, MessagePack, Markdown, images) are treated as
@@ -125,9 +127,9 @@ the user's own settings rather than refusing to start; an administrator
 relying on a lock should make sure the file is valid.
 
 **VioLens Capture.** It records only: no breakpoints, rules, scripts or
-extensions run. Unless you tick **Include secure (HTTPS) websites** it
+extensions run. Unless you check **Include secure (HTTPS) websites** it
 trusts nothing, and when it does, closing it removes the certificate
-again unless you untick that. It shares VioLens's certificate.
+again unless you uncheck that. It shares VioLens's certificate.
 
 **Listening.**
 - VioLens listens on 127.0.0.1 only, unless you turn on **Allow remote
@@ -140,6 +142,11 @@ again unless you untick that. It shares VioLens's certificate.
   account), and doesn't send your client certificate on their
   connections. A proxy that asks them to sign in gets its 407 back to
   them, as it would if they used it directly.
+- The same goes for another account's programs on this computer, which
+  can connect to 127.0.0.1 like yours. On Windows and Linux VioLens looks
+  up which account opened each connection before signing in or sending a
+  certificate for it. macOS has no such lookup, so there a program of
+  another account signed in at the same time still gets your identity.
 - A proxy password from Tools > Connections is never sent in plain text
   (Basic) without asking you first, once per proxy. VioLens can't tell
   which proxies are your network's own: one named by an automatic

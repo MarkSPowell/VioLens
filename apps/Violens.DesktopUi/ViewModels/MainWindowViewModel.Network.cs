@@ -225,6 +225,8 @@ public sealed partial class MainWindowViewModel
                 _preferences.SetStringPref(PreferenceKeys.ClientCertificate, thumbprint);
                 ApplyClientCertificate();
                 RaisePropertyChanged();
+                RaisePropertyChanged(nameof(ClientCertificateWarning));
+                RaisePropertyChanged(nameof(ShowsClientCertificateWarning));
             }
         }
     }
@@ -247,9 +249,25 @@ public sealed partial class MainWindowViewModel
             {
                 _preferences.SetListPref(PreferenceKeys.ClientCertificateHosts, SplitHostList(_clientCertificateHostsText));
                 ApplyClientCertificate();
+                RaisePropertyChanged(nameof(ClientCertificateWarning));
+                RaisePropertyChanged(nameof(ShowsClientCertificateWarning));
             }
         }
     }
+
+    /// <summary>
+    /// Shown under the client certificate while one is chosen with no hosts
+    /// listed: it then goes to every server that asks, and a certificate
+    /// usually names the person it belongs to, so any site can ask for it to
+    /// learn who's visiting. Empty otherwise.
+    /// </summary>
+    public string ClientCertificateWarning =>
+        ClientCertificateIndex > 0 && SplitHostList(_clientCertificateHostsText).Count == 0
+            ? "This certificate is sent to every server that asks for one, which can tell any site who you are. " +
+              "List the hosts it's for."
+            : string.Empty;
+
+    public bool ShowsClientCertificateWarning => ClientCertificateWarning.Length > 0;
 
     /// <summary>Hands the chosen certificate and its hosts to the listener, loading the certificate from the store.</summary>
     private void ApplyClientCertificate()

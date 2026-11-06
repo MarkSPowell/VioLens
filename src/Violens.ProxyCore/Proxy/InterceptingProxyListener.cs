@@ -322,18 +322,53 @@ public sealed class InterceptingProxyListener
     internal X509Certificate2? ClientCertificateFor(string host, bool remoteClient) =>
         remoteClient ? null : ChooseClientCertificate(host);
 
-    private Func<string, X509Certificate2?> ClientCertificateChooser(bool remoteClient) =>
-        host => ClientCertificateFor(host, remoteClient);
+    private Func<string, X509Certificate2?> ClientCertificateChooser(Func<bool> lendsIdentity) =>
+        host => lendsIdentity() ? ChooseClientCertificate(host) : null;
+
+    /// <summary>Replaces <see cref="LoopbackConnectionOwner.IsCurrentUser"/>. Tests only.</summary>
+    internal Func<IPEndPoint, IPEndPoint, bool?>? LoopbackOwnerCheck { get; set; }
 
     /// <summary>
-    /// How one client's requests sign in to a proxy that asks: as the user
-    /// (<see cref="ProxyCredential"/>, or the Windows account) for this
-    /// computer's own programs, and not at all for a client on another
-    /// computer, which gets the proxy's 407 as it would using the proxy
-    /// directly.
+    /// Whether one client connection gets the user's identity: signing in to
+    /// a proxy that asks, as the user (<see cref="ProxyCredential"/>, or the
+    /// Windows account), and sending <see cref="ClientCertificate"/>. Only
+    /// the user's own programs do. A client on another computer doesn't, and
+    /// nor does another account's program on this one (see
+    /// <see cref="LoopbackConnectionOwner"/>): they get the proxy's 407 and
+    /// no certificate, as they would using the proxy directly. Decided the
+    /// first time it's needed and then kept, since most connections never
+    /// need it. Where the owner can't be looked up (macOS), it's lent as
+    /// before.
     /// </summary>
-    private Func<NetworkCredential?>? ProxyCredentialFor(bool remoteClient) =>
-        remoteClient ? null : () => ProxyCredential;
+    private Func<bool> LendsIdentityTo(TcpClient client, bool isRemoteClient)
+    {
+        if (isRemoteClient || client.Client.RemoteEndPoint is not IPEndPoint clientEnd ||
+            client.Client.LocalEndPoint is not IPEndPoint ourEnd)
+        {
+            return static () => false;
+        }
+
+        var decided = new Lazy<bool>(() =>
+        {
+            bool? owned;
+            try
+            {
+                owned = (LoopbackOwnerCheck ?? LoopbackConnectionOwner.IsCurrentUser)(clientEnd, ourEnd);
+            }
+            catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException or System.ComponentModel.Win32Exception)
+            {
+                owned = false;
+            }
+
+            if (owned == false)
+            {
+                ProxyEngine.Log("proxy", $"The connection from {clientEnd} isn't from one of your programs, so it doesn't sign in to proxies or send your certificate as you.");
+            }
+
+            return owned ?? true;
+        });
+        return () => decided.Value;
+    }
 
     private X509Certificate2? ChooseClientCertificate(string host) =>
         ClientCertificate is { } certificate &&
@@ -655,6 +690,7 @@ public sealed class InterceptingProxyListener
             // Only possible with AllowsRemoteClients. Such a client mustn't
             // reach this computer's loopback-only services through VioLens.
             var isRemoteClient = client.Client.RemoteEndPoint is IPEndPoint remote && !IPAddress.IsLoopback(remote.Address);
+            var lendsIdentity = LendsIdentityTo(client, isRemoteClient);
             var first = await ReadRequestPreambleWithinAsync(clientStream, idleTimeout, cancellationToken);
             if (first is null)
             {
@@ -682,9 +718,9 @@ public sealed class InterceptingProxyListener
 
                 await PumpSessionsAsync(
                     isTls: false, string.Empty, PlainHttpRequest.DefaultPort, client, clientStream, first, _sessionStore,
-                    _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, ProxyCredentialFor(isRemoteClient), _proxyUrl, Port,
+                    _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
                     () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient,
-                    ClientCertificateChooser(isRemoteClient), ApprovePlaintextSignInAsync, cancellationToken);
+                    ClientCertificateChooser(lendsIdentity), ApprovePlaintextSignInAsync, lendsIdentity, cancellationToken);
                 return;
             }
 
@@ -697,7 +733,7 @@ public sealed class InterceptingProxyListener
 
             if (UpstreamProxy.MatchesHostList(targetHost, SkipDecryptionHosts))
             {
-                await TunnelWithoutDecryptingAsync(clientStream, first, targetHost, targetPort, isRemoteClient, cancellationToken);
+                await TunnelWithoutDecryptingAsync(clientStream, first, targetHost, targetPort, lendsIdentity, isRemoteClient, cancellationToken);
                 return;
             }
 
@@ -731,7 +767,7 @@ public sealed class InterceptingProxyListener
 
             if (clientTls.NegotiatedApplicationProtocol == SslApplicationProtocol.Http2)
             {
-                await ServeHttp2Async(new ReadBufferedStream(clientTls), targetHost, targetPort, idleTimeout, isRemoteClient, cancellationToken);
+                await ServeHttp2Async(new ReadBufferedStream(clientTls), targetHost, targetPort, idleTimeout, lendsIdentity, isRemoteClient, cancellationToken);
                 return;
             }
 
@@ -740,9 +776,9 @@ public sealed class InterceptingProxyListener
             // the addresses it connects to again.
             await PumpSessionsAsync(
                 isTls: true, targetHost, targetPort, client, new ReadBufferedStream(clientTls), firstRequest: null, _sessionStore, _breakpointManager,
-                _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, ProxyCredentialFor(isRemoteClient), _proxyUrl, Port,
+                _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, () => ProxyCredential, _proxyUrl, Port,
                 () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient,
-                ClientCertificateChooser(isRemoteClient), ApprovePlaintextSignInAsync, cancellationToken);
+                ClientCertificateChooser(lendsIdentity), ApprovePlaintextSignInAsync, lendsIdentity, cancellationToken);
         }
         catch (BreakpointAbortedException ex)
         {
@@ -761,7 +797,8 @@ public sealed class InterceptingProxyListener
     /// all, so the client sees the server's own certificate.
     /// </summary>
     private async Task TunnelWithoutDecryptingAsync(
-        Stream clientStream, CapturedRequest connect, string targetHost, int targetPort, bool remoteClient, CancellationToken cancellationToken)
+        Stream clientStream, CapturedRequest connect, string targetHost, int targetPort, Func<bool> lendsIdentity, bool isRemoteClient,
+        CancellationToken cancellationToken)
     {
         var startedAt = DateTimeOffset.Now;
         var flags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -772,7 +809,7 @@ public sealed class InterceptingProxyListener
         TcpClient server;
         try
         {
-            server = await OpenServerTunnelAsync(targetHost, targetPort, remoteClient, cancellationToken);
+            server = await OpenServerTunnelAsync(targetHost, targetPort, lendsIdentity, isRemoteClient, cancellationToken);
         }
         catch (Exception ex) when (ex is SocketException or IOException)
         {
@@ -797,7 +834,8 @@ public sealed class InterceptingProxyListener
     }
 
     /// <summary>A plain TCP connection to the server: direct, or a CONNECT tunnel through the chosen proxy.</summary>
-    private async Task<TcpClient> OpenServerTunnelAsync(string targetHost, int targetPort, bool remoteClient, CancellationToken cancellationToken)
+    private async Task<TcpClient> OpenServerTunnelAsync(
+        string targetHost, int targetPort, Func<bool> lendsIdentity, bool isRemoteClient, CancellationToken cancellationToken)
     {
         var routes = await ChooseRoutesAsync(isTls: true, targetHost, targetPort, "/", cancellationToken);
         for (var i = 0; ; i++)
@@ -808,7 +846,7 @@ public sealed class InterceptingProxyListener
                 if (route is not null)
                 {
                     return await route.ConnectTunnelAsync(
-                        targetHost, targetPort, remoteClient ? null : ProxyCredential, signIn: !remoteClient,
+                        targetHost, targetPort, () => ProxyCredential, lendsIdentity,
                         cancellationToken => ApprovePlaintextSignInAsync(route, cancellationToken), cancellationToken);
                 }
 
@@ -818,7 +856,7 @@ public sealed class InterceptingProxyListener
                     // Resolved here, so a client on another computer is
                     // checked against the addresses actually connected to.
                     var addresses = await Dns.GetHostAddressesAsync(targetHost, cancellationToken);
-                    if (remoteClient)
+                    if (isRemoteClient)
                     {
                         RefuseOffLimitsAddresses(targetHost, addresses);
                     }
@@ -987,7 +1025,7 @@ public sealed class InterceptingProxyListener
         IExtensionAutoTamperHost? extensionHost,
         IExtensionSessionHost? sessionHost,
         Func<bool, string, int, string, CancellationToken, Task<IReadOnlyList<UpstreamProxy?>>> chooseRoutes,
-        Func<NetworkCredential?>? proxyCredential,
+        Func<NetworkCredential?> proxyCredential,
         UpstreamWebProxy proxyUrl,
         int ownPort,
         Func<byte[]> rootCertificateDer,
@@ -997,8 +1035,12 @@ public sealed class InterceptingProxyListener
         bool isRemoteClient,
         Func<string, X509Certificate2?> chooseClientCertificate,
         Func<UpstreamProxy, CancellationToken, Task<bool>> confirmPlaintext,
+        Func<bool> lendsIdentity,
         CancellationToken cancellationToken)
     {
+        // lendsIdentity: whether this client gets the user's proxy sign-in
+        // and certificate (see LendsIdentityTo).
+        //
         // isRemoteClient: a connection from another computer, whose requests
         // mustn't reach this computer's own loopback services. A plain
         // connection's targets are checked here, per request (a CONNECT
@@ -1014,7 +1056,7 @@ public sealed class InterceptingProxyListener
         var client = new Http1ClientExchange(clientConnection, clientTls);
         using var upstream = new Http1Upstream(
             isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer, chooseClientCertificate: chooseClientCertificate,
-            confirmPlaintext: confirmPlaintext, forRemoteClient: isRemoteClient);
+            confirmPlaintext: confirmPlaintext, lendsIdentity: lendsIdentity, forRemoteClient: isRemoteClient);
         var pendingRequest = firstRequest;
 
         while (true)
@@ -1116,7 +1158,8 @@ public sealed class InterceptingProxyListener
     /// (no streams in progress) for <paramref name="idleTimeout"/>.
     /// </summary>
     private async Task ServeHttp2Async(
-        Stream clientTls, string targetHost, int targetPort, TimeSpan idleTimeout, bool remoteClient, CancellationToken cancellationToken)
+        Stream clientTls, string targetHost, int targetPort, TimeSpan idleTimeout, Func<bool> lendsIdentity, bool isRemoteClient,
+        CancellationToken cancellationToken)
     {
         var settings = new Http2Settings();
         await using var connection = await Http2Connection.AcceptAsync(clientTls, settings, cancellationToken);
@@ -1127,8 +1170,8 @@ public sealed class InterceptingProxyListener
             targetHost,
             targetPort,
             offerHttp2 => new Http1Upstream(
-                isTls: true, targetHost, targetPort, ChooseRoutesAsync, ProxyCredentialFor(remoteClient), validateServer, offerHttp2,
-                ClientCertificateChooser(remoteClient), ApprovePlaintextSignInAsync, forRemoteClient: remoteClient));
+                isTls: true, targetHost, targetPort, ChooseRoutesAsync, () => ProxyCredential, validateServer, offerHttp2,
+                ClientCertificateChooser(lendsIdentity), ApprovePlaintextSignInAsync, lendsIdentity, forRemoteClient: isRemoteClient));
 
         var exchanges = new List<Task>();
         var inProgress = 0;

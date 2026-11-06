@@ -2,8 +2,8 @@
 
 VioLens is an open source tool for inspecting HTTP and HTTPS traffic,
 built as a successor to Fiddler Web Debugger (Fiddler Classic). Progress
-Software changed Fiddler Classic's licence in 2026 to allow only
-non-commercial use. VioLens is free for any use, under the MIT licence.
+Software changed Fiddler Classic's license in 2026 to allow only
+non-commercial use. VioLens is free for any use, under the MIT license.
 It's an independent project, not affiliated with Progress or Telerik (see
 [Relationship to Fiddler](#relationship-to-fiddler)).
 
@@ -266,7 +266,7 @@ observe (such as how the real tool lays out `.saz` files), and its own
 design, never from decompiled or leaked Fiddler source, and it contains no
 Fiddler code. [CONTRIBUTING.md](CONTRIBUTING.md) has the clean-room policy
 every contribution follows. The optional extensions in the installers are
-separate works by their authors, under their own licences (see
+separate works by their authors, under their own licenses (see
 `THIRD-PARTY-NOTICES.txt` beside them).
 
 VioLens is inspired by Eric Lawrence's public writing about Fiddler,
@@ -274,7 +274,7 @@ including his post [Fiddler in 2026](https://textslashplain.com/2026/08/05/fiddl
 and by his public [Clearinet](https://github.com/ericlaw1979/Clearinet)
 repository. It isn't his project, and he hasn't contributed code to it.
 It does build on some of his published open source work, under its own
-licences: the ported NetLog importer, the CSP Rule Collector fork, and
+licenses: the ported NetLog importer, the CSP Rule Collector fork, and
 packet capture import, ported from Clearinet (see
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
@@ -282,7 +282,7 @@ packet capture import, ported from Clearinet (see
 
 Eric Lawrence is building his own free successor to Fiddler Classic,
 [Clearinet](https://github.com/ericlaw1979/Clearinet), also under the MIT
-licence. It and VioLens are separate projects that set out differently:
+license. It and VioLens are separate projects that set out differently:
 
 - **Clearinet** is by the person who created Fiddler. Its main app is for
   Windows, built with WinForms to look and work like the Fiddler people

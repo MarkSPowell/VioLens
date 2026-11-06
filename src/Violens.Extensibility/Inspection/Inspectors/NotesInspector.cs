@@ -45,8 +45,8 @@ public sealed class NotesInspector : IInspector
         ["x-pcap-incomplete"] = "the packet capture didn't hold all of this exchange, so it's shown as far as it goes",
         ["x-pcap-informational"] = "interim (1xx) responses the server sent before its final one",
         ["ui-comments"] = "a comment attached by the importer or an extension",
-        ["ui-backcolor"] = "the row colour the importer or an extension asked for",
-        ["ui-color"] = "the text colour the importer or an extension asked for",
+        ["ui-backcolor"] = "the row color the importer or an extension asked for",
+        ["ui-color"] = "the text color the importer or an extension asked for",
     };
 
     public string Id => "violens.notes";
