@@ -11,8 +11,10 @@ namespace Violens.ProxyCore.Proxy;
 /// first time a request has to reach it, then reused. Directly, through the
 /// network's proxy, or as its PAC script says. A plain HTTP client can move
 /// on to another server, which replaces the connection.
-/// <c>proxyCredential</c> null means never sign in to a proxy for this
-/// client, not even as the Windows account: a 407 goes back to it.
+/// <c>lendsIdentity</c>, asked when a proxy wants a sign-in, says whether to
+/// sign in as the user for this client at all (see
+/// <see cref="InterceptingProxyListener"/>); when it says no, not even as the
+/// Windows account, and the 407 goes back to the client. Null means yes.
 /// <c>confirmPlaintext</c> is asked before the password goes to a proxy in
 /// plain text (Basic); null sends it.
 /// </summary>
@@ -21,11 +23,12 @@ internal sealed class Http1Upstream(
     string targetHost,
     int targetPort,
     Func<bool, string, int, string, CancellationToken, Task<IReadOnlyList<UpstreamProxy?>>> chooseRoutes,
-    Func<NetworkCredential?>? proxyCredential,
+    Func<NetworkCredential?> proxyCredential,
     RemoteCertificateValidationCallback? validateServer = null,
     bool offerHttp2 = false,
     Func<string, X509Certificate2?>? chooseClientCertificate = null,
-    Func<UpstreamProxy, CancellationToken, Task<bool>>? confirmPlaintext = null) : IUpstream
+    Func<UpstreamProxy, CancellationToken, Task<bool>>? confirmPlaintext = null,
+    Func<bool>? lendsIdentity = null) : IUpstream
 {
     private TcpClient? _client;
     private Stream? _stream;
@@ -166,6 +169,8 @@ internal sealed class Http1Upstream(
         _key = key;
     }
 
+    private bool LendsIdentity() => lendsIdentity?.Invoke() ?? true;
+
     private Func<CancellationToken, Task<bool>>? ConfirmFor(UpstreamProxy proxy) =>
         confirmPlaintext is null ? null : cancellationToken => confirmPlaintext(proxy, cancellationToken);
 
@@ -175,8 +180,10 @@ internal sealed class Http1Upstream(
     {
         if (route is not null && isTls)
         {
+            // Asked only once a proxy asks for a sign-in: when the tunnel
+            // opens without one, whose program this is doesn't matter.
             return await route.ConnectTunnelAsync(
-                TargetHost, TargetPort, proxyCredential?.Invoke(), signIn: proxyCredential is not null, ConfirmFor(route), cancellationToken);
+                TargetHost, TargetPort, proxyCredential, LendsIdentity, ConfirmFor(route), cancellationToken);
         }
 
         var client = new TcpClient();
@@ -274,7 +281,7 @@ internal sealed class Http1Upstream(
         CapturedRequest request, CapturedResponse response, CancellationToken cancellationToken)
     {
         // For HTTPS the sign-in happened when the tunnel was opened.
-        if (response.StatusCode != 407 || isTls || _route is null || proxyCredential is null)
+        if (response.StatusCode != 407 || isTls || _route is null || !LendsIdentity())
         {
             return response;
         }

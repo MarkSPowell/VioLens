@@ -132,6 +132,11 @@ again unless you uncheck that. It shares VioLens's certificate.
   account), and doesn't send your client certificate on their
   connections. A proxy that asks them to sign in gets its 407 back to
   them, as it would if they used it directly.
+- The same goes for another account's programs on this computer, which
+  can connect to 127.0.0.1 like yours. On Windows and Linux VioLens looks
+  up which account opened each connection before signing in or sending a
+  certificate for it. macOS has no such lookup, so there a program of
+  another account signed in at the same time still gets your identity.
 - A proxy password from Tools > Connections is never sent in plain text
   (Basic) without asking you first, once per proxy. VioLens can't tell
   which proxies are your network's own: one named by an automatic
