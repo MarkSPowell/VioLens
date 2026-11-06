@@ -44,8 +44,11 @@ this computer:
    you get the system's "Do you want to install this certificate?"
    prompt. On macOS, VioLens shows its own confirmation before it adds
    anything to your login keychain, and on Linux before it adds anything
-   to your browsers' certificate databases (see "Linux" below). Accept
-   it to continue. Nothing you
+   to your browsers' certificate databases (see "Linux" below). Firefox
+   on macOS keeps its own certificates, so VioLens also turns on its
+   setting to trust the ones macOS trusts
+   (`security.enterprise_roots.enabled`, in each profile's `user.js`);
+   restart Firefox if it was open. Accept it to continue. Nothing you
    capture leaves your device unless you send it somewhere.
 4. Once it's running, the status bar shows the port VioLens is listening
    on and whether it registered itself as the system proxy. If it couldn't

@@ -127,7 +127,9 @@ convention. That's what lets it read HTTPS traffic on this computer.
 
 - **Windows** shows its own prompt.
 - **macOS** has no prompt for this, so VioLens asks first, then adds the
-  certificate to your login keychain.
+  certificate to your login keychain. Firefox doesn't read the keychain
+  by default, so VioLens turns on its setting that does in each profile;
+  restart Firefox if it was open.
 - **Linux**: VioLens asks first, then adds it to your browsers'
   certificate databases with `certutil` (from `libnss3-tools` or
   `nss-tools`, which you may need to install).

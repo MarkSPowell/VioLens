@@ -13,7 +13,8 @@ public partial class TrustConfirmationWindow : Window
     private const string MacOSExplanation =
         "VioLens needs to add a certificate to your login keychain so it can decrypt this account's HTTPS traffic " +
         "for inspection. It will only be trusted for your user account -- not system-wide -- and can be removed " +
-        "later with Tools > Remove Root Certificate, or from Keychain Access.";
+        "later with Tools > Remove Root Certificate, or from Keychain Access. Firefox keeps its own certificates, " +
+        "so VioLens also sets each Firefox profile to trust the ones macOS trusts; restart Firefox if it's open.";
 
     private const string LinuxExplanation =
         "VioLens needs to add a certificate to your browsers' certificate databases (Chrome and other NSS apps, and " +
