@@ -161,8 +161,9 @@ public sealed record UpstreamProxy(string Host, int Port, IReadOnlyList<string> 
                 continue;
             }
 
-            var pattern = "^" + Regex.Escape(entry.Trim()).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
-            if (Regex.IsMatch(host, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            // Without a regex: a long name against an entry like
+            // "*a*a*a*a*b" made one backtrack for minutes.
+            if (Wildcard.IsMatch(host, entry.Trim(), questionMarkMatchesOne: true))
             {
                 return true;
             }

@@ -13,6 +13,12 @@ namespace Violens.ProxyCore.Proxy;
 /// on to another server, which replaces the connection.
 /// <c>proxyCredential</c> null means never sign in to a proxy for this
 /// client, not even as the Windows account: a 407 goes back to it.
+/// <c>forRemoteClient</c>: the client is on another computer, so a direct
+/// connection is refused when the server's name resolves to an address
+/// that's off-limits to it (see
+/// <see cref="InterceptingProxyListener.IsOffLimits"/>). The check is on
+/// the very addresses connected to, so a name can't pass the check and
+/// then resolve somewhere else (DNS rebinding).
 /// </summary>
 internal sealed class Http1Upstream(
     bool isTls,
@@ -22,7 +28,8 @@ internal sealed class Http1Upstream(
     Func<NetworkCredential?>? proxyCredential,
     RemoteCertificateValidationCallback? validateServer = null,
     bool offerHttp2 = false,
-    Func<string, X509Certificate2?>? chooseClientCertificate = null) : IUpstream
+    Func<string, X509Certificate2?>? chooseClientCertificate = null,
+    bool forRemoteClient = false) : IUpstream
 {
     private TcpClient? _client;
     private Stream? _stream;
@@ -181,6 +188,11 @@ internal sealed class Http1Upstream(
             var (host, port) = route is null ? (TargetHost, TargetPort) : (route.Host, route.Port);
             var addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
             Timing?.DnsDone();
+            if (forRemoteClient && route is null)
+            {
+                InterceptingProxyListener.RefuseOffLimitsAddresses(host, addresses);
+            }
+
             await client.ConnectAsync(addresses, port, cancellationToken);
             return client;
         }

@@ -66,34 +66,77 @@ public static partial class HtmlPreview
     }
 
     /// <summary>
-    /// Writes the preview to a file of its own in the temp folder and returns
-    /// its path. Previews more than a day old are deleted first.
+    /// Writes the preview to a file of its own and returns its path. The
+    /// file goes in a folder this run of VioLens creates for itself in the
+    /// temp folder, with a random name and, on Linux and macOS, readable
+    /// only by this account (<see cref="Directory.CreateTempSubdirectory"/>):
+    /// there the temp folder is shared by every account, and a folder with a
+    /// fixed name could be made ahead of time by another one, which could
+    /// then read or replace the previews. Previews from earlier runs more
+    /// than a day old are deleted first.
     /// </summary>
     public static string WriteFile(string html, string? pageUrl, bool loadImagesAndStyles)
     {
-        var folder = Path.Combine(Path.GetTempPath(), "VioLens-preview");
-        Directory.CreateDirectory(folder);
-        foreach (var old in Directory.EnumerateFiles(folder, "preview-*.html"))
+        var path = Path.Combine(PreviewFolder.Value, $"preview-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.html");
+
+        // CreateNew: never into a file that's already there.
+        using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+        using var writer = new StreamWriter(file, new System.Text.UTF8Encoding(false));
+        writer.Write(Build(html, pageUrl, loadImagesAndStyles));
+        return path;
+    }
+
+    private static readonly Lazy<string> PreviewFolder = new(() =>
+    {
+        DeleteOldPreviews();
+        return Directory.CreateTempSubdirectory(PreviewFolderPrefix).FullName;
+    });
+
+    private const string PreviewFolderPrefix = "VioLens-preview-";
+
+    /// <summary>
+    /// Deletes previews over a day old in earlier runs' folders (and the
+    /// single shared folder earlier versions used), then those folders if
+    /// they're empty. Only files and empty folders: a folder that's really a
+    /// link, or that holds anything else, is left alone.
+    /// </summary>
+    private static void DeleteOldPreviews()
+    {
+        try
         {
-            try
+            foreach (var folder in Directory.EnumerateDirectories(Path.GetTempPath(), "VioLens-preview*"))
             {
-                if (File.GetLastWriteTimeUtc(old) < DateTime.UtcNow.AddDays(-1))
+                try
                 {
-                    File.Delete(old);
+                    if (new DirectoryInfo(folder).LinkTarget is not null)
+                    {
+                        continue;
+                    }
+
+                    foreach (var old in Directory.EnumerateFiles(folder, "preview-*.html"))
+                    {
+                        if (File.GetLastWriteTimeUtc(old) < DateTime.UtcNow.AddDays(-1))
+                        {
+                            File.Delete(old);
+                        }
+                    }
+
+                    if (!Directory.EnumerateFileSystemEntries(folder).Any() &&
+                        Directory.GetLastWriteTimeUtc(folder) < DateTime.UtcNow.AddDays(-1))
+                    {
+                        Directory.Delete(folder);
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    // Open in a browser, perhaps, or another account's; it
+                    // goes next time, or never.
                 }
             }
-            catch (IOException)
-            {
-                // Open in a browser, perhaps; it goes next time.
-            }
-            catch (UnauthorizedAccessException)
-            {
-            }
         }
-
-        var path = Path.Combine(folder, $"preview-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.html");
-        File.WriteAllText(path, Build(html, pageUrl, loadImagesAndStyles), new System.Text.UTF8Encoding(false));
-        return path;
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     // A <meta> tag read as browsers read it: attribute names, then values

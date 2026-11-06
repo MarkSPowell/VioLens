@@ -103,7 +103,7 @@ namespace Violens.ProxyHost.Client
 
             var arguments = "--pipe " + pipeName + " --token " + token + " --parent " + Process.GetCurrentProcess().Id;
             var startInfo = hostPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
-                ? new ProcessStartInfo("dotnet", "\"" + hostPath + "\" " + arguments)
+                ? new ProcessStartInfo(DotnetPath(), "\"" + hostPath + "\" " + arguments)
                 : new ProcessStartInfo(hostPath, arguments);
             startInfo.UseShellExecute = false;
             startInfo.CreateNoWindow = true;
@@ -139,6 +139,61 @@ namespace Violens.ProxyHost.Client
         /// sends it back, proving to this app that it's the process it
         /// started. A GUID's randomness isn't a documented guarantee.
         /// </summary>
+        /// <summary>
+        /// The full path of the <c>dotnet</c> that runs a host built as a
+        /// .dll: the one running this app if it's dotnet itself, then
+        /// DOTNET_ROOT's, then the first absolute PATH folder with one. Never
+        /// the bare name, which would also be looked for in the app's folder
+        /// and the current one, where another program could be waiting.
+        /// </summary>
+        private static string DotnetPath()
+        {
+            var name = Path.DirectorySeparatorChar == '\\' ? "dotnet.exe" : "dotnet";
+            using (var current = Process.GetCurrentProcess())
+            {
+                var running = current.MainModule?.FileName;
+                if (running != null && string.Equals(Path.GetFileName(running), name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return running;
+                }
+            }
+
+            var folders = new List<string>();
+            var dotnetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+            if (!string.IsNullOrEmpty(dotnetRoot))
+            {
+                folders.Add(dotnetRoot);
+            }
+
+            folders.AddRange((Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+                .Split(new[] { Path.PathSeparator }, StringSplitOptions.RemoveEmptyEntries));
+
+            foreach (var folder in folders)
+            {
+                var trimmed = folder.Trim().Trim('"');
+                if (!IsAbsolute(trimmed))
+                {
+                    continue;
+                }
+
+                var candidate = Path.Combine(trimmed, name);
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            throw new FileNotFoundException("The proxy host needs dotnet, which wasn't found.", name);
+        }
+
+        // Path.IsPathFullyQualified isn't in .NET Standard 2.0. On Windows,
+        // "C:\x" or "\\server\x"; "\x" and "C:x" depend on the current
+        // drive or folder.
+        private static bool IsAbsolute(string path) =>
+            Path.DirectorySeparatorChar == '\\'
+                ? (path.Length >= 3 && path[1] == ':' && (path[2] == '\\' || path[2] == '/')) || path.StartsWith("\\\\", StringComparison.Ordinal)
+                : path.StartsWith("/", StringComparison.Ordinal);
+
         private static string NewToken()
         {
             var bytes = new byte[16];

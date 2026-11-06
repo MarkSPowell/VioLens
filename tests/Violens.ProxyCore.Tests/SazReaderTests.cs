@@ -315,4 +315,46 @@ public class SazReaderTests
         Assert.Equal("/page?x=1", session.Request.Target);
         Assert.Equal("example.test:8080", ContentDecoder.FindHeader(session.Request.Headers, "Host"));
     }
+
+    [Fact]
+    public async Task ImportAsync_StopsReadingOnceTheArchiveExpandsPastTheLimit()
+    {
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            for (var i = 1; i <= 3; i++)
+            {
+                WriteRawEntry(archive, $"raw/{i}_c.txt", $"GET /{i} HTTP/1.1\r\nHost: a.test\r\n\r\n");
+                WriteRawEntry(archive, $"raw/{i}_s.txt", "HTTP/1.1 200 OK\r\nContent-Length: 40000\r\n\r\n" + new string('a', 40000));
+            }
+        }
+
+        zipStream.Position = 0;
+        var store = new SessionStore();
+
+        // Room for about two sessions.
+        var result = await SazReader.ImportAsync(zipStream, store, maxImportBytes: 90_000);
+
+        Assert.Equal(2, result.Imported);
+        Assert.Contains("#3", Assert.Single(result.Skipped));
+    }
+
+    [Fact]
+    public async Task ImportAsync_IgnoresAnOversizedMetadataFile()
+    {
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteRawEntry(archive, "raw/1_c.txt", "GET / HTTP/1.1\r\nHost: a.test\r\n\r\n");
+            WriteRawEntry(archive, "raw/1_s.txt", "HTTP/1.1 204 No Content\r\n\r\n");
+            WriteRawEntry(archive, "raw/1_m.xml", "<Session><!--" + new string('a', (int)SazReader.MaxMetadataBytes) + "--></Session>");
+        }
+
+        zipStream.Position = 0;
+        var store = new SessionStore();
+        var result = await SazReader.ImportAsync(zipStream, store);
+
+        Assert.Equal(1, result.Imported);
+        Assert.Null(Assert.Single(store.Snapshot()).Flags);
+    }
 }

@@ -132,14 +132,25 @@ internal sealed class Http2Stream
         return count;
     }
 
-    /// <summary>Reads the rest of the body.</summary>
-    public async Task<byte[]> ReadAllDataAsync(CancellationToken cancellationToken)
+    /// <summary>
+    /// Reads the rest of the body, refusing one larger than
+    /// <paramref name="maxBytes"/> (by default the same limit as HTTP/1's,
+    /// <see cref="Http.Http1MessageReader.MaxBufferedBodyBytes"/>).
+    /// </summary>
+    public async Task<byte[]> ReadAllDataAsync(
+        CancellationToken cancellationToken, long maxBytes = Http.Http1MessageReader.MaxBufferedBodyBytes)
     {
         using var output = new MemoryStream();
         var buffer = new byte[16384];
         int read;
         while ((read = await ReadDataAsync(buffer, cancellationToken)) > 0)
         {
+            if (output.Length + read > maxBytes)
+            {
+                throw new InvalidDataException(
+                    $"The body is larger than the {maxBytes / (1024 * 1024.0):0.#} MB VioLens holds in memory.");
+            }
+
             output.Write(buffer, 0, read);
         }
 

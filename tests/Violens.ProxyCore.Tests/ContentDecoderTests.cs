@@ -64,4 +64,10 @@ public class ContentDecoderTests
 
         return buffer.ToArray();
     }
+
+    [Theory]
+    [InlineData("text/html; charset=utf-7")]
+    [InlineData("text/html; charset=no-such-charset")]
+    public void DecodeTextFallsBackToUtf8ForACharsetItCantUse(string contentType) =>
+        Assert.Equal("héllo", ContentDecoder.DecodeText(Encoding.UTF8.GetBytes("héllo"), contentType));
 }

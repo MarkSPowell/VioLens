@@ -430,6 +430,26 @@ public class CompatShimUtilitiesTests
     }
 
     [Fact]
+    public void GzipExpandStopsAtTheSameLimitAsVioLensItself()
+    {
+        // 300 MB of zeros, a few hundred KB compressed.
+        var compressed = new MemoryStream();
+        using (var gzip = new GZipStream(compressed, CompressionLevel.Fastest, leaveOpen: true))
+        {
+            var zeros = new byte[1024 * 1024];
+            for (var i = 0; i < 300; i++)
+            {
+                gzip.Write(zeros);
+            }
+        }
+
+        var bomb = compressed.ToArray();
+
+        Assert.Empty(Utilities.GzipExpand(bomb));
+        Assert.ThrowsAny<IOException>(() => Utilities.GzipExpand(bomb, bThrowErrors: true));
+    }
+
+    [Fact]
     public void HexViewShowsBytesAndAscii()
     {
         var view = Utilities.ByteArrayToHexView(Encoding.ASCII.GetBytes("AB\u0001"), 4);

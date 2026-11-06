@@ -322,7 +322,52 @@ public sealed class InterceptingProxyListener
         // HTTPS request (the path is private), and the whole URL for HTTP.
         var authority = (host.Contains(':') ? $"[{host}]" : host) + (port == (isTls ? 443 : 80) ? string.Empty : $":{port}");
         var url = isTls ? $"https://{authority}/" : $"http://{authority}{target}";
-        return await autoConfig.GetRoutesAsync(url, host, cancellationToken);
+        return WithoutSelf(await autoConfig.GetRoutesAsync(url, host, cancellationToken));
+    }
+
+    /// <summary>
+    /// A PAC script's routes without any that lead back to VioLens itself
+    /// (this computer, on VioLens's port), which would send each request
+    /// round in a loop until connections ran out. The gateway and the
+    /// system's proxy are checked the same way when they're read. Direct if
+    /// nothing's left. Internal for tests.
+    /// </summary>
+    internal IReadOnlyList<UpstreamProxy?> WithoutSelf(IReadOnlyList<UpstreamProxy?> routes)
+    {
+        if (!routes.Any(IsSelfRoute))
+        {
+            return routes;
+        }
+
+        var kept = routes.Where(route => !IsSelfRoute(route)).ToList();
+        return kept.Count > 0 ? kept : DirectOnly;
+    }
+
+    private bool IsSelfRoute(UpstreamProxy? route) => route is not null && route.Port == Port && IsThisComputer(route.Host);
+
+    /// <summary>Whether <paramref name="host"/> names this computer: loopback, or one of its own addresses. Internal for tests.</summary>
+    internal static bool IsThisComputer(string host)
+    {
+        if (UpstreamProxy.IsLoopback(host))
+        {
+            return true;
+        }
+
+        if (!IPAddress.TryParse(host.Trim('[', ']'), out var address))
+        {
+            return false;
+        }
+
+        try
+        {
+            return System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+                .SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
+                .Any(unicast => unicast.Address.Equals(address));
+        }
+        catch (System.Net.NetworkInformation.NetworkInformationException)
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -638,13 +683,12 @@ public sealed class InterceptingProxyListener
             }
 
             // The server connection is opened later, only when needed. The
-            // tunnel's one target was checked above, so isRemoteClient is
-            // false for PumpSessionsAsync's own check; the identity still
-            // follows the real client.
+            // tunnel's one target was checked above; the connection checks
+            // the addresses it connects to again.
             await PumpSessionsAsync(
                 isTls: true, targetHost, targetPort, client, new ReadBufferedStream(clientTls), firstRequest: null, _sessionStore, _breakpointManager,
                 _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, ChooseRoutesAsync, ProxyCredentialFor(isRemoteClient), _proxyUrl, Port,
-                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient: false,
+                () => _leafProvider.IssuerCertificateDer, MaxCapturedBodyBytes, idleTimeout, UpstreamCertificateValidation, isRemoteClient,
                 ClientCertificateChooser(isRemoteClient), cancellationToken);
         }
         catch (BreakpointAbortedException ex)
@@ -717,7 +761,15 @@ public sealed class InterceptingProxyListener
                 var direct = new TcpClient { NoDelay = true };
                 try
                 {
-                    await direct.ConnectAsync(targetHost, targetPort, cancellationToken);
+                    // Resolved here, so a client on another computer is
+                    // checked against the addresses actually connected to.
+                    var addresses = await Dns.GetHostAddressesAsync(targetHost, cancellationToken);
+                    if (remoteClient)
+                    {
+                        RefuseOffLimitsAddresses(targetHost, addresses);
+                    }
+
+                    await direct.ConnectAsync(addresses, targetPort, cancellationToken);
                     return direct;
                 }
                 catch
@@ -742,9 +794,13 @@ public sealed class InterceptingProxyListener
     /// (<c>169.254.169.254</c>). This computer's own network addresses stay
     /// reachable: a phone testing a site served from it needs them, and what
     /// listens there is open to the network already. A name counts if it
-    /// resolves to one. A name that can't be resolved doesn't; connecting to
-    /// it fails anyway. The answer could change between here and the
-    /// connection (DNS rebinding), a narrow gap that remains.
+    /// resolves to one. This is the early check, which answers with an
+    /// explanation; a direct connection checks again, on the addresses it
+    /// connects to (<see cref="RefuseOffLimitsAddresses"/>), so a name that
+    /// resolves differently the second time (DNS rebinding) is still caught,
+    /// and one that can't be resolved there isn't connected to at all.
+    /// Through an upstream proxy, the proxy resolves the name, and its own
+    /// rules apply.
     /// </summary>
     internal static async Task<bool> IsOffLimitsToRemoteClientsAsync(string host, CancellationToken cancellationToken)
     {
@@ -773,21 +829,64 @@ public sealed class InterceptingProxyListener
         return addresses.Any(IsOffLimits);
     }
 
+    /// <summary>
+    /// Throws when any of <paramref name="addresses"/> is off-limits to a
+    /// client on another computer (see <see cref="IsOffLimits"/>), or there
+    /// are none. For the addresses a direct connection is about to use.
+    /// </summary>
+    internal static void RefuseOffLimitsAddresses(string host, IReadOnlyList<IPAddress> addresses)
+    {
+        if (addresses.Count == 0 || addresses.Any(IsOffLimits))
+        {
+            throw new OffLimitsException(
+                $"{host} is this computer, or a cloud metadata service, which other computers can't reach through {ProxyEngine.Identity.ProductName}.");
+        }
+    }
+
+    /// <summary>A direct connection a client on another computer may not make.</summary>
+    internal sealed class OffLimitsException(string message) : IOException(message);
+
+    // Cloud metadata services outside the link-local range: AWS's over
+    // IPv6, and Alibaba Cloud's.
+    private static readonly IPAddress[] MetadataAddresses = [IPAddress.Parse("fd00:ec2::254"), IPAddress.Parse("100.100.100.200")];
+
     internal static bool IsOffLimits(IPAddress address)
     {
-        if (address.IsIPv4MappedToIPv6)
-        {
-            address = address.MapToIPv4();
-        }
-
+        address = Unwrap(address);
         if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any) ||
-            address.IsIPv6LinkLocal)
+            address.IsIPv6LinkLocal || MetadataAddresses.Contains(address))
         {
             return true;
         }
 
         var bytes = address.GetAddressBytes();
         return bytes.Length == 4 && bytes[0] == 169 && bytes[1] == 254;
+    }
+
+    /// <summary>
+    /// The IPv4 address inside an IPv6 one that carries it: IPv4-mapped
+    /// (<c>::ffff:a.b.c.d</c>), IPv4-compatible (<c>::a.b.c.d</c>) or NAT64
+    /// (<c>64:ff9b::a.b.c.d</c>), so <c>::127.0.0.1</c> counts as loopback
+    /// and <c>64:ff9b::a9fe:a9fe</c> as the metadata address.
+    /// </summary>
+    private static IPAddress Unwrap(IPAddress address)
+    {
+        if (address.AddressFamily != AddressFamily.InterNetworkV6)
+        {
+            return address;
+        }
+
+        if (address.IsIPv4MappedToIPv6)
+        {
+            return address.MapToIPv4();
+        }
+
+        var bytes = address.GetAddressBytes();
+        var ipv4Compatible = bytes.AsSpan(0, 12).IndexOfAnyExcept((byte)0) < 0 && !IPAddress.IPv6Loopback.Equals(address) &&
+                             !IPAddress.IPv6Any.Equals(address);
+        var nat64 = bytes[0] == 0x00 && bytes[1] == 0x64 && bytes[2] == 0xff && bytes[3] == 0x9b &&
+                    bytes.AsSpan(4, 8).IndexOfAnyExcept((byte)0) < 0;
+        return ipv4Compatible || nat64 ? new IPAddress(bytes.AsSpan(12)) : address;
     }
 
     /// <summary>Drains a plain request's body, sends VioLens's own answer, and logs it.</summary>
@@ -845,9 +944,11 @@ public sealed class InterceptingProxyListener
         Func<string, X509Certificate2?> chooseClientCertificate,
         CancellationToken cancellationToken)
     {
-        // isRemoteClient: a plain connection from another computer, whose
-        // requests mustn't reach this computer's own loopback services (a
-        // CONNECT tunnel's one target is checked before it gets here).
+        // isRemoteClient: a connection from another computer, whose requests
+        // mustn't reach this computer's own loopback services. A plain
+        // connection's targets are checked here, per request (a CONNECT
+        // tunnel's one target is checked before it gets here), and the
+        // upstream checks the addresses it connects to either way.
         //
         // clientTls is the TLS stream for a CONNECT tunnel, or the plain
         // connection for http:// requests. A plain connection can carry
@@ -857,7 +958,8 @@ public sealed class InterceptingProxyListener
             sessionStore, breakpointManager, autoResponderRules, scriptRunner, extensionHost, sessionHost, proxyUrl, maxCapturedBodyBytes));
         var client = new Http1ClientExchange(clientConnection, clientTls);
         using var upstream = new Http1Upstream(
-            isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer, chooseClientCertificate: chooseClientCertificate);
+            isTls, targetHost, targetPort, chooseRoutes, proxyCredential, validateServer, chooseClientCertificate: chooseClientCertificate,
+            forRemoteClient: isRemoteClient);
         var pendingRequest = firstRequest;
 
         while (true)
@@ -961,7 +1063,8 @@ public sealed class InterceptingProxyListener
     private async Task ServeHttp2Async(
         Stream clientTls, string targetHost, int targetPort, TimeSpan idleTimeout, bool remoteClient, CancellationToken cancellationToken)
     {
-        await using var connection = await Http2Connection.AcceptAsync(clientTls, new Http2Settings(), cancellationToken);
+        var settings = new Http2Settings();
+        await using var connection = await Http2Connection.AcceptAsync(clientTls, settings, cancellationToken);
         var pipeline = new ExchangePipeline(new ExchangeServices(
             _sessionStore, _breakpointManager, _autoResponderRules, _scriptRunner, _extensionHost, _sessionHost, _proxyUrl, MaxCapturedBodyBytes));
         var validateServer = UpstreamCertificateValidation;
@@ -970,11 +1073,18 @@ public sealed class InterceptingProxyListener
             targetPort,
             offerHttp2 => new Http1Upstream(
                 isTls: true, targetHost, targetPort, ChooseRoutesAsync, ProxyCredentialFor(remoteClient), validateServer, offerHttp2,
-                ClientCertificateChooser(remoteClient)));
+                ClientCertificateChooser(remoteClient), forRemoteClient: remoteClient));
 
         var exchanges = new List<Task>();
         var inProgress = 0;
         var lastActivity = Environment.TickCount64;
+
+        // At most as many exchanges at once as the client may open streams.
+        // A stream the client resets stops counting against its limit at
+        // once, but its exchange (the request to the server) runs on, so
+        // this is what bounds the work. Not disposed: exchanges still running
+        // when this returns early release it afterwards.
+        var slots = new SemaphoreSlim(settings.MaxConcurrentStreams);
         while (true)
         {
             Http2Stream? stream;
@@ -1002,6 +1112,7 @@ public sealed class InterceptingProxyListener
                 break;
             }
 
+            await slots.WaitAsync(cancellationToken);
             Interlocked.Increment(ref inProgress);
             exchanges.RemoveAll(task => task.IsCompleted);
             exchanges.Add(Task.Run(async () =>
@@ -1014,6 +1125,7 @@ public sealed class InterceptingProxyListener
                 {
                     Volatile.Write(ref lastActivity, Environment.TickCount64);
                     Interlocked.Decrement(ref inProgress);
+                    slots.Release();
                 }
             }, CancellationToken.None));
         }

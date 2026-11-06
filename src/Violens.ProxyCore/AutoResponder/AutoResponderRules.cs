@@ -37,7 +37,7 @@ public sealed class AutoResponderRules
                 continue;
             }
 
-            var match = AutoResponderMatch.Parse(rule.MatchPattern);
+            var match = AutoResponderMatch.ParseCached(rule.MatchPattern);
             if (!match.Matches(method, url))
             {
                 continue;

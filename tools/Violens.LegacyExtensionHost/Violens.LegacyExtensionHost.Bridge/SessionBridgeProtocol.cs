@@ -1,4 +1,9 @@
+using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -14,7 +19,79 @@ public static class SessionBridgeProtocol
     /// Versioned in the name, so an incompatible build fails to connect
     /// rather than misbehaving; the two ends aren't always updated together.
     /// </summary>
-    public const string PipeName = "Violens.LegacyExtensionHost.SessionBridge.v1";
+    public const string BasePipeName = "Violens.LegacyExtensionHost.SessionBridge.v1";
+
+    private const string SecretFileName = "legacy-host-bridge.id";
+
+    private static readonly Lazy<string> CurrentPipeName = new(() =>
+        BasePipeName + "." + Process.GetCurrentProcess().SessionId.ToString(CultureInfo.InvariantCulture) + "." + AccountSecret(SecretFolder()));
+
+    /// <summary>
+    /// The pipe's name for this account in this logon session, which both
+    /// ends work out the same way. Pipe names are shared by every account on
+    /// the computer, so a fixed name could be taken first by another
+    /// account, leaving this one's extensions without their pipe. The name
+    /// ends in a random value kept in this account's own app data, which
+    /// other accounts can't read, so they can't know it in advance.
+    /// </summary>
+    public static string PipeName => CurrentPipeName.Value;
+
+    private static string SecretFolder() =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VioLens");
+
+    /// <summary>
+    /// The random value in <paramref name="folder"/>, made the first time
+    /// either end asks. Internal for tests.
+    /// </summary>
+    internal static string AccountSecret(string folder)
+    {
+        var path = Path.Combine(folder, SecretFileName);
+        if (TryRead(path) is { } existing)
+        {
+            return existing;
+        }
+
+        Directory.CreateDirectory(folder);
+        var bytes = new byte[16];
+        using (var random = RandomNumberGenerator.Create())
+        {
+            random.GetBytes(bytes);
+        }
+
+        var secret = BitConverter.ToString(bytes).Replace("-", string.Empty).ToLowerInvariant();
+        try
+        {
+            using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            var text = Encoding.ASCII.GetBytes(secret);
+            file.Write(text, 0, text.Length);
+            return secret;
+        }
+        catch (IOException)
+        {
+            // The app and the host started together, and the other one
+            // wrote it first; or what's there is damaged, and is replaced.
+            if (TryRead(path) is { } madeByTheOtherEnd)
+            {
+                return madeByTheOtherEnd;
+            }
+
+            File.WriteAllText(path, secret);
+            return secret;
+        }
+    }
+
+    private static string? TryRead(string path)
+    {
+        try
+        {
+            var text = File.ReadAllText(path).Trim();
+            return text.Length == 32 && text.All(Uri.IsHexDigit) ? text : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>How long to try connecting before deciding no host is there. Short, so traffic isn't held up.</summary>
     public const int ConnectTimeoutMilliseconds = 250;

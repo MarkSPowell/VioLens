@@ -17,6 +17,13 @@ namespace Violens.Extensibility.Inspection.Inspectors;
 /// </summary>
 public sealed class ImageInspector : IInspector
 {
+    /// <summary>
+    /// The most pixels an image may have to be drawn: about 256 MB once
+    /// decoded. A small file can declare any size, and drawing allocates for
+    /// every pixel it declares.
+    /// </summary>
+    internal const long MaxDisplayPixels = 64L * 1024 * 1024;
+
     public string Id => "violens.image";
 
     public string DisplayName => "ImageView";
@@ -52,6 +59,10 @@ public sealed class ImageInspector : IInspector
         if (TryGetDimensions(bytes, format, out var width, out var height))
         {
             parts.Add($"{width:N0} × {height:N0} pixels");
+            if (IsTooLargeToDisplay(bytes))
+            {
+                parts.Add($"too large to show (over {MaxDisplayPixels / (1024 * 1024)} megapixels)");
+            }
         }
 
         parts.Add($"{bytes.Length:N0} bytes");
@@ -68,6 +79,15 @@ public sealed class ImageInspector : IInspector
 
         return new ImageContent(bytes, mediaType, summary);
     }
+
+    /// <summary>
+    /// True when the image's header declares more than
+    /// <see cref="MaxDisplayPixels"/>, or a size that can't be right
+    /// (negative). The host doesn't draw these.
+    /// </summary>
+    internal static bool IsTooLargeToDisplay(byte[] bytes) =>
+        TryGetDimensions(bytes, DetectFormat(bytes), out var width, out var height) &&
+        (width < 0 || height < 0 || (long)width * height > MaxDisplayPixels);
 
     /// <summary>The image format named by the body's leading bytes, or null.</summary>
     public static string? DetectFormat(byte[] bytes)

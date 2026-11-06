@@ -62,7 +62,7 @@ internal static class MacOSCertificateTrust
     [SupportedOSPlatform("macos")]
     private static void RunSecurityCommand(string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("security")
+        var startInfo = new ProcessStartInfo(ExecutablePath.Find("security")!)
         {
             UseShellExecute = false,
             RedirectStandardOutput = true,

@@ -20,6 +20,12 @@ public sealed class ProxyAutoConfig : IDisposable
     private const int MaxCachedAnswers = 2000;
     private static readonly TimeSpan DownloadTimeout = TimeSpan.FromSeconds(30);
 
+    /// <summary>
+    /// The largest script VioLens will load. Real ones are a few hundred KB
+    /// at most; without a limit, a server could send one without end.
+    /// </summary>
+    internal const int MaxScriptBytes = 4 * 1024 * 1024;
+
     private readonly string? _scriptUrl;
     private readonly bool _autoDetect;
     private readonly UpstreamProxy? _fallback;
@@ -117,6 +123,7 @@ public sealed class ProxyAutoConfig : IDisposable
     private async Task<PacScript?> LoadAsync(Func<CancellationToken, Task<string>>? download, CancellationToken cancellationToken)
     {
         var url = _scriptUrl;
+        var discovered = false;
         try
         {
             if (_autoDetect)
@@ -125,6 +132,7 @@ public sealed class ProxyAutoConfig : IDisposable
                 if (found is not null)
                 {
                     url = found;
+                    discovered = true;
                 }
                 else if (url is null)
                 {
@@ -141,7 +149,7 @@ public sealed class ProxyAutoConfig : IDisposable
 
             var source = download is not null
                 ? await download(cancellationToken)
-                : await DownloadAsync(url, cancellationToken);
+                : await DownloadAsync(url, discovered, cancellationToken);
             var script = new PacScript(source, _host);
             SetDescription($"using the automatic proxy configuration script {url}");
             return script;
@@ -162,30 +170,92 @@ public sealed class ProxyAutoConfig : IDisposable
 
     /// <summary>
     /// Fetches the script directly, never through a proxy: while capturing,
-    /// the system proxy is VioLens itself. file:// URLs are read from disk.
+    /// the system proxy is VioLens itself. file:// URLs are read from disk,
+    /// but only when the user's own settings name them: a URL the network
+    /// offered (<paramref name="discovered"/>, from DHCP or DNS) must be
+    /// http or https, so the network can't point VioLens at a local file or
+    /// at a file share, which Windows would open by signing in to it as the
+    /// user. Internal for tests.
     /// </summary>
-    private static async Task<string> DownloadAsync(string url, CancellationToken cancellationToken)
+    internal static async Task<string> DownloadAsync(string url, bool discovered, CancellationToken cancellationToken)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
             throw new PacScriptException($"\"{url}\" isn't a URL");
         }
 
+        var isWeb = uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
+        if (discovered && !isWeb)
+        {
+            throw new PacScriptException($"the network offered \"{url}\", and only http and https scripts are used from the network");
+        }
+
         if (uri.IsFile)
         {
+            if (new FileInfo(uri.LocalPath).Length > MaxScriptBytes)
+            {
+                throw TooLarge();
+            }
+
             return await File.ReadAllTextAsync(uri.LocalPath, cancellationToken);
+        }
+
+        if (!isWeb)
+        {
+            throw new PacScriptException($"\"{url}\" isn't an http, https or file URL");
         }
 
         using var handler = new HttpClientHandler { UseProxy = false };
         using var client = new HttpClient(handler) { Timeout = DownloadTimeout };
-        using var response = await client.GetAsync(uri, cancellationToken);
+        using var response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             throw new PacScriptException($"the server answered {(int)response.StatusCode} {response.ReasonPhrase}");
         }
 
-        return await response.Content.ReadAsStringAsync(cancellationToken);
+        if (response.Content.Headers.ContentLength > MaxScriptBytes)
+        {
+            throw TooLarge();
+        }
+
+        // Read with a limit as it arrives: Content-Length may be missing,
+        // or wrong.
+        using var kept = new MemoryStream();
+        await using (var body = await response.Content.ReadAsStreamAsync(cancellationToken))
+        {
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await body.ReadAsync(buffer, cancellationToken)) > 0)
+            {
+                if (kept.Length + read > MaxScriptBytes)
+                {
+                    throw TooLarge();
+                }
+
+                kept.Write(buffer, 0, read);
+            }
+        }
+
+        kept.Position = 0;
+        using var reader = new StreamReader(kept, CharsetOf(response), detectEncodingFromByteOrderMarks: true);
+        return await reader.ReadToEndAsync(cancellationToken);
     }
+
+    private static System.Text.Encoding CharsetOf(HttpResponseMessage response)
+    {
+        var charset = response.Content.Headers.ContentType?.CharSet?.Trim('"', ' ');
+        try
+        {
+            return string.IsNullOrEmpty(charset) ? System.Text.Encoding.UTF8 : System.Text.Encoding.GetEncoding(charset);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            return System.Text.Encoding.UTF8;
+        }
+    }
+
+    private static PacScriptException TooLarge() =>
+        new($"the script is larger than the {MaxScriptBytes / (1024 * 1024)} MB VioLens accepts");
 
     private void SetDescription(string description)
     {

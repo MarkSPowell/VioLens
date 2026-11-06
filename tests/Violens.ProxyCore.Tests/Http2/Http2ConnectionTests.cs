@@ -83,6 +83,26 @@ public class Http2ConnectionTests
     }
 
     [Fact]
+    public async Task ReadAllDataRefusesABodyLargerThanTheLimit()
+    {
+        await using var server = new Http2TestServer(async stream =>
+        {
+            await stream.ReadHeadersAsync(CancellationToken.None);
+            await stream.WriteHeadersAsync([(":status", "200")], endStream: false, CancellationToken.None);
+            await stream.WriteDataAsync(new byte[200_000], endStream: true, CancellationToken.None);
+        });
+        var (client, socket) = await ConnectAsync(server.Port);
+        using var _ = socket;
+        await using var __ = client;
+
+        var stream = await client.OpenStreamAsync(Request("GET", "/big", server.Port), endStream: true, CancellationToken.None);
+        await stream.ReadHeadersAsync(CancellationToken.None).WaitAsync(Wait);
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            stream.ReadAllDataAsync(CancellationToken.None, maxBytes: 100_000).WaitAsync(Wait));
+    }
+
+    [Fact]
     public async Task ManyStreamsAtOnceStayWithinTheServersLimit()
     {
         var active = 0;
@@ -292,7 +312,59 @@ public class Http2ConnectionTests
         { "unknown pseudo-header", [(":method", "GET"), (":scheme", "https"), (":path", "/"), (":foo", "bar")], null },
         { "content-length bigger than the body", [(":method", "POST"), (":scheme", "https"), (":path", "/"), ("content-length", "10")], "short"u8.ToArray() },
         { "content-length smaller than the body", [(":method", "POST"), (":scheme", "https"), (":path", "/"), ("content-length", "2")], "longer"u8.ToArray() },
+
+        // These would split the request line when it goes on over HTTP/1.1.
+        { "CR LF in :path", [(":method", "GET"), (":scheme", "https"), (":path", "/a HTTP/1.1\r\nHost: evil.test\r\n\r\nGET /b"), (":authority", "example.test")], null },
+        { "LF in :method", [(":method", "GET\n"), (":scheme", "https"), (":path", "/"), (":authority", "example.test")], null },
+        { "CR in :authority", [(":method", "GET"), (":scheme", "https"), (":path", "/"), (":authority", "example.test\r")], null },
+        { "space in :method", [(":method", "GET /x"), (":scheme", "https"), (":path", "/"), (":authority", "example.test")], null },
+        { "space in :path", [(":method", "GET"), (":scheme", "https"), (":path", "/a b"), (":authority", "example.test")], null },
+        { ":path not starting with /", [(":method", "GET"), (":scheme", "https"), (":path", "a"), (":authority", "example.test")], null },
     };
+
+    [Fact]
+    public async Task ClosesAConnectionWhoseClientResetsTooManyStreams()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var server = new Http2TestServer(
+            async stream =>
+            {
+                await stream.ReadHeadersAsync(CancellationToken.None);
+                await release.Task;
+            },
+            new Http2Settings { MaxPeerResetsPerWindow = 20 });
+        await using var raw = await RawHttp2Client.ConnectAsync(server.Port);
+
+        // Open a stream and reset it at once, over and over: each stays
+        // within the concurrent-stream limit, but the work behind it doesn't stop.
+        for (var id = 1; id < 2 * 50; id += 2)
+        {
+            await raw.WriteAsync(Http2FrameCodec.Headers(id, raw.Encode(RawHttp2Client.Get()), endStream: true, 16384));
+            await raw.WriteAsync(Http2FrameCodec.RstStream(id, Http2ErrorCode.Cancel));
+        }
+
+        Assert.Equal(Http2ErrorCode.EnhanceYourCalm, await raw.ReadGoAwayAsync());
+        release.SetResult();
+    }
+
+    [Fact]
+    public async Task AFewResetsAreFine()
+    {
+        await using var server = new Http2TestServer(Http2TestServer.EchoAsync, new Http2Settings { MaxPeerResetsPerWindow = 20 });
+        await using var raw = await RawHttp2Client.ConnectAsync(server.Port);
+
+        for (var id = 1; id < 2 * 10; id += 2)
+        {
+            await raw.WriteAsync(Http2FrameCodec.Headers(id, raw.Encode(RawHttp2Client.Get()), endStream: false, 16384));
+            await raw.WriteAsync(Http2FrameCodec.RstStream(id, Http2ErrorCode.Cancel));
+        }
+
+        await raw.WriteAsync(Http2FrameCodec.Headers(101, raw.Encode(RawHttp2Client.Get("/after")), endStream: true, 16384));
+        var response = await raw.ReadUntilAsync(f => (f.Type == Http2FrameType.Headers && f.StreamId == 101) || f.Type == Http2FrameType.GoAway);
+
+        Assert.NotNull(response);
+        Assert.Equal(Http2FrameType.Headers, response.Type);
+    }
 
     [Fact]
     public async Task ResetsAStreamThatDependsOnItself()

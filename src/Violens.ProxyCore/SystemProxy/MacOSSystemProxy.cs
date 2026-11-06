@@ -378,7 +378,7 @@ internal static class MacOSSystemProxy
     [SupportedOSPlatform("macos")]
     private static string RunNetworkSetupCommand(string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("networksetup")
+        var startInfo = new ProcessStartInfo(ExecutablePath.Find("networksetup")!)
         {
             UseShellExecute = false,
             RedirectStandardOutput = true,

@@ -91,9 +91,16 @@ public sealed class WebSocketLog
     /// </summary>
     public const long MaxStoredBytes = 64L * 1024 * 1024;
 
+    /// <summary>
+    /// Messages recorded before later ones are only counted, so a stream
+    /// of tiny messages can't use up memory either.
+    /// </summary>
+    internal const int MaxStoredMessages = 100_000;
+
     private readonly object _gate = new();
     private readonly List<WebSocketMessage> _messages = [];
     private long _storedBytes;
+    private long _notRecorded;
     private DateTimeOffset? _closedAt;
     private string? _problem;
 
@@ -182,6 +189,17 @@ public sealed class WebSocketLog
         WebSocketMessage message;
         lock (_gate)
         {
+            if (_messages.Count >= MaxStoredMessages)
+            {
+                // Still numbered and returned, so callers carry on as usual,
+                // but not kept or announced.
+                _notRecorded++;
+                _problem ??= $"Only the first {MaxStoredMessages:N0} messages were recorded; the connection carried on, and later messages passed through unrecorded.";
+                return new WebSocketMessage(
+                    (int)Math.Min(_messages.Count + _notRecorded, int.MaxValue), direction, time ?? DateTimeOffset.Now,
+                    kind, length, [], compressed, payload.Length > 0, note);
+            }
+
             if (_storedBytes + payload.Length > MaxStoredBytes && payload.Length > 0)
             {
                 note ??= "Not kept: this connection's messages reached the size kept for each connection.";
@@ -197,6 +215,18 @@ public sealed class WebSocketLog
 
         MessageAdded?.Invoke(message);
         return message;
+    }
+
+    /// <summary>Messages that passed through after <see cref="MaxStoredMessages"/> were recorded.</summary>
+    internal long NotRecorded
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _notRecorded;
+            }
+        }
     }
 
     /// <summary>Records that the messages can't be followed any more (see <see cref="Problem"/>).</summary>

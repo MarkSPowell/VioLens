@@ -23,6 +23,14 @@ internal static class Http1MessageReader
     /// <summary>The most bytes one message's header lines may total.</summary>
     public const int MaxHeaderBytes = 256 * 1024;
 
+    /// <summary>
+    /// The largest body read into memory whole (for a breakpoint, a rule, or
+    /// an imported session). Applies to every framing: Content-Length,
+    /// chunked, and a response that runs until the connection closes.
+    /// Relayed bodies aren't limited; only what's kept of them is.
+    /// </summary>
+    public const long MaxBufferedBodyBytes = 256 * 1024 * 1024;
+
     // Content-Length bodies relay in pieces this size, so large downloads
     // stream rather than buffer.
     private const int RelayBufferSize = 64 * 1024;
@@ -104,12 +112,15 @@ internal static class Http1MessageReader
 
     /// <summary>Reads a body into memory.</summary>
     public static Task<byte[]> ReadBodyAsync(
-        Stream source, IReadOnlyList<(string Name, string Value)> headers, CancellationToken cancellationToken)
+        Stream source,
+        IReadOnlyList<(string Name, string Value)> headers,
+        CancellationToken cancellationToken,
+        long maxBytes = MaxBufferedBodyBytes)
     {
         var transferEncoding = FindHeader(headers, "Transfer-Encoding");
         if (transferEncoding is not null && transferEncoding.Contains("chunked", StringComparison.OrdinalIgnoreCase))
         {
-            return ReadChunkedBodyAsync(source, cancellationToken);
+            return ReadChunkedBodyAsync(source, maxBytes, cancellationToken);
         }
 
         var contentLengthText = FindHeader(headers, "Content-Length");
@@ -122,7 +133,7 @@ internal static class Http1MessageReader
 
             return contentLength == 0
                 ? Task.FromResult(Array.Empty<byte>())
-                : ReadExactAsync(source, contentLength, cancellationToken);
+                : ReadExactAsync(source, contentLength, maxBytes, cancellationToken);
         }
 
         // Neither header: no body.
@@ -191,8 +202,13 @@ internal static class Http1MessageReader
     /// until the connection closes rather than treated as empty.
     /// </summary>
     public static Task<byte[]> ReadResponseBodyAsync(
-        Stream source, IReadOnlyList<(string Name, string Value)> headers, CancellationToken cancellationToken) =>
-        IsCloseDelimited(headers) ? ReadToEndAsync(source, cancellationToken) : ReadBodyAsync(source, headers, cancellationToken);
+        Stream source,
+        IReadOnlyList<(string Name, string Value)> headers,
+        CancellationToken cancellationToken,
+        long maxBytes = MaxBufferedBodyBytes) =>
+        IsCloseDelimited(headers)
+            ? ReadToEndAsync(source, maxBytes, cancellationToken)
+            : ReadBodyAsync(source, headers, cancellationToken, maxBytes);
 
     /// <summary>
     /// Relays a response body: like <see cref="RelayBodyAsync"/>, except that
@@ -304,12 +320,29 @@ internal static class Http1MessageReader
         }
     }
 
-    private static async Task<byte[]> ReadToEndAsync(Stream source, CancellationToken cancellationToken)
+    private static async Task<byte[]> ReadToEndAsync(Stream source, long maxBytes, CancellationToken cancellationToken)
     {
         using var body = new MemoryStream();
-        await CopyUntilClosedAsync(source, body, cancellationToken);
-        return body.ToArray();
+        var buffer = new byte[RelayBufferSize];
+        while (true)
+        {
+            var read = await ReadOrEndAsync(source, buffer, cancellationToken);
+            if (read == 0)
+            {
+                return body.ToArray();
+            }
+
+            if (body.Length + read > maxBytes)
+            {
+                throw TooLarge(maxBytes);
+            }
+
+            body.Write(buffer, 0, read);
+        }
     }
+
+    private static InvalidDataException TooLarge(long maxBytes) =>
+        new($"The body is larger than the {maxBytes / (1024 * 1024.0):0.#} MB VioLens holds in memory.");
 
     private static async Task<RelayedBody> RelayToEndAsync(
         Stream source, Stream destination, CaptureBuffer capture, CancellationToken cancellationToken)
@@ -325,21 +358,6 @@ internal static class Http1MessageReader
 
             await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
             capture.Append(buffer.AsSpan(0, read));
-        }
-    }
-
-    private static async Task CopyUntilClosedAsync(Stream source, Stream destination, CancellationToken cancellationToken)
-    {
-        var buffer = new byte[RelayBufferSize];
-        while (true)
-        {
-            var read = await ReadOrEndAsync(source, buffer, cancellationToken);
-            if (read == 0)
-            {
-                return;
-            }
-
-            destination.Write(buffer, 0, read);
         }
     }
 
@@ -391,7 +409,7 @@ internal static class Http1MessageReader
         return headers;
     }
 
-    private static async Task<byte[]> ReadChunkedBodyAsync(Stream source, CancellationToken cancellationToken)
+    private static async Task<byte[]> ReadChunkedBodyAsync(Stream source, long maxBytes, CancellationToken cancellationToken)
     {
         using var body = new MemoryStream();
         while (true)
@@ -420,7 +438,12 @@ internal static class Http1MessageReader
                 break;
             }
 
-            var chunk = await ReadExactAsync(source, size, cancellationToken);
+            if (body.Length + size > maxBytes)
+            {
+                throw TooLarge(maxBytes);
+            }
+
+            var chunk = await ReadExactAsync(source, size, maxBytes, cancellationToken);
             body.Write(chunk);
 
             var terminator = await ReadLineAsync(source, allowImmediateEof: false, cancellationToken);
@@ -560,11 +583,11 @@ internal static class Http1MessageReader
     // The buffer grows as bytes arrive rather than being sized from the
     // declared length up front, so a large claim with little behind it
     // costs only what's actually sent.
-    private static async Task<byte[]> ReadExactAsync(Stream source, long count, CancellationToken cancellationToken)
+    private static async Task<byte[]> ReadExactAsync(Stream source, long count, long maxBytes, CancellationToken cancellationToken)
     {
-        if (count > Array.MaxLength)
+        if (count > Math.Min(maxBytes, Array.MaxLength))
         {
-            throw new InvalidDataException($"A body of {count} bytes is too large to hold in memory.");
+            throw TooLarge(Math.Min(maxBytes, Array.MaxLength));
         }
 
         var buffer = new byte[(int)Math.Min(count, RelayBufferSize)];

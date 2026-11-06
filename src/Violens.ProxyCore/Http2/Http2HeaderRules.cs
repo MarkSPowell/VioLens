@@ -27,6 +27,12 @@ internal static class Http2HeaderRules
         ":protocol",
     };
 
+    // RFC 9110 section 5.6.2.
+    private static bool IsTokenCharacter(char c) =>
+        char.IsAsciiLetterOrDigit(c) || "!#$%&'*+-.^_`|~".Contains(c);
+
+    private static bool IsSpaceOrControl(char c) => c <= ' ' || c == 0x7F;
+
     /// <summary>Why a request's header block is malformed, or null if it isn't.</summary>
     public static string? CheckRequest(IReadOnlyList<(string Name, string Value)> headers)
     {
@@ -56,6 +62,24 @@ internal static class Http2HeaderRules
             if (name == ":path" && value.Length == 0)
             {
                 return "':path' is empty.";
+            }
+
+            // Section 8.3.1: a method is a token, and a path is origin-form
+            // ("/...") or "*". Neither has spaces, which would also break up
+            // the HTTP/1.1 request line.
+            if (name == ":method" && (value.Length == 0 || !value.All(IsTokenCharacter)))
+            {
+                return "':method' isn't a token.";
+            }
+
+            if (name == ":path" && ((value[0] != '/' && value != "*") || value.Any(IsSpaceOrControl)))
+            {
+                return $"':path' isn't a path: '{value}'.";
+            }
+
+            if (name is ":scheme" or ":authority" or ":protocol" && value.Any(IsSpaceOrControl))
+            {
+                return $"'{name}' has a space or control character.";
             }
         }
 
@@ -154,6 +178,14 @@ internal static class Http2HeaderRules
                 return "A field has an empty name.";
             }
 
+            // Pseudo-headers too: their values become the HTTP/1.1 request
+            // line when the request goes on over HTTP/1.1, where a line
+            // break would start a second request.
+            if (value.Contains('\0') || value.Contains('\r') || value.Contains('\n'))
+            {
+                return $"The value of '{name}' has NUL, CR or LF.";
+            }
+
             if (name[0] == ':')
             {
                 if (!allowPseudo)
@@ -191,11 +223,6 @@ internal static class Http2HeaderRules
             if (name == "te" && !string.Equals(value, "trailers", StringComparison.Ordinal))
             {
                 return "'te' may only be 'trailers'.";
-            }
-
-            if (value.Contains('\0') || value.Contains('\r') || value.Contains('\n'))
-            {
-                return $"The value of '{name}' has NUL, CR or LF.";
             }
         }
 

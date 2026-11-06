@@ -35,7 +35,7 @@ internal static class SessionBridgeServer
             thread.Start();
         }
 
-        log($"[SessionBridge] Listening on pipe \"{SessionBridgeProtocol.PipeName}\" ({InstanceCount} concurrent instances, {tampers.Count} AutoTamper extension(s) loaded).");
+        log($"[SessionBridge] Listening on pipe \"{SessionBridgeProtocol.BasePipeName}.*\" ({InstanceCount} concurrent instances, {tampers.Count} AutoTamper extension(s) loaded).");
     }
 
     /// <summary>

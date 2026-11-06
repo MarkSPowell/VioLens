@@ -17,6 +17,17 @@ namespace Violens.ProxyCore.Sessions;
 /// </summary>
 public static class SazReader
 {
+    /// <summary>
+    /// The most one import reads out of an archive, all sessions together.
+    /// Each message is also limited on its own (see
+    /// <see cref="Http1MessageReader.MaxBufferedBodyBytes"/>), but a small
+    /// archive can hold many entries that each expand to that.
+    /// </summary>
+    internal const long MaxImportBytes = 4L * 1024 * 1024 * 1024;
+
+    /// <summary>The largest _m.xml read: it holds only flags and timers.</summary>
+    internal const long MaxMetadataBytes = 1024 * 1024;
+
     public static async Task<SazImportResult> ImportAsync(
         string path, SessionStore sessionStore, CancellationToken cancellationToken = default)
     {
@@ -25,23 +36,37 @@ public static class SazReader
         return await ImportAsync(stream, sessionStore, cancellationToken);
     }
 
-    public static async Task<SazImportResult> ImportAsync(
-        Stream source, SessionStore sessionStore, CancellationToken cancellationToken = default)
+    public static Task<SazImportResult> ImportAsync(
+        Stream source, SessionStore sessionStore, CancellationToken cancellationToken = default) =>
+        ImportAsync(source, sessionStore, MaxImportBytes, cancellationToken);
+
+    /// <summary>Like the public overload, with the total limit given. Internal for tests.</summary>
+    internal static async Task<SazImportResult> ImportAsync(
+        Stream source, SessionStore sessionStore, long maxImportBytes, CancellationToken cancellationToken = default)
     {
         using var archive = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true);
 
         var imported = 0;
         var skipped = new List<string>();
+        var budget = new ReadBudget(maxImportBytes);
+        var outOfBudget = false;
 
         foreach (var number in FindSessionNumbers(archive))
         {
+            if (outOfBudget)
+            {
+                skipped.Add($"#{number}: not read, because the archive's sessions so far add up to more than {maxImportBytes / (1024 * 1024)} MB");
+                continue;
+            }
+
             try
             {
-                await ImportOneAsync(archive, number, sessionStore, cancellationToken);
+                await ImportOneAsync(archive, number, sessionStore, budget, cancellationToken);
                 imported++;
             }
             catch (Exception ex)
             {
+                outOfBudget = ex is ReadLimitExceededException;
                 skipped.Add($"#{number}: {ex.Message}");
             }
         }
@@ -50,7 +75,7 @@ public static class SazReader
     }
 
     private static async Task ImportOneAsync(
-        ZipArchive archive, int number, SessionStore sessionStore, CancellationToken cancellationToken)
+        ZipArchive archive, int number, SessionStore sessionStore, ReadBudget budget, CancellationToken cancellationToken)
     {
         var requestEntry = archive.GetEntry($"raw/{number}_c.txt")
             ?? throw new InvalidDataException($"missing request file (raw/{number}_c.txt)");
@@ -58,7 +83,7 @@ public static class SazReader
             ?? throw new InvalidDataException($"missing response file (raw/{number}_s.txt)");
 
         CapturedRequest request;
-        await using (var requestStream = requestEntry.Open())
+        await using (var requestStream = ReadLimit.Limit(requestEntry.Open(), budget))
         {
             request = await Http1MessageReader.ReadRequestAsync(requestStream, cancellationToken)
                 ?? throw new InvalidDataException("request file was empty");
@@ -67,7 +92,7 @@ public static class SazReader
         request = request with { HttpVersion = HttpVersions.Normalize(request.HttpVersion) };
 
         CapturedResponse response;
-        await using (var responseStream = responseEntry.Open())
+        await using (var responseStream = ReadLimit.Limit(responseEntry.Open(), budget))
         {
             // Content-Length is always present in VioLens's own archives, and a
             // response without one is read to the end of its entry, so HEAD doesn't
@@ -135,7 +160,7 @@ public static class SazReader
 
         try
         {
-            using var stream = metadataEntry.Open();
+            using var stream = ReadLimit.Limit(metadataEntry.Open(), new ReadBudget(MaxMetadataBytes));
             var flags = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var flag in XDocument.Load(stream).Root?.Element("SessionFlags")?.Elements("SessionFlag") ?? [])
             {
@@ -147,7 +172,7 @@ public static class SazReader
 
             return flags.Count > 0 ? flags : null;
         }
-        catch (System.Xml.XmlException)
+        catch (Exception ex) when (ex is System.Xml.XmlException or ReadLimitExceededException)
         {
             return null;
         }
@@ -243,7 +268,7 @@ public static class SazReader
 
         try
         {
-            using var stream = metadataEntry.Open();
+            using var stream = ReadLimit.Limit(metadataEntry.Open(), new ReadBudget(MaxMetadataBytes));
             var timers = XDocument.Load(stream).Root?.Element("SessionTimers");
             DateTimeOffset? At(string name) =>
                 timers?.Attribute(name)?.Value is { } text &&

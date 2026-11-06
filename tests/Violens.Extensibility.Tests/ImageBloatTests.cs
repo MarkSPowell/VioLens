@@ -193,4 +193,20 @@ public class ImageBloatTests
         Assert.Contains("Bloat: 22 /", image.Summary);
         Assert.Contains("Text 22", image.Summary);
     }
+
+    [Theory]
+    [InlineData(100, 100, false)]
+    [InlineData(8192, 8192, false)]
+    [InlineData(30000, 30000, true)]
+    [InlineData(-1, 10, true)]
+    public void AnImageThatDeclaresTooManyPixelsIsntDrawn(int width, int height, bool tooLarge)
+    {
+        // Just a PNG header: the size is whatever it claims.
+        var png = new byte[33];
+        new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, (byte)'I', (byte)'H', (byte)'D', (byte)'R' }.CopyTo(png, 0);
+        BinaryPrimitives.WriteInt32BigEndian(png.AsSpan(16), width);
+        BinaryPrimitives.WriteInt32BigEndian(png.AsSpan(20), height);
+
+        Assert.Equal(tooLarge, ImageInspector.IsTooLargeToDisplay(png));
+    }
 }

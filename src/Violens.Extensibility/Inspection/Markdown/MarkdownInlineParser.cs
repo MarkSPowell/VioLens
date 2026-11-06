@@ -110,7 +110,7 @@ internal sealed class MarkdownInlineParser
 
                 case '<':
                 {
-                    var close = _text.IndexOf('>', i + 1, end - i - 1);
+                    var close = FindAngleClose(i + 1, end, autolink: true);
                     if (close > i + 1)
                     {
                         var inner = _text[(i + 1)..close];
@@ -269,7 +269,7 @@ internal sealed class MarkdownInlineParser
         var destination = new StringBuilder();
         if (p < end && _text[p] == '<')
         {
-            var close = _text.IndexOf('>', p + 1, end - p - 1);
+            var close = FindAngleClose(p + 1, end, autolink: false);
             if (close < 0)
             {
                 return false;
@@ -449,5 +449,35 @@ internal sealed class MarkdownInlineParser
         }
 
         return text.ToString();
+    }
+
+    /// <summary>
+    /// The <c>&gt;</c> closing a <c>&lt;</c> just before
+    /// <paramref name="from"/>, or -1. An autolink can't contain whitespace
+    /// or another <c>&lt;</c>, and a link destination in angle brackets can't
+    /// contain a line break or an unescaped <c>&lt;</c> (CommonMark), so the
+    /// search stops at those. A run of <c>&lt;</c> with no <c>&gt;</c> then
+    /// costs a step for each, rather than a search to the end of the text
+    /// for each.
+    /// </summary>
+    private int FindAngleClose(int from, int end, bool autolink)
+    {
+        end = Math.Min(end, from + MaxSearch);
+        for (var i = from; i < end; i++)
+        {
+            var c = _text[i];
+            if (c == '>')
+            {
+                return i;
+            }
+
+            var unescapedOpen = c == '<' && (autolink || _text[i - 1] != '\\');
+            if (unescapedOpen || c == '\n' || (autolink && char.IsWhiteSpace(c)))
+            {
+                return -1;
+            }
+        }
+
+        return -1;
     }
 }

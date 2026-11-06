@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Violens.Extensibility.Tests" />
+    <InternalsVisibleTo Include="Violens.DesktopUi" />
   </ItemGroup>
 
   <ItemGroup>

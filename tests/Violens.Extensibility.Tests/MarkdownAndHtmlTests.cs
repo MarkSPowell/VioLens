@@ -181,6 +181,29 @@ public class MarkdownAndHtmlTests
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), $"took {timer.Elapsed}");
     }
 
+    [Theory]
+    [InlineData("<")]
+    [InlineData("](<")]
+    public void ARunOfOpeningAngleBracketsStaysFast(string unit)
+    {
+        // Each '<' used to search the rest of the text for a '>'.
+        var text = string.Concat(Enumerable.Repeat(unit, 400_000));
+        var timer = Stopwatch.StartNew();
+
+        MarkdownParser.Parse(text);
+
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), $"took {timer.Elapsed}");
+    }
+
+    [Fact]
+    public void AutolinksAndAngleBracketDestinationsStillWork()
+    {
+        Assert.Equal(
+            "a <a https://example.test/x>https://example.test/x</a> and <a /a b>c</a>",
+            Show("a <https://example.test/x> and [c](</a b>)"));
+        Assert.Equal("<not a link>", Show("<not a link>"));
+    }
+
     // ---- Markdown inspector ----
 
     [Theory]
@@ -307,6 +330,35 @@ public class MarkdownAndHtmlTests
         {
             Assert.StartsWith("preview-", Path.GetFileName(path));
             Assert.Contains("Content-Security-Policy", File.ReadAllText(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void ThePreviewFolderIsntOneAnotherAccountCouldMakeFirst()
+    {
+        // The shared, fixed-name folder earlier versions used, made ahead of
+        // time as another account on a shared temp folder could.
+        Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "VioLens-preview"));
+
+        var path = HtmlPreview.WriteFile("<p>hi</p>", null, loadImagesAndStyles: false);
+        try
+        {
+            var folder = Path.GetDirectoryName(path)!;
+            Assert.NotEqual("VioLens-preview", Path.GetFileName(folder));
+            Assert.StartsWith("VioLens-preview-", Path.GetFileName(folder));
+            if (!OperatingSystem.IsWindows())
+            {
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, File.GetUnixFileMode(folder));
+            }
+
+            // Later previews in this run share the folder.
+            var second = HtmlPreview.WriteFile("<p>again</p>", null, loadImagesAndStyles: false);
+            Assert.Equal(folder, Path.GetDirectoryName(second));
+            File.Delete(second);
         }
         finally
         {

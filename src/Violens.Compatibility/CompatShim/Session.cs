@@ -398,9 +398,10 @@ public class Session
             {
                 return Encoding.GetEncoding(charset);
             }
-            catch (ArgumentException)
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
             {
-                // Unknown charset label: fall back to UTF-8, as a browser would.
+                // Unknown or unsupported charset label (utf-7, for one):
+                // fall back to UTF-8, as a browser would.
             }
         }
 
@@ -444,8 +445,6 @@ public class Session
     {
         using var source = new MemoryStream(input);
         using var decompressor = wrap(source);
-        using var output = new MemoryStream();
-        decompressor.CopyTo(output);
-        return output.ToArray();
+        return Violens.ProxyCore.Http.ReadLimit.ReadAll(decompressor, Violens.ProxyCore.Http.ContentDecoder.MaxDecodedBytes);
     }
 }

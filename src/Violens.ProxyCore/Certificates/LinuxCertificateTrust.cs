@@ -311,7 +311,10 @@ internal static class LinuxCertificateTrust
     [SupportedOSPlatform("linux")]
     private static string RunCertutil(string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("certutil")
+        // By full path; a bare name would also be looked for in the app's
+        // folder and the current one. Missing is the same as not installed.
+        var certutil = ExecutablePath.Find("certutil");
+        var startInfo = new ProcessStartInfo(certutil ?? "certutil")
         {
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -327,7 +330,7 @@ internal static class LinuxCertificateTrust
         Process? process;
         try
         {
-            process = Process.Start(startInfo);
+            process = certutil is null ? null : Process.Start(startInfo);
         }
         catch (System.ComponentModel.Win32Exception)
         {

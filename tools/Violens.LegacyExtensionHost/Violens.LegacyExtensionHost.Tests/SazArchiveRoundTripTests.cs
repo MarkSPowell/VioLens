@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using Violens.CompatShim;
 using Xunit;
@@ -111,5 +112,40 @@ public sealed class SazArchiveRoundTripTests : IDisposable
         var result = Utilities.ReadSessionArchive(missingFile, decrypt: false);
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public void Read_SkipsASessionWhoseEntryExpandsPastTheLimit()
+    {
+        using (var archive = ZipFile.Open(_tempFile, ZipArchiveMode.Create))
+        {
+            // Session 1's response is a ZIP bomb: small in the archive,
+            // larger than the 128 MB limit once expanded.
+            AddEntry(archive, "raw/1_c.txt", Encoding.ASCII.GetBytes("GET / HTTP/1.1\r\nHost: a.example\r\n\r\n"));
+            using (var stream = archive.CreateEntry("raw/1_s.txt", CompressionLevel.Optimal).Open())
+            {
+                var head = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\n\r\n");
+                stream.Write(head, 0, head.Length);
+                var zeros = new byte[1024 * 1024];
+                for (var i = 0; i < 129; i++)
+                {
+                    stream.Write(zeros, 0, zeros.Length);
+                }
+            }
+
+            AddEntry(archive, "raw/2_c.txt", Encoding.ASCII.GetBytes("GET / HTTP/1.1\r\nHost: b.example\r\n\r\n"));
+            AddEntry(archive, "raw/2_s.txt", Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok"));
+        }
+
+        var sessions = Utilities.ReadSessionArchive(_tempFile, decrypt: false);
+
+        var session = Assert.Single(sessions);
+        Assert.Equal("b.example", session.host);
+    }
+
+    private static void AddEntry(ZipArchive archive, string name, byte[] bytes)
+    {
+        using var stream = archive.CreateEntry(name).Open();
+        stream.Write(bytes, 0, bytes.Length);
     }
 }

@@ -235,6 +235,68 @@ public class WebSocketTests
     }
 
     [Fact]
+    public void RecordsOnlySoManyMessagesPerConnection()
+    {
+        var log = new WebSocketLog(DateTimeOffset.Now);
+        for (var i = 0; i < WebSocketLog.MaxStoredMessages + 5; i++)
+        {
+            log.Add(WebSocketDirection.Received, WebSocketMessageKind.Text, 1, [(byte)'a']);
+        }
+
+        Assert.Equal(WebSocketLog.MaxStoredMessages, log.Count);
+        Assert.Equal(5, log.NotRecorded);
+        Assert.Contains("recorded", log.Problem);
+    }
+
+    [Fact]
+    public void StopsDecompressingAMessageThatGrowsPastTheLimit()
+    {
+        // A small message of zeros that inflates past the limit, then a
+        // second message that builds on it (context takeover).
+        var (zeros, hello) = TwoDeflatedMessages(new byte[WebSocketFrameReader.MaxInflatedMessageBytes + 1024 * 1024], "Hello"u8.ToArray());
+        Assert.True(zeros.Length < WebSocketFrameReader.MaxCompressedMessageBytes);
+
+        var messages = Read(
+            WebSocketDirection.Received,
+            WebSocketCompression.FromHeader("permessage-deflate"),
+            Frame(0xC2, zeros),
+            Frame(0xC1, hello));
+
+        Assert.Equal(2, messages.Count);
+        Assert.True(messages[0].Truncated);
+        Assert.Contains("more than", messages[0].Note);
+        Assert.Contains("builds on an earlier message", messages[1].Note);
+    }
+
+    [Fact]
+    public void ANewMessageStillDecompressesAfterOneGrewTooLargeWithNoContextTakeover()
+    {
+        var (zeros, _) = TwoDeflatedMessages(new byte[WebSocketFrameReader.MaxInflatedMessageBytes + 1024 * 1024], "x"u8.ToArray());
+        var messages = Read(
+            WebSocketDirection.Received,
+            WebSocketCompression.FromHeader("permessage-deflate; server_no_context_takeover"),
+            Frame(0xC2, zeros),
+            [0xC1, 0x07, 0xF2, 0x48, 0xCD, 0xC9, 0xC9, 0x07, 0x00]);
+
+        Assert.True(messages[0].Truncated);
+        Assert.Equal("Hello", messages[1].Text);
+    }
+
+    /// <summary>Two messages from one raw deflate stream, each sync-flushed with the 00 00 FF FF tail removed (RFC 7692).</summary>
+    private static (byte[] First, byte[] Second) TwoDeflatedMessages(byte[] first, byte[] second)
+    {
+        using var output = new MemoryStream();
+        using var deflate = new System.IO.Compression.DeflateStream(output, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true);
+        deflate.Write(first);
+        deflate.Flush();
+        var a = output.ToArray();
+        deflate.Write(second);
+        deflate.Flush();
+        var b = output.ToArray()[a.Length..];
+        return (a[..^4], b[..^4]);
+    }
+
+    [Fact]
     public async Task HarKeepsTheMessages()
     {
         var log = new WebSocketLog(DateTimeOffset.Now);

@@ -46,12 +46,45 @@ public static class ProxyEngine
 
         try
         {
-            log(new ProxyLogEntry(DateTimeOffset.Now, category, message));
+            log(new ProxyLogEntry(DateTimeOffset.Now, category, EscapeControlCharacters(message)));
         }
         catch
         {
             // See the summary.
         }
+    }
+
+    /// <summary>
+    /// <paramref name="text"/> with control characters other than tab
+    /// written out as <c>\x1b</c> and so on. Log messages carry text from
+    /// the network (URLs, header values, a PAC script's alerts), and a line
+    /// break or terminal escape in one could fake log lines or rewrite a
+    /// terminal showing the log. Internal for tests.
+    /// </summary>
+    internal static string EscapeControlCharacters(string text)
+    {
+        if (!text.Any(IsEscaped))
+        {
+            return text;
+        }
+
+        var escaped = new System.Text.StringBuilder(text.Length + 16);
+        foreach (var c in text)
+        {
+            if (IsEscaped(c))
+            {
+                escaped.Append(c <= 0xFF ? $"\\x{(int)c:x2}" : $"\\u{(int)c:x4}");
+            }
+            else
+            {
+                escaped.Append(c);
+            }
+        }
+
+        return escaped.ToString();
+
+        // C0 except tab, DEL, C1, and the line and paragraph separators.
+        static bool IsEscaped(char c) => (char.IsControl(c) && c != '\t') || c is '\u2028' or '\u2029';
     }
 }
 
