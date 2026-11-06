@@ -102,6 +102,18 @@ jobs:
           -p:InformationalVersion=${{ steps.version.outputs.version }}
           --output publish/win-x64
 
+      # violens-exec, which sends QuickExec commands to the running app from
+      # scripts (see tools/Violens.Exec). Native AOT, so it's a small native
+      # .exe beside VioLens's own, installed and signed with it.
+      - name: Publish violens-exec
+        run: >-
+          dotnet publish tools/Violens.Exec/Violens.Exec.csproj
+          --configuration Release
+          --runtime win-x64
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:DebugType=none
+          --output publish/win-x64
+
                 # The optional legacy extension host. It isn't in VioLens.sln, so a
                 # failure here can't affect the app build above. `dotnet build --output`
                 # rather than publish: it's a framework-dependent net48 app, and this
@@ -116,6 +128,23 @@ jobs:
       - name: Build optional extensions
         shell: pwsh
         run: ./installer/build-extensions.ps1 -OutputDir publish/extensions
+
+      # VioLens Capture (apps/Violens.Capture): the one-window app for
+      # recording a capture for a support team. One self-contained .exe
+      # that runs without installing, attached to the release on its own
+      # and signed with everything else here.
+      - name: Publish VioLens Capture
+        run: >-
+          dotnet publish apps/Violens.Capture/Violens.Capture.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=none
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
+          --output publish/capture
 
       # The proxy host, for apps on .NET Framework that use the engine
       # through Violens.ProxyHost.Client (see docs/Embedding ProxyCore.md).
@@ -265,6 +294,17 @@ jobs:
           -p:Version=${{ steps.version.outputs.version }}
           --output packages
 
+      - name: Name VioLens Capture for the release
+        shell: pwsh
+        run: Copy-Item publish/capture/VioLensCapture.exe "packages/VioLensCapture-${{ steps.version.outputs.version }}-win-x64.exe"
+
+      - name: Attach VioLens Capture to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/VioLensCapture-*-win-x64.exe
+          fail_on_unmatched_files: true
+
       - name: Zip the proxy host
         shell: pwsh
         run: Compress-Archive -Path publish/proxyhost/* -DestinationPath "packages/Violens.ProxyHost-${{ steps.version.outputs.version }}-win-x64.zip"
@@ -290,10 +330,19 @@ jobs:
         with:
           user: ${{ vars.NUGET_USER }}
 
+      # Each package is named on its own: on Windows, dotnet nuget push
+      # doesn't expand "packages/*.nupkg" and fails with "File does not
+      # exist".
       - name: Publish the packages to nuget.org
         if: startsWith(github.ref, 'refs/tags/') && vars.NUGET_USER != ''
-        run: >-
-          dotnet nuget push "packages/*.nupkg"
-          --api-key ${{ steps.nuget.outputs.NUGET_API_KEY }}
-          --source https://api.nuget.org/v3/index.json
-          --skip-duplicate
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem packages -Filter *.nupkg
+          if (-not $packages) { throw "No .nupkg files in packages" }
+          foreach ($package in $packages) {
+            dotnet nuget push $package.FullName `
+              --api-key ${{ steps.nuget.outputs.NUGET_API_KEY }} `
+              --source https://api.nuget.org/v3/index.json `
+              --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "Pushing $($package.Name) failed" }
+          }

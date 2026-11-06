@@ -1,0 +1,27 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Violens.Capture.App"
+             RequestedThemeVariant="Dark">
+  <!-- The main app's colours (apps/Violens.DesktopUi/App.axaml). -->
+  <Application.Resources>
+    <ResourceDictionary>
+      <Color x:Key="SystemAccentColor">#2DD4E8</Color>
+      <Color x:Key="SystemAccentColorLight1">#5EE2F0</Color>
+      <Color x:Key="SystemAccentColorLight2">#8CEBF5</Color>
+      <Color x:Key="SystemAccentColorLight3">#BAF4FA</Color>
+      <Color x:Key="SystemAccentColorDark1">#22B8CC</Color>
+      <Color x:Key="SystemAccentColorDark2">#1897A8</Color>
+      <Color x:Key="SystemAccentColorDark3">#0E7685</Color>
+      <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0B0E1A" />
+      <SolidColorBrush x:Key="AppPanelBrush" Color="#131826" />
+      <SolidColorBrush x:Key="AppBorderBrush" Color="#232A3D" />
+      <SolidColorBrush x:Key="AppMutedTextBrush" Color="#8891A7" />
+      <SolidColorBrush x:Key="AppAccentBrush" Color="#2DD4E8" />
+      <SolidColorBrush x:Key="AppErrorBrush" Color="#F87171" />
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+  </Application.Styles>
+</Application>

@@ -5,8 +5,9 @@
 #
 #   1. The .dmg mounts, and holds VioLens.app and an Applications link.
 #   2. The app's signature verifies the way macOS checks it (strict, and
-#      every nested file sealed), and Contents/MacOS holds only the
-#      executable (anything else there breaks the signature). For a
+#      every nested file sealed), Contents/MacOS holds only the executable
+#      and violens-exec (anything else there breaks the signature), and
+#      violens-exec runs. For a
 #      Developer ID build, also: every Mach-O in the app is signed by the
 #      same team with the hardened runtime and a timestamp, the executable
 #      has the JIT entitlement, the app and the .dmg have stapled
@@ -76,11 +77,22 @@ if codesign --verify --deep --strict --verbose=2 "$APP"; then
 else
   fail "signature doesn't verify"
 fi
-macos_entries="$(ls -A "$APP/Contents/MacOS")"
-if [[ "$macos_entries" == "$EXECUTABLE_NAME" ]]; then
-  pass "Contents/MacOS holds only $EXECUTABLE_NAME"
+macos_entries="$(ls -A "$APP/Contents/MacOS" | sort | tr '\n' ' ')"
+expected_entries="$(printf '%s\n' "$EXECUTABLE_NAME" violens-exec | sort | tr '\n' ' ')"
+if [[ "$macos_entries" == "$expected_entries" ]]; then
+  pass "Contents/MacOS holds only $EXECUTABLE_NAME and violens-exec"
 else
-  fail "Contents/MacOS holds more than the executable: $(echo "$macos_entries" | tr '\n' ' ')"
+  fail "Contents/MacOS should hold $expected_entries but holds: $macos_entries"
+fi
+
+# violens-exec runs (exit code 2 is its usage message, printed when it's
+# given no command), which shows its signature lets macOS start it.
+exec_status=0
+"$APP/Contents/MacOS/violens-exec" > /dev/null 2>&1 || exec_status=$?
+if [[ "$exec_status" == 2 ]]; then
+  pass "violens-exec runs"
+else
+  fail "violens-exec didn't run (exit code $exec_status)"
 fi
 
 signature_info="$(codesign --display --verbose=2 "$APP" 2>&1 || true)"

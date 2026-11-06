@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Violens.DesktopUi.ViewModels"
+        x:Class="Violens.DesktopUi.ColumnsWindow"
+        Title="Customize Columns"
+        Width="420"
+        Height="480"
+        MinWidth="340"
+        MinHeight="300"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Icon="avares://Violens.DesktopUi/Assets/violens-icon.png"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+  <!-- Tools > Session List Columns > Customize Columns: which columns show,
+       and in what order (top is leftmost). # and URL always show. Nothing
+       changes until OK. -->
+  <DockPanel Margin="20">
+    <TextBlock DockPanel.Dock="Top"
+               Text="Tick the columns to show, and move them into the order you want; the top one is leftmost."
+               TextWrapping="Wrap"
+               Foreground="{DynamicResource AppMutedTextBrush}"
+               Margin="0,0,0,12" />
+
+    <DockPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+      <Button DockPanel.Dock="Left" Content="Reset" Click="ResetButton_Click"
+              ToolTip.Tip="Every column, in the original order and widths" />
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Content="Cancel" Click="CancelButton_Click" IsCancel="True" MinWidth="90" />
+        <Button Content="OK" Click="OkButton_Click" IsDefault="True" Classes="accent" MinWidth="90" />
+      </StackPanel>
+    </DockPanel>
+
+    <StackPanel DockPanel.Dock="Right" Spacing="8" Margin="12,0,0,0">
+      <Button Content="Move Up" Click="MoveUp_Click" HorizontalAlignment="Stretch" ToolTip.Tip="Alt+Up" />
+      <Button Content="Move Down" Click="MoveDown_Click" HorizontalAlignment="Stretch" ToolTip.Tip="Alt+Down" />
+      <Button Content="Show All" Click="ShowAll_Click" HorizontalAlignment="Stretch" />
+    </StackPanel>
+
+    <ListBox x:Name="ColumnList" SelectionMode="Single">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="vm:ColumnChoice">
+          <CheckBox Content="{Binding Title}"
+                    IsChecked="{Binding IsVisible, Mode=TwoWay}"
+                    IsEnabled="{Binding !IsLocked}" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</Window>

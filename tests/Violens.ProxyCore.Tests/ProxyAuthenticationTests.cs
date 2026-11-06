@@ -90,6 +90,191 @@ public class ProxyAuthenticationTests
     }
 
     [Fact]
+    public async Task DoesntSendAPlainTextPasswordForATunnelWhenTheUserSaysNo()
+    {
+        await using var proxy = ScriptedProxy.Start(AskForBasic, "HTTP/1.1 200 Connection Established\r\n\r\n");
+        var asked = 0;
+
+        var error = await Assert.ThrowsAsync<IOException>(() =>
+            new UpstreamProxy("127.0.0.1", proxy.Port)
+                .ConnectTunnelAsync(
+                    "example.test", 443, new NetworkCredential("alice", "s3cret"), signIn: true,
+                    confirmPlaintext: _ => { asked++; return Task.FromResult(false); }, CancellationToken.None)
+                .WaitAsync(TestTimeout));
+
+        Assert.Equal(1, asked);
+        Assert.Contains("plain text", error.Message);
+    }
+
+    [Fact]
+    public async Task SendsAPlainTextPasswordForATunnelWhenTheUserSaysYes()
+    {
+        await using var proxy = ScriptedProxy.Start(AskForBasic, "HTTP/1.1 200 Connection Established\r\n\r\n");
+
+        using var client = await new UpstreamProxy("127.0.0.1", proxy.Port)
+            .ConnectTunnelAsync(
+                "example.test", 443, new NetworkCredential("alice", "s3cret"), signIn: true,
+                confirmPlaintext: _ => Task.FromResult(true), CancellationToken.None)
+            .WaitAsync(TestTimeout);
+
+        var heads = await proxy.Done.WaitAsync(TestTimeout);
+        Assert.Contains($"Proxy-Authorization: {BasicAlice}\r\n", heads[1]);
+    }
+
+    [Fact]
+    public async Task TheListenerAsksBeforeSendingAPasswordInPlainTextAndPassesThe407WhenTheUserSaysNo()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        await using var proxy = ScriptedProxy.Start(AskForBasic, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello");
+        var listener = InterceptingProxyListener.StartOnAvailablePort(0, new LeafCertificateProvider(root), new SessionStore());
+        listener.Gateway = new UpstreamProxy("127.0.0.1", proxy.Port);
+        listener.ProxyCredential = new NetworkCredential("alice", "s3cret");
+        var asked = new List<string>();
+        listener.ConfirmPlaintextSignIn = (route, _) =>
+        {
+            lock (asked)
+            {
+                asked.Add(route.ToString());
+            }
+
+            return Task.FromResult(false);
+        };
+        try
+        {
+            var response = await SendThroughAsync(listener.Port, "GET http://example.test/ HTTP/1.1\r\nHost: example.test\r\n\r\n");
+
+            Assert.Equal(407, response.StatusCode);
+            Assert.Equal([$"127.0.0.1:{proxy.Port}"], asked);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task TheListenerAsksOnlyOncePerProxyAndSendsThePasswordWhenTheUserSaysYes()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        const string Ok = "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello";
+        await using var proxy = ScriptedProxy.Start(AskForBasic, Ok, AskForBasic, Ok);
+        var listener = InterceptingProxyListener.StartOnAvailablePort(0, new LeafCertificateProvider(root), new SessionStore());
+        listener.Gateway = new UpstreamProxy("127.0.0.1", proxy.Port);
+        listener.ProxyCredential = new NetworkCredential("alice", "s3cret");
+        var asked = 0;
+        listener.ConfirmPlaintextSignIn = (_, _) =>
+        {
+            Interlocked.Increment(ref asked);
+            return Task.FromResult(true);
+        };
+        try
+        {
+            // Two requests on one client connection, each answered 407 first.
+            using var timeout = new CancellationTokenSource(TestTimeout);
+            using var client = new TcpClient();
+            await client.ConnectAsync(IPAddress.Loopback, listener.Port, timeout.Token);
+            var stream = client.GetStream();
+            for (var i = 0; i < 2; i++)
+            {
+                await stream.WriteAsync(Encoding.ASCII.GetBytes("GET http://example.test/ HTTP/1.1\r\nHost: example.test\r\n\r\n"), timeout.Token);
+                var response = await Http1MessageReader.ReadResponseAsync(stream, isResponseToHeadRequest: false, timeout.Token);
+                Assert.Equal(200, response!.StatusCode);
+            }
+
+            Assert.Equal(1, asked);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task RequestsWaitingOnTheSameProxyShareOneQuestion()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        var listener = new InterceptingProxyListener(0, new LeafCertificateProvider(root), new SessionStore());
+        var answer = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var asked = 0;
+        listener.ConfirmPlaintextSignIn = (_, _) =>
+        {
+            Interlocked.Increment(ref asked);
+            return answer.Task;
+        };
+        var route = new UpstreamProxy("proxy.example", 8080);
+
+        var first = listener.ApprovePlaintextSignInAsync(route, CancellationToken.None);
+        var second = listener.ApprovePlaintextSignInAsync(new UpstreamProxy("PROXY.example", 8080), CancellationToken.None);
+        answer.SetResult(true);
+
+        Assert.True(await first.WaitAsync(TestTimeout));
+        Assert.True(await second.WaitAsync(TestTimeout));
+        Assert.Equal(1, asked);
+    }
+
+    [Fact]
+    public async Task NoAnswerInTimeCountsAsNo()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        var listener = new InterceptingProxyListener(0, new LeafCertificateProvider(root), new SessionStore())
+        {
+            PlaintextSignInTimeout = TimeSpan.FromMilliseconds(100),
+            ConfirmPlaintextSignIn = (_, _) => new TaskCompletionSource<bool>().Task,
+        };
+
+        Assert.False(await listener.ApprovePlaintextSignInAsync(new UpstreamProxy("proxy.example", 8080), CancellationToken.None)
+            .WaitAsync(TestTimeout));
+    }
+
+    [Fact]
+    public async Task ANewPasswordIsAskedAboutAgain()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        var asked = 0;
+        var listener = new InterceptingProxyListener(0, new LeafCertificateProvider(root), new SessionStore())
+        {
+            ConfirmPlaintextSignIn = (_, _) =>
+            {
+                Interlocked.Increment(ref asked);
+                return Task.FromResult(false);
+            },
+        };
+        var route = new UpstreamProxy("proxy.example", 8080);
+
+        await listener.ApprovePlaintextSignInAsync(route, CancellationToken.None);
+        listener.ProxyCredential = new NetworkCredential("alice", "new password");
+        await listener.ApprovePlaintextSignInAsync(route, CancellationToken.None);
+
+        Assert.Equal(2, asked);
+    }
+
+    [Fact]
+    public async Task WithNothingToAskTheSignInGoesAheadAsBefore()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        var listener = new InterceptingProxyListener(0, new LeafCertificateProvider(root), new SessionStore());
+
+        Assert.True(await listener.ApprovePlaintextSignInAsync(new UpstreamProxy("proxy.example", 8080), CancellationToken.None));
+    }
+
+    private static async Task<CapturedResponse> SendThroughAsync(int port, string request)
+    {
+        using var timeout = new CancellationTokenSource(TestTimeout);
+        using var client = new TcpClient();
+        await client.ConnectAsync(IPAddress.Loopback, port, timeout.Token);
+        var stream = client.GetStream();
+        await stream.WriteAsync(Encoding.ASCII.GetBytes(request), timeout.Token);
+        var response = await Http1MessageReader.ReadResponseAsync(stream, isResponseToHeadRequest: false, timeout.Token);
+        return response!;
+    }
+
+    [Fact]
     public async Task SaysWhenTheProxyRefusesTheSignIn()
     {
         await using var proxy = ScriptedProxy.Start(AskForBasic, AskForBasic);
@@ -142,6 +327,67 @@ public class ProxyAuthenticationTests
             listener.Stop();
         }
     }
+
+    [Fact]
+    public async Task AClientOnAnotherComputerDoesntGetTheUsersProxySignIn()
+    {
+        // A "remote" client: one connecting from this computer's own network
+        // address rather than loopback, which the listener treats the same as
+        // another computer. Without such an address there's nothing to test.
+        if (NetworkAddress() is not { } address)
+        {
+            return;
+        }
+
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        await using var proxy = ScriptedProxy.Start(AskForBasic, "HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello");
+        var listener = InterceptingProxyListener.StartOnAvailablePort(
+            0, new LeafCertificateProvider(root), new SessionStore(), allowRemoteClients: true);
+        listener.Gateway = new UpstreamProxy("127.0.0.1", proxy.Port);
+        listener.ProxyCredential = new NetworkCredential("alice", "s3cret");
+        try
+        {
+            using var timeout = new CancellationTokenSource(TestTimeout);
+            using var client = new TcpClient(new IPEndPoint(address, 0));
+            await client.ConnectAsync(address, listener.Port, timeout.Token);
+            var stream = client.GetStream();
+            await stream.WriteAsync(Encoding.ASCII.GetBytes("GET http://example.test/ HTTP/1.1\r\nHost: example.test\r\n\r\n"), timeout.Token);
+
+            // The proxy's 407 reaches the client, as it would from any proxy
+            // the client used directly; the user's password isn't sent.
+            var response = await Http1MessageReader.ReadResponseAsync(stream, isResponseToHeadRequest: false, timeout.Token);
+            Assert.Equal(407, response!.StatusCode);
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public void AClientOnAnotherComputerDoesntGetTheUsersClientCertificate()
+    {
+        var notBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        using var certificate = CertificateAuthority.GenerateRoot(notBefore, notBefore.AddDays(1));
+        var listener = new InterceptingProxyListener(0, new LeafCertificateProvider(root), new SessionStore())
+        {
+            ClientCertificate = certificate,
+        };
+
+        Assert.Same(certificate, listener.ClientCertificateFor("example.test", remoteClient: false));
+        Assert.Null(listener.ClientCertificateFor("example.test", remoteClient: true));
+    }
+
+    /// <summary>One of this computer's own non-loopback IPv4 addresses, if it has one.</summary>
+    private static IPAddress? NetworkAddress() =>
+        System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces()
+            .Where(n => n.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up)
+            .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+            .Select(a => a.Address)
+            .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a) &&
+                                 !a.ToString().StartsWith("169.254.", StringComparison.Ordinal));
 
     [Fact]
     public async Task TheClientGetsThe407WhenSigningInDoesntWork()

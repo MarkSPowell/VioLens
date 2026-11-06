@@ -1,0 +1,597 @@
+Violens.ProxyCore.AutoResponder.AutoResponderAction::.ctor()
+Violens.ProxyCore.AutoResponder.AutoResponderAction::System.Boolean IsFinal { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderAction::System.Int32 Milliseconds { get; init; }
+Violens.ProxyCore.AutoResponder.AutoResponderAction::System.String Name { get; init; }
+Violens.ProxyCore.AutoResponder.AutoResponderAction::System.String Text { get; init; }
+Violens.ProxyCore.AutoResponder.AutoResponderAction::System.String Value { get; init; }
+Violens.ProxyCore.AutoResponder.AutoResponderAction::Violens.ProxyCore.AutoResponder.AutoResponderActionKind Kind { get; init; }
+Violens.ProxyCore.AutoResponder.AutoResponderAction::static Violens.ProxyCore.AutoResponder.AutoResponderAction Parse(System.String actionText)
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.BreakAfterResponse = 11
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.BreakBeforeRequest = 10
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.CorsPreflightAllow = 8
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.Delay = 3
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.Drop = 7
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.Exit = 9
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.ProxyUrl = 1
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.Redirect = 2
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.Reset = 6
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.ServeFile = 0
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.SetFlag = 5
+Violens.ProxyCore.AutoResponder.AutoResponderActionKind.SetHeader = 4
+Violens.ProxyCore.AutoResponder.AutoResponderMatch::System.Boolean Matches(System.String method, System.String url)
+Violens.ProxyCore.AutoResponder.AutoResponderMatch::static Violens.ProxyCore.AutoResponder.AutoResponderMatch Parse(System.String pattern)
+Violens.ProxyCore.AutoResponder.AutoResponderOutcome::System.Boolean ForceBreakpointAfterResponse { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderOutcome::System.Boolean ForceBreakpointBeforeRequest { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderOutcome::System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> FlagsToSet { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderOutcome::System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> HeadersToSet { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderOutcome::System.Int32 DelayMilliseconds { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderOutcome::System.String Text { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderOutcome::Violens.ProxyCore.AutoResponder.AutoResponderActionKind? FinalActionKind { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderOutcome::static readonly Violens.ProxyCore.AutoResponder.AutoResponderOutcome PassThrough
+Violens.ProxyCore.AutoResponder.AutoResponderRule::.ctor()
+Violens.ProxyCore.AutoResponder.AutoResponderRule::System.Boolean IsEnabled { get; set; }
+Violens.ProxyCore.AutoResponder.AutoResponderRule::System.String Action { get; set; }
+Violens.ProxyCore.AutoResponder.AutoResponderRule::System.String MatchPattern { get; set; }
+Violens.ProxyCore.AutoResponder.AutoResponderRules::.ctor()
+Violens.ProxyCore.AutoResponder.AutoResponderRules::System.Boolean AnyActive { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderRules::System.Boolean IsEnabled { get; set; }
+Violens.ProxyCore.AutoResponder.AutoResponderRules::System.Collections.Generic.List<Violens.ProxyCore.AutoResponder.AutoResponderRule> Rules { get; }
+Violens.ProxyCore.AutoResponder.AutoResponderRules::Violens.ProxyCore.AutoResponder.AutoResponderOutcome Evaluate(System.String method, System.String url)
+Violens.ProxyCore.Breakpoints.BreakpointAbortedException::.ctor(System.String host, Violens.ProxyCore.Breakpoints.BreakpointStage stage, System.String method, System.String target)
+Violens.ProxyCore.Breakpoints.BreakpointAbortedException::System.String Host { get; }
+Violens.ProxyCore.Breakpoints.BreakpointAbortedException::System.String Method { get; }
+Violens.ProxyCore.Breakpoints.BreakpointAbortedException::System.String Target { get; }
+Violens.ProxyCore.Breakpoints.BreakpointAbortedException::Violens.ProxyCore.Breakpoints.BreakpointStage Stage { get; }
+Violens.ProxyCore.Breakpoints.BreakpointManager::.ctor()
+Violens.ProxyCore.Breakpoints.BreakpointManager::System.Boolean WouldBreakBeforeRequest(Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Breakpoints.BreakpointManager::System.Boolean WouldBreakBeforeResponse(Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Breakpoints.BreakpointManager::System.Threading.Tasks.Task<Violens.ProxyCore.Http.CapturedRequest> ApplyRequestBreakpointAsync(System.String host, Violens.ProxyCore.Http.CapturedRequest request, System.Threading.CancellationToken cancellationToken)
+Violens.ProxyCore.Breakpoints.BreakpointManager::System.Threading.Tasks.Task<Violens.ProxyCore.Http.CapturedResponse> ApplyResponseBreakpointAsync(System.String host, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response, System.Threading.CancellationToken cancellationToken)
+Violens.ProxyCore.Breakpoints.BreakpointManager::Violens.ProxyCore.Breakpoints.BreakpointRules Rules { get; }
+Violens.ProxyCore.Breakpoints.BreakpointManager::event System.Action<Violens.ProxyCore.Breakpoints.PendingBreakpoint> BreakpointHit
+Violens.ProxyCore.Breakpoints.BreakpointManager::event System.Action<Violens.ProxyCore.Breakpoints.PendingBreakpoint> BreakpointResolved
+Violens.ProxyCore.Breakpoints.BreakpointRules::.ctor()
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.Boolean AnyActive { get; }
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.Boolean BreakOnAllRequests { get; set; }
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.Boolean BreakOnAllResponses { get; set; }
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.Boolean ShouldBreakBeforeRequest(Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.Boolean ShouldBreakBeforeResponse(Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.Int32? ResponseStatusCodeEquals { get; set; }
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.String RequestMethodEquals { get; set; }
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.String RequestUrlContains { get; set; }
+Violens.ProxyCore.Breakpoints.BreakpointRules::System.String ResponseUrlContains { get; set; }
+Violens.ProxyCore.Breakpoints.BreakpointStage.Request = 0
+Violens.ProxyCore.Breakpoints.BreakpointStage.Response = 1
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::System.Boolean IsValid { get; }
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::System.Boolean TryEdit(System.String newRawText)
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::System.Int32 SessionOrdinal { get; }
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::System.String Host { get; }
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::System.String RawText { get; }
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::System.String ValidationError { get; }
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::System.Void Abort()
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::System.Void Resume()
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::Violens.ProxyCore.Breakpoints.BreakpointStage Stage { get; }
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::Violens.ProxyCore.Http.CapturedRequest Request { get; }
+Violens.ProxyCore.Breakpoints.PendingBreakpoint::Violens.ProxyCore.Http.CapturedResponse Response { get; }
+Violens.ProxyCore.Certificates.CertificateAuthority::.ctor(System.Boolean installToTrustStore = true)
+Violens.ProxyCore.Certificates.CertificateAuthority::System.Security.Cryptography.X509Certificates.X509Certificate2 RootCertificate { get; }
+Violens.ProxyCore.Certificates.CertificateAuthority::System.String RootCertificateName { get; }
+Violens.ProxyCore.Certificates.CertificateAuthority::System.Void Uninstall()
+Violens.ProxyCore.Certificates.CertificateAuthority::const System.String SubjectPrefix = "DO_NOT_TRUST_ViolensRoot"
+Violens.ProxyCore.Certificates.CertificateAuthority::static System.Int32 RemoveRoots(System.String subjectPrefix, System.Action<System.String> log = null)
+Violens.ProxyCore.Certificates.CertificateAuthority::static System.Security.Cryptography.X509Certificates.X509Certificate2 GenerateRoot(System.DateTimeOffset notBefore, System.DateTimeOffset notAfter)
+Violens.ProxyCore.Certificates.CertificateAuthority::static System.Security.Cryptography.X509Certificates.X509Certificate2 GenerateRoot(System.DateTimeOffset notBefore, System.DateTimeOffset notAfter, System.String rootCertificateName)
+Violens.ProxyCore.Certificates.CertificateTrustException::.ctor(System.String message, System.Int32 exitCode, System.String standardError)
+Violens.ProxyCore.Certificates.CertificateTrustException::System.Int32 ExitCode { get; }
+Violens.ProxyCore.Certificates.CertificateTrustException::System.String StandardError { get; }
+Violens.ProxyCore.Certificates.LeafCertificateProvider::.ctor(System.Security.Cryptography.X509Certificates.X509Certificate2 issuer)
+Violens.ProxyCore.Certificates.LeafCertificateProvider::System.Byte[] IssuerCertificateDer { get; }
+Violens.ProxyCore.Certificates.LeafCertificateProvider::System.Security.Cryptography.X509Certificates.X509Certificate2 GetCertificateFor(System.String host)
+Violens.ProxyCore.Certificates.LeafCertificateProvider::static System.Security.Cryptography.X509Certificates.X509Certificate2 CreateLeaf(System.Security.Cryptography.X509Certificates.X509Certificate2 issuer, System.String host, System.DateTimeOffset notBefore, System.DateTimeOffset notAfter)
+Violens.ProxyCore.Extensions.ExtensionRequestResult::.ctor(Violens.ProxyCore.Http.CapturedRequest Request, Violens.ProxyCore.Http.CapturedResponse LocalResponse = null)
+Violens.ProxyCore.Extensions.ExtensionRequestResult::System.Boolean Equals(Violens.ProxyCore.Extensions.ExtensionRequestResult other)
+Violens.ProxyCore.Extensions.ExtensionRequestResult::System.Void Deconstruct(out Violens.ProxyCore.Http.CapturedRequest Request, out Violens.ProxyCore.Http.CapturedResponse LocalResponse)
+Violens.ProxyCore.Extensions.ExtensionRequestResult::Violens.ProxyCore.Extensions.ExtensionRequestResult <Clone>$()
+Violens.ProxyCore.Extensions.ExtensionRequestResult::Violens.ProxyCore.Http.CapturedRequest Request { get; init; }
+Violens.ProxyCore.Extensions.ExtensionRequestResult::Violens.ProxyCore.Http.CapturedResponse LocalResponse { get; init; }
+Violens.ProxyCore.Extensions.ExtensionRequestResult::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Extensions.ExtensionRequestResult::override System.Int32 GetHashCode()
+Violens.ProxyCore.Extensions.ExtensionRequestResult::override System.String ToString()
+Violens.ProxyCore.Extensions.ExtensionRequestResult::static System.Boolean op_Equality(Violens.ProxyCore.Extensions.ExtensionRequestResult left, Violens.ProxyCore.Extensions.ExtensionRequestResult right)
+Violens.ProxyCore.Extensions.ExtensionRequestResult::static System.Boolean op_Inequality(Violens.ProxyCore.Extensions.ExtensionRequestResult left, Violens.ProxyCore.Extensions.ExtensionRequestResult right)
+Violens.ProxyCore.Extensions.IExtensionAutoTamperHost::System.Boolean HasAnyRequestBeforeHandlers { get; }
+Violens.ProxyCore.Extensions.IExtensionAutoTamperHost::System.Boolean HasAnyResponseBeforeHandlers { get; }
+Violens.ProxyCore.Extensions.IExtensionAutoTamperHost::System.Void RunRequestAfter(System.Int32 sessionOrdinal, System.String hostname, Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Extensions.IExtensionAutoTamperHost::System.Void RunResponseAfter(System.Int32 sessionOrdinal, System.String hostname, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Extensions.IExtensionAutoTamperHost::Violens.ProxyCore.Http.CapturedRequest RunRequestBefore(System.Int32 sessionOrdinal, System.String hostname, Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Extensions.IExtensionAutoTamperHost::Violens.ProxyCore.Http.CapturedResponse RunResponseBefore(System.Int32 sessionOrdinal, System.String hostname, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Extensions.IExtensionSession::System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Flags { get; }
+Violens.ProxyCore.Extensions.IExtensionSession::System.Void PeekAtRequestHeaders(Violens.ProxyCore.Http.CapturedRequest requestPreamble)
+Violens.ProxyCore.Extensions.IExtensionSession::System.Void PeekAtResponseHeaders(Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse responsePreamble)
+Violens.ProxyCore.Extensions.IExtensionSession::System.Void RequestAfter(Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Extensions.IExtensionSession::System.Void ResponseAfter(Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Extensions.IExtensionSession::Violens.ProxyCore.Extensions.ExtensionRequestResult RequestBefore(Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Extensions.IExtensionSession::Violens.ProxyCore.Http.CapturedResponse ResponseBefore(Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Extensions.IExtensionSessionHost::System.Boolean IsActive { get; }
+Violens.ProxyCore.Extensions.IExtensionSessionHost::Violens.ProxyCore.Extensions.IExtensionSession BeginSession(System.Int32 sessionOrdinal, System.String hostname, System.String scheme)
+Violens.ProxyCore.Http.CapturedRequest::.ctor(System.String Method, System.String Target, System.String HttpVersion, System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Headers, System.Byte[] Body)
+Violens.ProxyCore.Http.CapturedRequest::System.Boolean Equals(Violens.ProxyCore.Http.CapturedRequest other)
+Violens.ProxyCore.Http.CapturedRequest::System.Byte[] Body { get; init; }
+Violens.ProxyCore.Http.CapturedRequest::System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Headers { get; init; }
+Violens.ProxyCore.Http.CapturedRequest::System.String HttpVersion { get; init; }
+Violens.ProxyCore.Http.CapturedRequest::System.String Method { get; init; }
+Violens.ProxyCore.Http.CapturedRequest::System.String Target { get; init; }
+Violens.ProxyCore.Http.CapturedRequest::System.Void Deconstruct(out System.String Method, out System.String Target, out System.String HttpVersion, out System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Headers, out System.Byte[] Body)
+Violens.ProxyCore.Http.CapturedRequest::Violens.ProxyCore.Http.CapturedRequest <Clone>$()
+Violens.ProxyCore.Http.CapturedRequest::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Http.CapturedRequest::override System.Int32 GetHashCode()
+Violens.ProxyCore.Http.CapturedRequest::override System.String ToString()
+Violens.ProxyCore.Http.CapturedRequest::static System.Boolean op_Equality(Violens.ProxyCore.Http.CapturedRequest left, Violens.ProxyCore.Http.CapturedRequest right)
+Violens.ProxyCore.Http.CapturedRequest::static System.Boolean op_Inequality(Violens.ProxyCore.Http.CapturedRequest left, Violens.ProxyCore.Http.CapturedRequest right)
+Violens.ProxyCore.Http.CapturedResponse::.ctor(System.String HttpVersion, System.Int32 StatusCode, System.String ReasonPhrase, System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Headers, System.Byte[] Body)
+Violens.ProxyCore.Http.CapturedResponse::System.Boolean Equals(Violens.ProxyCore.Http.CapturedResponse other)
+Violens.ProxyCore.Http.CapturedResponse::System.Byte[] Body { get; init; }
+Violens.ProxyCore.Http.CapturedResponse::System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Headers { get; init; }
+Violens.ProxyCore.Http.CapturedResponse::System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Trailers { get; init; }
+Violens.ProxyCore.Http.CapturedResponse::System.Int32 StatusCode { get; init; }
+Violens.ProxyCore.Http.CapturedResponse::System.String HttpVersion { get; init; }
+Violens.ProxyCore.Http.CapturedResponse::System.String ReasonPhrase { get; init; }
+Violens.ProxyCore.Http.CapturedResponse::System.Void Deconstruct(out System.String HttpVersion, out System.Int32 StatusCode, out System.String ReasonPhrase, out System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Headers, out System.Byte[] Body)
+Violens.ProxyCore.Http.CapturedResponse::Violens.ProxyCore.Http.CapturedResponse <Clone>$()
+Violens.ProxyCore.Http.CapturedResponse::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Http.CapturedResponse::override System.Int32 GetHashCode()
+Violens.ProxyCore.Http.CapturedResponse::override System.String ToString()
+Violens.ProxyCore.Http.CapturedResponse::static System.Boolean op_Equality(Violens.ProxyCore.Http.CapturedResponse left, Violens.ProxyCore.Http.CapturedResponse right)
+Violens.ProxyCore.Http.CapturedResponse::static System.Boolean op_Inequality(Violens.ProxyCore.Http.CapturedResponse left, Violens.ProxyCore.Http.CapturedResponse right)
+Violens.ProxyCore.Http.ContentDecoder::static System.Boolean TryDecode(System.Byte[] body, System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> headers, out System.Byte[] decoded, out System.String error)
+Violens.ProxyCore.Http.ContentDecoder::static System.Boolean TryDecode(System.Byte[] body, System.String contentEncodingHeader, out System.Byte[] decoded, out System.String error)
+Violens.ProxyCore.Http.ContentDecoder::static System.String DecodeText(System.Byte[] bytes, System.String contentType)
+Violens.ProxyCore.Http.ContentDecoder::static System.String FindHeader(System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> headers, System.String name)
+Violens.ProxyCore.Http.ContentDecoder::static System.String MediaType(System.String contentType)
+Violens.ProxyCore.Http.HttpMessageText::static System.Boolean TryParseRequest(System.String rawText, out Violens.ProxyCore.Http.CapturedRequest request, out System.String error)
+Violens.ProxyCore.Http.HttpMessageText::static System.Boolean TryParseResponse(System.String rawText, out Violens.ProxyCore.Http.CapturedResponse response, out System.String error)
+Violens.ProxyCore.Http.HttpMessageText::static System.String Format(Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Http.HttpMessageText::static System.String Format(Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Http.HttpMessageText::static System.String FormatHead(Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Http.HttpVersions::const System.String Http11 = "HTTP/1.1"
+Violens.ProxyCore.Http.HttpVersions::const System.String Http2 = "HTTP/2"
+Violens.ProxyCore.Http.HttpVersions::static System.Boolean IsHttp2(System.String version)
+Violens.ProxyCore.Http.HttpVersions::static System.String Describe(System.String clientVersion, System.String serverVersion)
+Violens.ProxyCore.Http.HttpVersions::static System.String ForHar(System.String version)
+Violens.ProxyCore.Http.HttpVersions::static System.String ForSaz(System.String version)
+Violens.ProxyCore.Http.HttpVersions::static System.String Normalize(System.String version)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Boolean GetBoolPref(System.String prefName, System.Boolean defaultValue)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Collections.Generic.IReadOnlyList<System.String> GetListPref(System.String prefName, System.Collections.Generic.IReadOnlyList<System.String> defaultValue)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Int32 GetInt32Pref(System.String prefName, System.Int32 defaultValue)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.String GetStringPref(System.String prefName, System.String defaultValue)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.String Item[System.String prefName] { get; }
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Void RemovePref(System.String prefName)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Void RemoveWatcher(Violens.ProxyCore.Preferences.PrefWatcher watcher)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Void SetBoolPref(System.String prefName, System.Boolean value)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Void SetInt32Pref(System.String prefName, System.Int32 value)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Void SetListPref(System.String prefName, System.Collections.Generic.IEnumerable<System.String> values)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Void SetPrefs(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<System.String, System.String>> prefs)
+Violens.ProxyCore.Preferences.IPreferenceStore::System.Void SetStringPref(System.String prefName, System.String value)
+Violens.ProxyCore.Preferences.IPreferenceStore::Violens.ProxyCore.Preferences.PrefWatcher AddWatcher(System.String prefixFilter, System.EventHandler<Violens.ProxyCore.Preferences.PrefChangeEventArgs> handler)
+Violens.ProxyCore.Preferences.PrefChangeEventArgs::.ctor(System.String prefName, System.String oldValueString, System.String valueString)
+Violens.ProxyCore.Preferences.PrefChangeEventArgs::System.Boolean ValueBool { get; }
+Violens.ProxyCore.Preferences.PrefChangeEventArgs::System.String OldValueString { get; }
+Violens.ProxyCore.Preferences.PrefChangeEventArgs::System.String PrefName { get; }
+Violens.ProxyCore.Preferences.PrefChangeEventArgs::System.String ValueString { get; }
+Violens.ProxyCore.Preferences.PrefWatcher::System.String PrefixFilter { get; }
+Violens.ProxyCore.Preferences.PreferenceStore::.ctor(System.String filePath, System.TimeSpan? saveDelay = null, System.Action<System.String> log = null)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Boolean GetBoolPref(System.String prefName, System.Boolean defaultValue)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Boolean IsReadOnly { get; }
+Violens.ProxyCore.Preferences.PreferenceStore::System.Collections.Generic.IReadOnlyList<System.String> GetListPref(System.String prefName, System.Collections.Generic.IReadOnlyList<System.String> defaultValue)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Int32 GetInt32Pref(System.String prefName, System.Int32 defaultValue)
+Violens.ProxyCore.Preferences.PreferenceStore::System.String FilePath { get; }
+Violens.ProxyCore.Preferences.PreferenceStore::System.String GetStringPref(System.String prefName, System.String defaultValue)
+Violens.ProxyCore.Preferences.PreferenceStore::System.String Item[System.String prefName] { get; }
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void Dispose()
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void Flush()
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void RemovePref(System.String prefName)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void RemoveWatcher(Violens.ProxyCore.Preferences.PrefWatcher watcher)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void SetBoolPref(System.String prefName, System.Boolean value)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void SetInt32Pref(System.String prefName, System.Int32 value)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void SetListPref(System.String prefName, System.Collections.Generic.IEnumerable<System.String> values)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void SetPrefs(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<System.String, System.String>> prefs)
+Violens.ProxyCore.Preferences.PreferenceStore::System.Void SetStringPref(System.String prefName, System.String value)
+Violens.ProxyCore.Preferences.PreferenceStore::Violens.ProxyCore.Preferences.PrefWatcher AddWatcher(System.String prefixFilter, System.EventHandler<Violens.ProxyCore.Preferences.PrefChangeEventArgs> handler)
+Violens.ProxyCore.Preferences.PreferenceStore::const System.Int32 CurrentFormatVersion = 1
+Violens.ProxyCore.Preferences.PreferenceStore::const System.String DefaultFileName = "preferences.json"
+Violens.ProxyCore.Preferences.PreferenceStore::static System.Boolean IsEphemeral(System.String prefName)
+Violens.ProxyCore.Preferences.PreferenceStore::static System.Boolean IsValidName(System.String prefName)
+Violens.ProxyCore.Preferences.PreferenceStore::static System.Collections.Generic.IReadOnlyList<System.String> ParseList(System.String raw)
+Violens.ProxyCore.Preferences.PreferenceStore::static Violens.ProxyCore.Preferences.PreferenceStore CreateDefault(System.Action<System.String> log = null)
+Violens.ProxyCore.Preferences.PreferenceStore::static Violens.ProxyCore.Preferences.PreferenceStore CreateInMemory()
+Violens.ProxyCore.Proxy.AutoConfig.IPacHost::System.Collections.Generic.IReadOnlyList<System.Net.IPAddress> LocalAddresses()
+Violens.ProxyCore.Proxy.AutoConfig.IPacHost::System.Collections.Generic.IReadOnlyList<System.Net.IPAddress> Resolve(System.String host)
+Violens.ProxyCore.Proxy.AutoConfig.IPacHost::System.Void Log(System.String message)
+Violens.ProxyCore.Proxy.AutoConfig.PacScriptException::.ctor(System.String message, System.Exception inner = null)
+Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig::System.String Description { get; }
+Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig::System.Threading.Tasks.Task Loaded { get; }
+Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig::System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Proxy.UpstreamProxy>> GetRoutesAsync(System.String url, System.String host, System.Threading.CancellationToken cancellationToken)
+Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig::System.Void Dispose()
+Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig::event System.Action<System.String> DescriptionChanged
+Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig::static Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig Create(System.Boolean autoDetect, System.String scriptUrl, Violens.ProxyCore.Proxy.UpstreamProxy fallback, Violens.ProxyCore.Proxy.AutoConfig.IPacHost host = null)
+Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig::static Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig FromScript(System.String script, Violens.ProxyCore.Proxy.AutoConfig.IPacHost host = null, Violens.ProxyCore.Proxy.UpstreamProxy fallback = null, System.String scriptUrl = "http://pac.test/proxy.pac")
+Violens.ProxyCore.Proxy.AutoConfig.SystemPacHost::.ctor()
+Violens.ProxyCore.Proxy.AutoConfig.SystemPacHost::System.Collections.Generic.IReadOnlyList<System.Net.IPAddress> LocalAddresses()
+Violens.ProxyCore.Proxy.AutoConfig.SystemPacHost::System.Collections.Generic.IReadOnlyList<System.Net.IPAddress> Resolve(System.String host)
+Violens.ProxyCore.Proxy.AutoConfig.SystemPacHost::System.Void Log(System.String message)
+Violens.ProxyCore.Proxy.AutoConfig.SystemPacHost::static Violens.ProxyCore.Proxy.AutoConfig.SystemPacHost Instance { get; }
+Violens.ProxyCore.Proxy.ComposerClient::static System.Boolean TryResolve(Violens.ProxyCore.Http.CapturedRequest request, out System.Uri url, out Violens.ProxyCore.Http.CapturedRequest toSend, out System.String error)
+Violens.ProxyCore.Proxy.ComposerClient::static System.Threading.Tasks.Task<Violens.ProxyCore.Http.CapturedResponse> SendAsync(System.Int32 listenerPort, System.Byte[] rootCertificateDer, System.Uri url, Violens.ProxyCore.Http.CapturedRequest request, System.Threading.CancellationToken cancellationToken)
+Violens.ProxyCore.Proxy.InterceptingProxyListener::.ctor(System.Int32 port, Violens.ProxyCore.Certificates.LeafCertificateProvider leafProvider, Violens.ProxyCore.Sessions.SessionStore sessionStore, Violens.ProxyCore.Breakpoints.BreakpointManager breakpointManager = null, Violens.ProxyCore.AutoResponder.AutoResponderRules autoResponderRules = null, Violens.ProxyCore.Scripting.IScriptRunner scriptRunner = null, Violens.ProxyCore.Extensions.IExtensionAutoTamperHost extensionHost = null, Violens.ProxyCore.Extensions.IExtensionSessionHost sessionHost = null, System.Boolean allowRemoteClients = false)
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Boolean AllowsRemoteClients { get; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Boolean Http2Enabled { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Collections.Generic.IReadOnlyList<System.String> ClientCertificateHosts { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Collections.Generic.IReadOnlyList<System.String> SkipDecryptionHosts { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Int32 Port { get; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Int64 MaxCapturedBodyBytes { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Net.NetworkCredential ProxyCredential { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Security.Cryptography.X509Certificates.X509Certificate2 ClientCertificate { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.TimeSpan ClientIdleTimeout { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Void Start()
+Violens.ProxyCore.Proxy.InterceptingProxyListener::System.Void Stop()
+Violens.ProxyCore.Proxy.InterceptingProxyListener::Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig AutoConfig { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::Violens.ProxyCore.Proxy.UpstreamProxy Gateway { get; set; }
+Violens.ProxyCore.Proxy.InterceptingProxyListener::const System.String NoDecryptFlag = "x-no-decrypt"
+Violens.ProxyCore.Proxy.InterceptingProxyListener::static Violens.ProxyCore.Proxy.InterceptingProxyListener StartOnAvailablePort(System.Int32 preferredPort, Violens.ProxyCore.Certificates.LeafCertificateProvider leafProvider, Violens.ProxyCore.Sessions.SessionStore sessionStore, Violens.ProxyCore.Breakpoints.BreakpointManager breakpointManager = null, Violens.ProxyCore.AutoResponder.AutoResponderRules autoResponderRules = null, Violens.ProxyCore.Scripting.IScriptRunner scriptRunner = null, Violens.ProxyCore.Extensions.IExtensionAutoTamperHost extensionHost = null, Violens.ProxyCore.Extensions.IExtensionSessionHost sessionHost = null, System.Boolean allowRemoteClients = false)
+Violens.ProxyCore.Proxy.InterceptingProxyListener::static readonly System.TimeSpan DefaultClientIdleTimeout
+Violens.ProxyCore.Proxy.UpstreamProxy::.ctor(System.String Host, System.Int32 Port, System.Collections.Generic.IReadOnlyList<System.String> BypassList)
+Violens.ProxyCore.Proxy.UpstreamProxy::.ctor(System.String host, System.Int32 port)
+Violens.ProxyCore.Proxy.UpstreamProxy::System.Boolean Equals(Violens.ProxyCore.Proxy.UpstreamProxy other)
+Violens.ProxyCore.Proxy.UpstreamProxy::System.Boolean IsSelf(System.Int32 ownPort)
+Violens.ProxyCore.Proxy.UpstreamProxy::System.Boolean ShouldBypass(System.String host)
+Violens.ProxyCore.Proxy.UpstreamProxy::System.Collections.Generic.IReadOnlyList<System.String> BypassList { get; init; }
+Violens.ProxyCore.Proxy.UpstreamProxy::System.Int32 Port { get; init; }
+Violens.ProxyCore.Proxy.UpstreamProxy::System.String Host { get; init; }
+Violens.ProxyCore.Proxy.UpstreamProxy::System.Threading.Tasks.Task<System.Net.Sockets.TcpClient> ConnectTunnelAsync(System.String targetHost, System.Int32 targetPort, System.Net.NetworkCredential credential, System.Threading.CancellationToken cancellationToken)
+Violens.ProxyCore.Proxy.UpstreamProxy::System.Threading.Tasks.Task<System.Net.Sockets.TcpClient> ConnectTunnelAsync(System.String targetHost, System.Int32 targetPort, System.Threading.CancellationToken cancellationToken)
+Violens.ProxyCore.Proxy.UpstreamProxy::System.Void Deconstruct(out System.String Host, out System.Int32 Port, out System.Collections.Generic.IReadOnlyList<System.String> BypassList)
+Violens.ProxyCore.Proxy.UpstreamProxy::Violens.ProxyCore.Proxy.UpstreamProxy <Clone>$()
+Violens.ProxyCore.Proxy.UpstreamProxy::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Proxy.UpstreamProxy::override System.Int32 GetHashCode()
+Violens.ProxyCore.Proxy.UpstreamProxy::override System.String ToString()
+Violens.ProxyCore.Proxy.UpstreamProxy::static System.Boolean op_Equality(Violens.ProxyCore.Proxy.UpstreamProxy left, Violens.ProxyCore.Proxy.UpstreamProxy right)
+Violens.ProxyCore.Proxy.UpstreamProxy::static System.Boolean op_Inequality(Violens.ProxyCore.Proxy.UpstreamProxy left, Violens.ProxyCore.Proxy.UpstreamProxy right)
+Violens.ProxyCore.Proxy.UpstreamProxy::static System.Net.NetworkCredential CredentialFor(System.String userName, System.String password)
+Violens.ProxyCore.Proxy.UpstreamProxy::static System.Threading.Tasks.Task EstablishTunnelAsync(System.IO.Stream stream, System.String targetHost, System.Int32 targetPort, System.String proxyName, System.Threading.CancellationToken cancellationToken)
+Violens.ProxyCore.Proxy.UpstreamProxy::static Violens.ProxyCore.Proxy.UpstreamProxy FromWindowsSettings(System.String proxyServer, System.String proxyOverride)
+Violens.ProxyCore.Proxy.UpstreamProxy::static Violens.ProxyCore.Proxy.UpstreamProxy Parse(System.String text, System.Collections.Generic.IReadOnlyList<System.String> bypassList = null)
+Violens.ProxyCore.ProxyEngine::static System.Void Configure(Violens.ProxyCore.ProxyHostIdentity identity, System.Action<Violens.ProxyCore.ProxyLogEntry> log = null)
+Violens.ProxyCore.ProxyEngine::static Violens.ProxyCore.ProxyHostIdentity Identity { get; }
+Violens.ProxyCore.ProxyHostIdentity::.ctor(System.String productName)
+Violens.ProxyCore.ProxyHostIdentity::System.Boolean Equals(Violens.ProxyCore.ProxyHostIdentity other)
+Violens.ProxyCore.ProxyHostIdentity::System.String DataFolder { get; init; }
+Violens.ProxyCore.ProxyHostIdentity::System.String ProductName { get; }
+Violens.ProxyCore.ProxyHostIdentity::System.String ProductVersion { get; init; }
+Violens.ProxyCore.ProxyHostIdentity::System.String ProxyHostName { get; init; }
+Violens.ProxyCore.ProxyHostIdentity::System.String ResolveDataFolder()
+Violens.ProxyCore.ProxyHostIdentity::System.String RootCertificateFileName { get; init; }
+Violens.ProxyCore.ProxyHostIdentity::System.String RootCertificateName { get; init; }
+Violens.ProxyCore.ProxyHostIdentity::Violens.ProxyCore.ProxyHostIdentity <Clone>$()
+Violens.ProxyCore.ProxyHostIdentity::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.ProxyHostIdentity::override System.Int32 GetHashCode()
+Violens.ProxyCore.ProxyHostIdentity::override System.String ToString()
+Violens.ProxyCore.ProxyHostIdentity::static System.Boolean op_Equality(Violens.ProxyCore.ProxyHostIdentity left, Violens.ProxyCore.ProxyHostIdentity right)
+Violens.ProxyCore.ProxyHostIdentity::static System.Boolean op_Inequality(Violens.ProxyCore.ProxyHostIdentity left, Violens.ProxyCore.ProxyHostIdentity right)
+Violens.ProxyCore.ProxyHostIdentity::static Violens.ProxyCore.ProxyHostIdentity Default { get; }
+Violens.ProxyCore.ProxyLogEntry::.ctor(System.DateTimeOffset Time, System.String Category, System.String Message)
+Violens.ProxyCore.ProxyLogEntry::System.Boolean Equals(Violens.ProxyCore.ProxyLogEntry other)
+Violens.ProxyCore.ProxyLogEntry::System.DateTimeOffset Time { get; init; }
+Violens.ProxyCore.ProxyLogEntry::System.String Category { get; init; }
+Violens.ProxyCore.ProxyLogEntry::System.String Message { get; init; }
+Violens.ProxyCore.ProxyLogEntry::System.Void Deconstruct(out System.DateTimeOffset Time, out System.String Category, out System.String Message)
+Violens.ProxyCore.ProxyLogEntry::Violens.ProxyCore.ProxyLogEntry <Clone>$()
+Violens.ProxyCore.ProxyLogEntry::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.ProxyLogEntry::override System.Int32 GetHashCode()
+Violens.ProxyCore.ProxyLogEntry::override System.String ToString()
+Violens.ProxyCore.ProxyLogEntry::static System.Boolean op_Equality(Violens.ProxyCore.ProxyLogEntry left, Violens.ProxyCore.ProxyLogEntry right)
+Violens.ProxyCore.ProxyLogEntry::static System.Boolean op_Inequality(Violens.ProxyCore.ProxyLogEntry left, Violens.ProxyCore.ProxyLogEntry right)
+Violens.ProxyCore.Scripting.IScriptRunner::System.Boolean HasOnBeforeRequest { get; }
+Violens.ProxyCore.Scripting.IScriptRunner::System.Boolean HasOnBeforeResponse { get; }
+Violens.ProxyCore.Scripting.IScriptRunner::Violens.ProxyCore.Scripting.ScriptRequestResult RunOnBeforeRequest(System.Int32 sessionOrdinal, System.String hostname, Violens.ProxyCore.Http.CapturedRequest request)
+Violens.ProxyCore.Scripting.IScriptRunner::Violens.ProxyCore.Scripting.ScriptResponseResult RunOnBeforeResponse(System.Int32 sessionOrdinal, System.String hostname, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Scripting.ScriptRequestResult::.ctor(Violens.ProxyCore.Http.CapturedRequest Request)
+Violens.ProxyCore.Scripting.ScriptRequestResult::System.Boolean Equals(Violens.ProxyCore.Scripting.ScriptRequestResult other)
+Violens.ProxyCore.Scripting.ScriptRequestResult::System.Void Deconstruct(out Violens.ProxyCore.Http.CapturedRequest Request)
+Violens.ProxyCore.Scripting.ScriptRequestResult::Violens.ProxyCore.Http.CapturedRequest Request { get; init; }
+Violens.ProxyCore.Scripting.ScriptRequestResult::Violens.ProxyCore.Scripting.ScriptRequestResult <Clone>$()
+Violens.ProxyCore.Scripting.ScriptRequestResult::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Scripting.ScriptRequestResult::override System.Int32 GetHashCode()
+Violens.ProxyCore.Scripting.ScriptRequestResult::override System.String ToString()
+Violens.ProxyCore.Scripting.ScriptRequestResult::static System.Boolean op_Equality(Violens.ProxyCore.Scripting.ScriptRequestResult left, Violens.ProxyCore.Scripting.ScriptRequestResult right)
+Violens.ProxyCore.Scripting.ScriptRequestResult::static System.Boolean op_Inequality(Violens.ProxyCore.Scripting.ScriptRequestResult left, Violens.ProxyCore.Scripting.ScriptRequestResult right)
+Violens.ProxyCore.Scripting.ScriptResponseResult::.ctor(Violens.ProxyCore.Http.CapturedResponse Response)
+Violens.ProxyCore.Scripting.ScriptResponseResult::System.Boolean Equals(Violens.ProxyCore.Scripting.ScriptResponseResult other)
+Violens.ProxyCore.Scripting.ScriptResponseResult::System.Void Deconstruct(out Violens.ProxyCore.Http.CapturedResponse Response)
+Violens.ProxyCore.Scripting.ScriptResponseResult::Violens.ProxyCore.Http.CapturedResponse Response { get; init; }
+Violens.ProxyCore.Scripting.ScriptResponseResult::Violens.ProxyCore.Scripting.ScriptResponseResult <Clone>$()
+Violens.ProxyCore.Scripting.ScriptResponseResult::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Scripting.ScriptResponseResult::override System.Int32 GetHashCode()
+Violens.ProxyCore.Scripting.ScriptResponseResult::override System.String ToString()
+Violens.ProxyCore.Scripting.ScriptResponseResult::static System.Boolean op_Equality(Violens.ProxyCore.Scripting.ScriptResponseResult left, Violens.ProxyCore.Scripting.ScriptResponseResult right)
+Violens.ProxyCore.Scripting.ScriptResponseResult::static System.Boolean op_Inequality(Violens.ProxyCore.Scripting.ScriptResponseResult left, Violens.ProxyCore.Scripting.ScriptResponseResult right)
+Violens.ProxyCore.SessionState.Aborted = 12
+Violens.ProxyCore.SessionState.AutoTamperRequestAfter = 4
+Violens.ProxyCore.SessionState.AutoTamperRequestBefore = 2
+Violens.ProxyCore.SessionState.AutoTamperResponseAfter = 9
+Violens.ProxyCore.SessionState.AutoTamperResponseBefore = 7
+Violens.ProxyCore.SessionState.Created = 0
+Violens.ProxyCore.SessionState.Done = 11
+Violens.ProxyCore.SessionState.HandTamperRequest = 3
+Violens.ProxyCore.SessionState.HandTamperResponse = 8
+Violens.ProxyCore.SessionState.ReadingRequest = 1
+Violens.ProxyCore.SessionState.ReadingResponse = 6
+Violens.ProxyCore.SessionState.SendingRequest = 5
+Violens.ProxyCore.SessionState.SendingResponse = 10
+Violens.ProxyCore.Sessions.HarImportResult::.ctor(System.Int32 Imported, System.Collections.Generic.IReadOnlyList<System.String> Skipped)
+Violens.ProxyCore.Sessions.HarImportResult::System.Boolean Equals(Violens.ProxyCore.Sessions.HarImportResult other)
+Violens.ProxyCore.Sessions.HarImportResult::System.Collections.Generic.IReadOnlyList<System.String> Skipped { get; init; }
+Violens.ProxyCore.Sessions.HarImportResult::System.Int32 Imported { get; init; }
+Violens.ProxyCore.Sessions.HarImportResult::System.Void Deconstruct(out System.Int32 Imported, out System.Collections.Generic.IReadOnlyList<System.String> Skipped)
+Violens.ProxyCore.Sessions.HarImportResult::Violens.ProxyCore.Sessions.HarImportResult <Clone>$()
+Violens.ProxyCore.Sessions.HarImportResult::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Sessions.HarImportResult::override System.Int32 GetHashCode()
+Violens.ProxyCore.Sessions.HarImportResult::override System.String ToString()
+Violens.ProxyCore.Sessions.HarImportResult::static System.Boolean op_Equality(Violens.ProxyCore.Sessions.HarImportResult left, Violens.ProxyCore.Sessions.HarImportResult right)
+Violens.ProxyCore.Sessions.HarImportResult::static System.Boolean op_Inequality(Violens.ProxyCore.Sessions.HarImportResult left, Violens.ProxyCore.Sessions.HarImportResult right)
+Violens.ProxyCore.Sessions.HarReader::static System.Threading.Tasks.Task<Violens.ProxyCore.Sessions.HarImportResult> ImportAsync(System.IO.Stream source, Violens.ProxyCore.Sessions.SessionStore sessionStore, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyCore.Sessions.HarReader::static System.Threading.Tasks.Task<Violens.ProxyCore.Sessions.HarImportResult> ImportAsync(System.String path, Violens.ProxyCore.Sessions.SessionStore sessionStore, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyCore.Sessions.HarWriter::static System.Void Write(System.IO.Stream destination, System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Sessions.Session> sessions)
+Violens.ProxyCore.Sessions.HarWriter::static System.Void Write(System.String path, System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Sessions.Session> sessions)
+Violens.ProxyCore.Sessions.PcapImportNote::.ctor(System.String Text, System.Int32 Count)
+Violens.ProxyCore.Sessions.PcapImportNote::System.Boolean Equals(Violens.ProxyCore.Sessions.PcapImportNote other)
+Violens.ProxyCore.Sessions.PcapImportNote::System.Int32 Count { get; init; }
+Violens.ProxyCore.Sessions.PcapImportNote::System.String Text { get; init; }
+Violens.ProxyCore.Sessions.PcapImportNote::System.Void Deconstruct(out System.String Text, out System.Int32 Count)
+Violens.ProxyCore.Sessions.PcapImportNote::Violens.ProxyCore.Sessions.PcapImportNote <Clone>$()
+Violens.ProxyCore.Sessions.PcapImportNote::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Sessions.PcapImportNote::override System.Int32 GetHashCode()
+Violens.ProxyCore.Sessions.PcapImportNote::override System.String ToString()
+Violens.ProxyCore.Sessions.PcapImportNote::static System.Boolean op_Equality(Violens.ProxyCore.Sessions.PcapImportNote left, Violens.ProxyCore.Sessions.PcapImportNote right)
+Violens.ProxyCore.Sessions.PcapImportNote::static System.Boolean op_Inequality(Violens.ProxyCore.Sessions.PcapImportNote left, Violens.ProxyCore.Sessions.PcapImportNote right)
+Violens.ProxyCore.Sessions.PcapImportResult::.ctor(System.Int32 Imported, System.Int32 Connections, System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Sessions.PcapImportNote> Notes)
+Violens.ProxyCore.Sessions.PcapImportResult::System.Boolean Equals(Violens.ProxyCore.Sessions.PcapImportResult other)
+Violens.ProxyCore.Sessions.PcapImportResult::System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Sessions.PcapImportNote> Notes { get; init; }
+Violens.ProxyCore.Sessions.PcapImportResult::System.Int32 Connections { get; init; }
+Violens.ProxyCore.Sessions.PcapImportResult::System.Int32 Imported { get; init; }
+Violens.ProxyCore.Sessions.PcapImportResult::System.Void Deconstruct(out System.Int32 Imported, out System.Int32 Connections, out System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Sessions.PcapImportNote> Notes)
+Violens.ProxyCore.Sessions.PcapImportResult::Violens.ProxyCore.Sessions.PcapImportResult <Clone>$()
+Violens.ProxyCore.Sessions.PcapImportResult::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Sessions.PcapImportResult::override System.Int32 GetHashCode()
+Violens.ProxyCore.Sessions.PcapImportResult::override System.String ToString()
+Violens.ProxyCore.Sessions.PcapImportResult::static System.Boolean op_Equality(Violens.ProxyCore.Sessions.PcapImportResult left, Violens.ProxyCore.Sessions.PcapImportResult right)
+Violens.ProxyCore.Sessions.PcapImportResult::static System.Boolean op_Inequality(Violens.ProxyCore.Sessions.PcapImportResult left, Violens.ProxyCore.Sessions.PcapImportResult right)
+Violens.ProxyCore.Sessions.PcapReader::const System.Int64 MaxCaptureBytes = 268435456
+Violens.ProxyCore.Sessions.PcapReader::const System.String IncompleteFlag = "x-pcap-incomplete"
+Violens.ProxyCore.Sessions.PcapReader::const System.String TlsSkippedNote = "Encrypted (TLS) connections skipped: a packet capture can't be decrypted"
+Violens.ProxyCore.Sessions.PcapReader::static System.Threading.Tasks.Task<Violens.ProxyCore.Sessions.PcapImportResult> ImportAsync(System.IO.Stream source, Violens.ProxyCore.Sessions.SessionStore sessionStore, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyCore.Sessions.PcapReader::static System.Threading.Tasks.Task<Violens.ProxyCore.Sessions.PcapImportResult> ImportAsync(System.String path, Violens.ProxyCore.Sessions.SessionStore sessionStore, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyCore.Sessions.SazImportResult::.ctor(System.Int32 Imported, System.Collections.Generic.IReadOnlyList<System.String> Skipped)
+Violens.ProxyCore.Sessions.SazImportResult::System.Boolean Equals(Violens.ProxyCore.Sessions.SazImportResult other)
+Violens.ProxyCore.Sessions.SazImportResult::System.Collections.Generic.IReadOnlyList<System.String> Skipped { get; init; }
+Violens.ProxyCore.Sessions.SazImportResult::System.Int32 Imported { get; init; }
+Violens.ProxyCore.Sessions.SazImportResult::System.Void Deconstruct(out System.Int32 Imported, out System.Collections.Generic.IReadOnlyList<System.String> Skipped)
+Violens.ProxyCore.Sessions.SazImportResult::Violens.ProxyCore.Sessions.SazImportResult <Clone>$()
+Violens.ProxyCore.Sessions.SazImportResult::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Sessions.SazImportResult::override System.Int32 GetHashCode()
+Violens.ProxyCore.Sessions.SazImportResult::override System.String ToString()
+Violens.ProxyCore.Sessions.SazImportResult::static System.Boolean op_Equality(Violens.ProxyCore.Sessions.SazImportResult left, Violens.ProxyCore.Sessions.SazImportResult right)
+Violens.ProxyCore.Sessions.SazImportResult::static System.Boolean op_Inequality(Violens.ProxyCore.Sessions.SazImportResult left, Violens.ProxyCore.Sessions.SazImportResult right)
+Violens.ProxyCore.Sessions.SazReader::static System.Threading.Tasks.Task<Violens.ProxyCore.Sessions.SazImportResult> ImportAsync(System.IO.Stream source, Violens.ProxyCore.Sessions.SessionStore sessionStore, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyCore.Sessions.SazReader::static System.Threading.Tasks.Task<Violens.ProxyCore.Sessions.SazImportResult> ImportAsync(System.String path, Violens.ProxyCore.Sessions.SessionStore sessionStore, System.Threading.CancellationToken cancellationToken = null)
+Violens.ProxyCore.Sessions.SazWriter::static System.Void Write(System.IO.Stream destination, System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Sessions.Session> sessions)
+Violens.ProxyCore.Sessions.SazWriter::static System.Void Write(System.String path, System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Sessions.Session> sessions)
+Violens.ProxyCore.Sessions.ServerTlsInfo::.ctor()
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.Boolean ClientCertificateRequested { get; init; }
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.Boolean Equals(Violens.ProxyCore.Sessions.ServerTlsInfo other)
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.Collections.Generic.IReadOnlyList<System.String> AcceptableIssuers { get; init; }
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.DateTimeOffset? CertificateNotAfter { get; init; }
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.String CertificateIssuer { get; init; }
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.String CertificateSubject { get; init; }
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.String CipherSuite { get; init; }
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.String ClientCertificateSent { get; init; }
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.String DescribeAcceptableIssuers()
+Violens.ProxyCore.Sessions.ServerTlsInfo::System.String Protocol { get; init; }
+Violens.ProxyCore.Sessions.ServerTlsInfo::Violens.ProxyCore.Sessions.ServerTlsInfo <Clone>$()
+Violens.ProxyCore.Sessions.ServerTlsInfo::const System.String ClientCertificateRequestedFlag = "x-client-certificate-requested"
+Violens.ProxyCore.Sessions.ServerTlsInfo::const System.String ClientCertificateSentFlag = "x-client-certificate-sent"
+Violens.ProxyCore.Sessions.ServerTlsInfo::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Sessions.ServerTlsInfo::override System.Int32 GetHashCode()
+Violens.ProxyCore.Sessions.ServerTlsInfo::override System.String ToString()
+Violens.ProxyCore.Sessions.ServerTlsInfo::static System.Boolean op_Equality(Violens.ProxyCore.Sessions.ServerTlsInfo left, Violens.ProxyCore.Sessions.ServerTlsInfo right)
+Violens.ProxyCore.Sessions.ServerTlsInfo::static System.Boolean op_Inequality(Violens.ProxyCore.Sessions.ServerTlsInfo left, Violens.ProxyCore.Sessions.ServerTlsInfo right)
+Violens.ProxyCore.Sessions.Session::.ctor(System.Int32 Id, System.String Host, System.DateTimeOffset StartedAt, Violens.ProxyCore.Http.CapturedRequest Request, Violens.ProxyCore.Http.CapturedResponse Response, Violens.ProxyCore.SessionState State = 11, System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Flags = null, System.String Scheme = "https")
+Violens.ProxyCore.Sessions.Session::.ctor(System.Int32 Id, System.String Host, System.DateTimeOffset StartedAt, Violens.ProxyCore.Http.CapturedRequest Request, Violens.ProxyCore.Http.CapturedResponse Response, Violens.ProxyCore.SessionState State)
+Violens.ProxyCore.Sessions.Session::.ctor(System.Int32 Id, System.String Host, System.DateTimeOffset StartedAt, Violens.ProxyCore.Http.CapturedRequest Request, Violens.ProxyCore.Http.CapturedResponse Response, Violens.ProxyCore.SessionState State, System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Flags)
+Violens.ProxyCore.Sessions.Session::System.Boolean Equals(Violens.ProxyCore.Sessions.Session other)
+Violens.ProxyCore.Sessions.Session::System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Flags { get; init; }
+Violens.ProxyCore.Sessions.Session::System.DateTimeOffset StartedAt { get; init; }
+Violens.ProxyCore.Sessions.Session::System.Int32 Id { get; init; }
+Violens.ProxyCore.Sessions.Session::System.String Host { get; init; }
+Violens.ProxyCore.Sessions.Session::System.String Scheme { get; init; }
+Violens.ProxyCore.Sessions.Session::System.Void Deconstruct(out System.Int32 Id, out System.String Host, out System.DateTimeOffset StartedAt, out Violens.ProxyCore.Http.CapturedRequest Request, out Violens.ProxyCore.Http.CapturedResponse Response, out Violens.ProxyCore.SessionState State)
+Violens.ProxyCore.Sessions.Session::System.Void Deconstruct(out System.Int32 Id, out System.String Host, out System.DateTimeOffset StartedAt, out Violens.ProxyCore.Http.CapturedRequest Request, out Violens.ProxyCore.Http.CapturedResponse Response, out Violens.ProxyCore.SessionState State, out System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Flags)
+Violens.ProxyCore.Sessions.Session::System.Void Deconstruct(out System.Int32 Id, out System.String Host, out System.DateTimeOffset StartedAt, out Violens.ProxyCore.Http.CapturedRequest Request, out Violens.ProxyCore.Http.CapturedResponse Response, out Violens.ProxyCore.SessionState State, out System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Flags, out System.String Scheme)
+Violens.ProxyCore.Sessions.Session::Violens.ProxyCore.Http.CapturedRequest Request { get; init; }
+Violens.ProxyCore.Sessions.Session::Violens.ProxyCore.Http.CapturedResponse Response { get; init; }
+Violens.ProxyCore.Sessions.Session::Violens.ProxyCore.SessionState State { get; init; }
+Violens.ProxyCore.Sessions.Session::Violens.ProxyCore.Sessions.Session <Clone>$()
+Violens.ProxyCore.Sessions.Session::Violens.ProxyCore.Sessions.SessionTimings Timings { get; init; }
+Violens.ProxyCore.Sessions.Session::Violens.ProxyCore.WebSockets.WebSocketLog WebSocket { get; init; }
+Violens.ProxyCore.Sessions.Session::const System.String RequestBodyTruncatedFlag = "x-request-body-truncated"
+Violens.ProxyCore.Sessions.Session::const System.String ResponseBodyTruncatedFlag = "x-response-body-truncated"
+Violens.ProxyCore.Sessions.Session::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Sessions.Session::override System.Int32 GetHashCode()
+Violens.ProxyCore.Sessions.Session::override System.String ToString()
+Violens.ProxyCore.Sessions.Session::static System.Boolean op_Equality(Violens.ProxyCore.Sessions.Session left, Violens.ProxyCore.Sessions.Session right)
+Violens.ProxyCore.Sessions.Session::static System.Boolean op_Inequality(Violens.ProxyCore.Sessions.Session left, Violens.ProxyCore.Sessions.Session right)
+Violens.ProxyCore.Sessions.SessionStore::.ctor()
+Violens.ProxyCore.Sessions.SessionStore::System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.Sessions.Session> Snapshot()
+Violens.ProxyCore.Sessions.SessionStore::System.Int32 Clear()
+Violens.ProxyCore.Sessions.SessionStore::System.Int32 MaxSessions { get; set; }
+Violens.ProxyCore.Sessions.SessionStore::System.Int32 PeekNextId()
+Violens.ProxyCore.Sessions.SessionStore::System.Int32 Remove(System.Collections.Generic.IEnumerable<System.Int32> ids)
+Violens.ProxyCore.Sessions.SessionStore::Violens.ProxyCore.Sessions.Session Add(System.String host, System.DateTimeOffset startedAt, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response)
+Violens.ProxyCore.Sessions.SessionStore::Violens.ProxyCore.Sessions.Session Add(System.String host, System.DateTimeOffset startedAt, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response, System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> flags)
+Violens.ProxyCore.Sessions.SessionStore::Violens.ProxyCore.Sessions.Session Add(System.String host, System.DateTimeOffset startedAt, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response, System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> flags, System.String scheme)
+Violens.ProxyCore.Sessions.SessionStore::Violens.ProxyCore.Sessions.Session Add(System.String host, System.DateTimeOffset startedAt, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response, System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> flags, System.String scheme, Violens.ProxyCore.Sessions.SessionTimings timings)
+Violens.ProxyCore.Sessions.SessionStore::Violens.ProxyCore.Sessions.Session Add(System.String host, System.DateTimeOffset startedAt, Violens.ProxyCore.Http.CapturedRequest request, Violens.ProxyCore.Http.CapturedResponse response, System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> flags, System.String scheme, Violens.ProxyCore.Sessions.SessionTimings timings, Violens.ProxyCore.WebSockets.WebSocketLog webSocket)
+Violens.ProxyCore.Sessions.SessionStore::event System.Action<System.Collections.Generic.IReadOnlyList<System.Int32>> SessionsRemoved
+Violens.ProxyCore.Sessions.SessionStore::event System.Action<Violens.ProxyCore.Sessions.Session> SessionAdded
+Violens.ProxyCore.Sessions.SessionTimings::.ctor()
+Violens.ProxyCore.Sessions.SessionTimings::System.Boolean AnsweredLocally { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Boolean ConnectionReused { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Boolean Equals(Violens.ProxyCore.Sessions.SessionTimings other)
+Violens.ProxyCore.Sessions.SessionTimings::System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.Double>> Phases { get; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Blocked { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Connect { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Dns { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Paused { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Receive { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Send { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Ssl { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Total { get; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Double Wait { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.Int32 ConnectionId { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::System.String Proxy { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::Violens.ProxyCore.Sessions.ServerTlsInfo Tls { get; init; }
+Violens.ProxyCore.Sessions.SessionTimings::Violens.ProxyCore.Sessions.SessionTimings <Clone>$()
+Violens.ProxyCore.Sessions.SessionTimings::const System.Double NotApplicable = -1
+Violens.ProxyCore.Sessions.SessionTimings::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.Sessions.SessionTimings::override System.Int32 GetHashCode()
+Violens.ProxyCore.Sessions.SessionTimings::override System.String ToString()
+Violens.ProxyCore.Sessions.SessionTimings::static System.Boolean op_Equality(Violens.ProxyCore.Sessions.SessionTimings left, Violens.ProxyCore.Sessions.SessionTimings right)
+Violens.ProxyCore.Sessions.SessionTimings::static System.Boolean op_Inequality(Violens.ProxyCore.Sessions.SessionTimings left, Violens.ProxyCore.Sessions.SessionTimings right)
+Violens.ProxyCore.Sessions.SessionUrl::static System.String Of(Violens.ProxyCore.Sessions.Session session)
+Violens.ProxyCore.SystemProxy.SystemProxyCommandException::.ctor(System.String message, System.Int32 exitCode, System.String standardError)
+Violens.ProxyCore.SystemProxy.SystemProxyCommandException::System.Int32 ExitCode { get; }
+Violens.ProxyCore.SystemProxy.SystemProxyCommandException::System.String StandardError { get; }
+Violens.ProxyCore.SystemProxy.SystemProxyController::static System.Void Disable()
+Violens.ProxyCore.SystemProxy.SystemProxyController::static System.Void Enable(System.Int32 port)
+Violens.ProxyCore.SystemProxy.SystemProxyController::static System.Void RecoverFromCrash()
+Violens.ProxyCore.SystemProxy.SystemProxyController::static Violens.ProxyCore.SystemProxy.UpstreamProxyDetection DetectUpstream(System.Int32 ownPort)
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::.ctor(Violens.ProxyCore.Proxy.UpstreamProxy Proxy, System.String Description)
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::System.Boolean Equals(Violens.ProxyCore.SystemProxy.UpstreamProxyDetection other)
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::System.String Description { get; init; }
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::System.String Source { get; init; }
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::System.Void Deconstruct(out Violens.ProxyCore.Proxy.UpstreamProxy Proxy, out System.String Description)
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig AutoConfig { get; init; }
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::Violens.ProxyCore.Proxy.UpstreamProxy Proxy { get; init; }
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::Violens.ProxyCore.SystemProxy.UpstreamProxyDetection <Clone>$()
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::override System.Int32 GetHashCode()
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::override System.String ToString()
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::static System.Boolean op_Equality(Violens.ProxyCore.SystemProxy.UpstreamProxyDetection left, Violens.ProxyCore.SystemProxy.UpstreamProxyDetection right)
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::static System.Boolean op_Inequality(Violens.ProxyCore.SystemProxy.UpstreamProxyDetection left, Violens.ProxyCore.SystemProxy.UpstreamProxyDetection right)
+Violens.ProxyCore.SystemProxy.UpstreamProxyDetection::static Violens.ProxyCore.SystemProxy.UpstreamProxyDetection None { get; }
+Violens.ProxyCore.ViolensVersion::static readonly System.Version Current
+Violens.ProxyCore.WebSockets.WebSocketDirection.Received = 1
+Violens.ProxyCore.WebSockets.WebSocketDirection.Sent = 0
+Violens.ProxyCore.WebSockets.WebSocketLog::.ctor(System.DateTimeOffset openedAt, System.String extensions = null)
+Violens.ProxyCore.WebSockets.WebSocketLog::System.Boolean IsOpen { get; }
+Violens.ProxyCore.WebSockets.WebSocketLog::System.Collections.Generic.IReadOnlyList<Violens.ProxyCore.WebSockets.WebSocketMessage> Messages { get; }
+Violens.ProxyCore.WebSockets.WebSocketLog::System.DateTimeOffset OpenedAt { get; }
+Violens.ProxyCore.WebSockets.WebSocketLog::System.DateTimeOffset? ClosedAt { get; }
+Violens.ProxyCore.WebSockets.WebSocketLog::System.Int32 Count { get; }
+Violens.ProxyCore.WebSockets.WebSocketLog::System.String Extensions { get; }
+Violens.ProxyCore.WebSockets.WebSocketLog::System.String Problem { get; }
+Violens.ProxyCore.WebSockets.WebSocketLog::System.Void Close(System.DateTimeOffset? at = null)
+Violens.ProxyCore.WebSockets.WebSocketLog::System.Void ReportProblem(System.String problem)
+Violens.ProxyCore.WebSockets.WebSocketLog::Violens.ProxyCore.WebSockets.WebSocketMessage Add(Violens.ProxyCore.WebSockets.WebSocketDirection direction, Violens.ProxyCore.WebSockets.WebSocketMessageKind kind, System.Int64 length, System.Byte[] payload, System.Boolean compressed = false, System.Boolean truncated = false, System.String note = null, System.DateTimeOffset? time = null)
+Violens.ProxyCore.WebSockets.WebSocketLog::const System.Int64 MaxStoredBytes = 67108864
+Violens.ProxyCore.WebSockets.WebSocketLog::event System.Action Closed
+Violens.ProxyCore.WebSockets.WebSocketLog::event System.Action<Violens.ProxyCore.WebSockets.WebSocketMessage> MessageAdded
+Violens.ProxyCore.WebSockets.WebSocketMessage::.ctor(System.Int32 Number, Violens.ProxyCore.WebSockets.WebSocketDirection Direction, System.DateTimeOffset Time, Violens.ProxyCore.WebSockets.WebSocketMessageKind Kind, System.Int64 Length, System.Byte[] Payload, System.Boolean Compressed = false, System.Boolean Truncated = false, System.String Note = null)
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.Boolean Compressed { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.Boolean Equals(Violens.ProxyCore.WebSockets.WebSocketMessage other)
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.Boolean Truncated { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.Byte[] Payload { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.DateTimeOffset Time { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.Int32 Number { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.Int32? CloseCode { get; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.Int64 Length { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.String CloseReason { get; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.String Note { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.String Text { get; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::System.Void Deconstruct(out System.Int32 Number, out Violens.ProxyCore.WebSockets.WebSocketDirection Direction, out System.DateTimeOffset Time, out Violens.ProxyCore.WebSockets.WebSocketMessageKind Kind, out System.Int64 Length, out System.Byte[] Payload, out System.Boolean Compressed, out System.Boolean Truncated, out System.String Note)
+Violens.ProxyCore.WebSockets.WebSocketMessage::Violens.ProxyCore.WebSockets.WebSocketDirection Direction { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::Violens.ProxyCore.WebSockets.WebSocketMessage <Clone>$()
+Violens.ProxyCore.WebSockets.WebSocketMessage::Violens.ProxyCore.WebSockets.WebSocketMessageKind Kind { get; init; }
+Violens.ProxyCore.WebSockets.WebSocketMessage::override System.Boolean Equals(System.Object obj)
+Violens.ProxyCore.WebSockets.WebSocketMessage::override System.Int32 GetHashCode()
+Violens.ProxyCore.WebSockets.WebSocketMessage::override System.String ToString()
+Violens.ProxyCore.WebSockets.WebSocketMessage::static System.Boolean op_Equality(Violens.ProxyCore.WebSockets.WebSocketMessage left, Violens.ProxyCore.WebSockets.WebSocketMessage right)
+Violens.ProxyCore.WebSockets.WebSocketMessage::static System.Boolean op_Inequality(Violens.ProxyCore.WebSockets.WebSocketMessage left, Violens.ProxyCore.WebSockets.WebSocketMessage right)
+Violens.ProxyCore.WebSockets.WebSocketMessage::static System.String CloseCodeName(System.Int32 code)
+Violens.ProxyCore.WebSockets.WebSocketMessageKind.Binary = 2
+Violens.ProxyCore.WebSockets.WebSocketMessageKind.Close = 8
+Violens.ProxyCore.WebSockets.WebSocketMessageKind.Ping = 9
+Violens.ProxyCore.WebSockets.WebSocketMessageKind.Pong = 10
+Violens.ProxyCore.WebSockets.WebSocketMessageKind.Text = 1
+enum Violens.ProxyCore.AutoResponder.AutoResponderActionKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+enum Violens.ProxyCore.Breakpoints.BreakpointStage : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+enum Violens.ProxyCore.SessionState : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+enum Violens.ProxyCore.WebSockets.WebSocketDirection : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+enum Violens.ProxyCore.WebSockets.WebSocketMessageKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+interface Violens.ProxyCore.Extensions.IExtensionAutoTamperHost
+interface Violens.ProxyCore.Extensions.IExtensionSession
+interface Violens.ProxyCore.Extensions.IExtensionSessionHost
+interface Violens.ProxyCore.Preferences.IPreferenceStore
+interface Violens.ProxyCore.Proxy.AutoConfig.IPacHost
+interface Violens.ProxyCore.Scripting.IScriptRunner
+sealed class Violens.ProxyCore.AutoResponder.AutoResponderAction
+sealed class Violens.ProxyCore.AutoResponder.AutoResponderMatch
+sealed class Violens.ProxyCore.AutoResponder.AutoResponderOutcome
+sealed class Violens.ProxyCore.AutoResponder.AutoResponderRule
+sealed class Violens.ProxyCore.AutoResponder.AutoResponderRules
+sealed class Violens.ProxyCore.Breakpoints.BreakpointAbortedException : System.Exception, System.Runtime.Serialization.ISerializable
+sealed class Violens.ProxyCore.Breakpoints.BreakpointManager
+sealed class Violens.ProxyCore.Breakpoints.BreakpointRules
+sealed class Violens.ProxyCore.Breakpoints.PendingBreakpoint
+sealed class Violens.ProxyCore.Certificates.CertificateAuthority
+sealed class Violens.ProxyCore.Certificates.CertificateTrustException : System.Exception, System.Runtime.Serialization.ISerializable
+sealed class Violens.ProxyCore.Certificates.LeafCertificateProvider
+sealed class Violens.ProxyCore.Extensions.ExtensionRequestResult : System.IEquatable<Violens.ProxyCore.Extensions.ExtensionRequestResult>
+sealed class Violens.ProxyCore.Http.CapturedRequest : System.IEquatable<Violens.ProxyCore.Http.CapturedRequest>
+sealed class Violens.ProxyCore.Http.CapturedResponse : System.IEquatable<Violens.ProxyCore.Http.CapturedResponse>
+sealed class Violens.ProxyCore.Preferences.PrefChangeEventArgs : System.EventArgs
+sealed class Violens.ProxyCore.Preferences.PrefWatcher
+sealed class Violens.ProxyCore.Preferences.PreferenceStore : System.IDisposable, Violens.ProxyCore.Preferences.IPreferenceStore
+sealed class Violens.ProxyCore.Proxy.AutoConfig.PacScriptException : System.Exception, System.Runtime.Serialization.ISerializable
+sealed class Violens.ProxyCore.Proxy.AutoConfig.ProxyAutoConfig : System.IDisposable
+sealed class Violens.ProxyCore.Proxy.AutoConfig.SystemPacHost : Violens.ProxyCore.Proxy.AutoConfig.IPacHost
+sealed class Violens.ProxyCore.Proxy.InterceptingProxyListener
+sealed class Violens.ProxyCore.Proxy.UpstreamProxy : System.IEquatable<Violens.ProxyCore.Proxy.UpstreamProxy>
+sealed class Violens.ProxyCore.ProxyHostIdentity : System.IEquatable<Violens.ProxyCore.ProxyHostIdentity>
+sealed class Violens.ProxyCore.ProxyLogEntry : System.IEquatable<Violens.ProxyCore.ProxyLogEntry>
+sealed class Violens.ProxyCore.Scripting.ScriptRequestResult : System.IEquatable<Violens.ProxyCore.Scripting.ScriptRequestResult>
+sealed class Violens.ProxyCore.Scripting.ScriptResponseResult : System.IEquatable<Violens.ProxyCore.Scripting.ScriptResponseResult>
+sealed class Violens.ProxyCore.Sessions.HarImportResult : System.IEquatable<Violens.ProxyCore.Sessions.HarImportResult>
+sealed class Violens.ProxyCore.Sessions.PcapImportNote : System.IEquatable<Violens.ProxyCore.Sessions.PcapImportNote>
+sealed class Violens.ProxyCore.Sessions.PcapImportResult : System.IEquatable<Violens.ProxyCore.Sessions.PcapImportResult>
+sealed class Violens.ProxyCore.Sessions.SazImportResult : System.IEquatable<Violens.ProxyCore.Sessions.SazImportResult>
+sealed class Violens.ProxyCore.Sessions.ServerTlsInfo : System.IEquatable<Violens.ProxyCore.Sessions.ServerTlsInfo>
+sealed class Violens.ProxyCore.Sessions.Session : System.IEquatable<Violens.ProxyCore.Sessions.Session>
+sealed class Violens.ProxyCore.Sessions.SessionStore
+sealed class Violens.ProxyCore.Sessions.SessionTimings : System.IEquatable<Violens.ProxyCore.Sessions.SessionTimings>
+sealed class Violens.ProxyCore.SystemProxy.SystemProxyCommandException : System.Exception, System.Runtime.Serialization.ISerializable
+sealed class Violens.ProxyCore.SystemProxy.UpstreamProxyDetection : System.IEquatable<Violens.ProxyCore.SystemProxy.UpstreamProxyDetection>
+sealed class Violens.ProxyCore.WebSockets.WebSocketLog
+sealed class Violens.ProxyCore.WebSockets.WebSocketMessage : System.IEquatable<Violens.ProxyCore.WebSockets.WebSocketMessage>
+static class Violens.ProxyCore.Http.ContentDecoder
+static class Violens.ProxyCore.Http.HttpMessageText
+static class Violens.ProxyCore.Http.HttpVersions
+static class Violens.ProxyCore.Proxy.ComposerClient
+static class Violens.ProxyCore.ProxyEngine
+static class Violens.ProxyCore.Sessions.HarReader
+static class Violens.ProxyCore.Sessions.HarWriter
+static class Violens.ProxyCore.Sessions.PcapReader
+static class Violens.ProxyCore.Sessions.SazReader
+static class Violens.ProxyCore.Sessions.SazWriter
+static class Violens.ProxyCore.Sessions.SessionUrl
+static class Violens.ProxyCore.SystemProxy.SystemProxyController
+static class Violens.ProxyCore.ViolensVersion

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    violens-exec: sends a QuickExec command to the running VioLens, like
+    Fiddler Classic's ExecAction.exe. A console app, since VioLens itself is
+    a windowed app that can't print to a terminal on Windows. Published with
+    Native AOT, so it's a small native executable next to the app.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Violens.Exec</RootNamespace>
+    <AssemblyName>violens-exec</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishAot>true</PublishAot>
+    <Version>0.0.0-dev</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Violens.Automation\Violens.Automation.csproj" />
+  </ItemGroup>
+
+</Project>

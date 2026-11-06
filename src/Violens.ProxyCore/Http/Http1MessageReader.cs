@@ -14,6 +14,15 @@ internal static class Http1MessageReader
 {
     private const int MaxStartLineOrHeaderLength = 16 * 1024;
 
+    /// <summary>
+    /// The most header lines one message may have. The per-line cap alone
+    /// would let a client or server send header lines without end.
+    /// </summary>
+    public const int MaxHeaderCount = 1000;
+
+    /// <summary>The most bytes one message's header lines may total.</summary>
+    public const int MaxHeaderBytes = 256 * 1024;
+
     // Content-Length bodies relay in pieces this size, so large downloads
     // stream rather than buffer.
     private const int RelayBufferSize = 64 * 1024;
@@ -355,12 +364,19 @@ internal static class Http1MessageReader
         Stream source, CancellationToken cancellationToken)
     {
         var headers = new List<(string, string)>();
+        var totalBytes = 0;
         while (true)
         {
             var line = await ReadLineAsync(source, allowImmediateEof: false, cancellationToken);
             if (line!.Length == 0)
             {
                 break;
+            }
+
+            totalBytes += line.Length + 2;
+            if (headers.Count >= MaxHeaderCount || totalBytes > MaxHeaderBytes)
+            {
+                throw new InvalidDataException("A message's headers exceeded the maximum allowed count or size.");
             }
 
             var colon = line.IndexOf(':');
@@ -541,13 +557,26 @@ internal static class Http1MessageReader
         return null;
     }
 
+    // The buffer grows as bytes arrive rather than being sized from the
+    // declared length up front, so a large claim with little behind it
+    // costs only what's actually sent.
     private static async Task<byte[]> ReadExactAsync(Stream source, long count, CancellationToken cancellationToken)
     {
-        var buffer = new byte[count];
+        if (count > Array.MaxLength)
+        {
+            throw new InvalidDataException($"A body of {count} bytes is too large to hold in memory.");
+        }
+
+        var buffer = new byte[(int)Math.Min(count, RelayBufferSize)];
         var offset = 0;
         while (offset < count)
         {
-            var read = await source.ReadAsync(buffer.AsMemory(offset, (int)(count - offset)), cancellationToken);
+            if (offset == buffer.Length)
+            {
+                Array.Resize(ref buffer, (int)Math.Min(count, (long)buffer.Length * 2));
+            }
+
+            var read = await source.ReadAsync(buffer.AsMemory(offset, buffer.Length - offset), cancellationToken);
             if (read == 0)
             {
                 throw new InvalidDataException("Connection closed before the expected body was fully read.");

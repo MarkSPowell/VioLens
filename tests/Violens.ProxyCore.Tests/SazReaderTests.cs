@@ -44,6 +44,114 @@ public class SazReaderTests
     }
 
     [Fact]
+    public async Task ImportAsync_KeepsSessionFlagsThroughASaveAndReopen()
+    {
+        var request = new CapturedRequest("CONNECT", "pinned.example.test:443", "HTTP/1.1", [("Host", "pinned.example.test:443")], []);
+        var response = new CapturedResponse("HTTP/1.1", 200, "Connection Established", [], []);
+        var flags = new Dictionary<string, string>
+        {
+            ["x-no-decrypt"] = "the host is in the skip-decryption list",
+            ["ui-comments"] = "Checked <with> \"quotes\" & ampersands",
+        };
+        var written = new Session(1, "pinned.example.test", DateTimeOffset.UtcNow, request, response, Flags: flags, Scheme: "http");
+
+        using var zipStream = new MemoryStream();
+        SazWriter.Write(zipStream, [written]);
+        zipStream.Position = 0;
+
+        var store = new SessionStore();
+        await SazReader.ImportAsync(zipStream, store);
+
+        var imported = Assert.Single(store.Snapshot());
+        Assert.Equal(flags, imported.Flags);
+        Assert.Equal("pinned.example.test:443", SessionUrl.Of(imported));
+    }
+
+    [Fact]
+    public async Task ImportAsync_ReadsFiddlerStyleFlagsAndToleratesNone()
+    {
+        using var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var (name, text) in new[]
+            {
+                ("raw/1_c.txt", "GET / HTTP/1.1\r\nHost: a.test\r\n\r\n"),
+                ("raw/1_s.txt", "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"),
+                ("raw/1_m.xml", """<Session><SessionTimers /><SessionFlags><SessionFlag N="x-clientip" V="127.0.0.1" /><SessionFlag N="" V="ignored" /></SessionFlags></Session>"""),
+                ("raw/2_c.txt", "GET / HTTP/1.1\r\nHost: b.test\r\n\r\n"),
+                ("raw/2_s.txt", "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"),
+                ("raw/2_m.xml", "<Session><SessionFlags /></Session>"),
+            })
+            {
+                using var writer = new StreamWriter(archive.CreateEntry(name).Open(), Encoding.ASCII);
+                writer.Write(text);
+            }
+        }
+
+        zipStream.Position = 0;
+        var store = new SessionStore();
+        await SazReader.ImportAsync(zipStream, store);
+
+        var sessions = store.Snapshot();
+        Assert.Equal("127.0.0.1", Assert.Single(sessions[0].Flags!).Value);
+        Assert.Null(sessions[1].Flags);
+    }
+
+    /// <summary>A SAZ file holding one session, written by hand as another tool might.</summary>
+    private static MemoryStream ArchiveWith(string requestText, string responseText)
+    {
+        var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var (name, text) in new[] { ("raw/1_c.txt", requestText), ("raw/1_s.txt", responseText) })
+            {
+                using var writer = new StreamWriter(archive.CreateEntry(name).Open(), Encoding.ASCII);
+                writer.Write(text);
+            }
+        }
+
+        zipStream.Position = 0;
+        return zipStream;
+    }
+
+    [Fact]
+    public async Task ImportAsync_TurnsHttp2PseudoHeadersBackIntoAHostAndScheme()
+    {
+        using var zipStream = ArchiveWith(
+            "GET /api/items HTTP/2.0\r\n:method: GET\r\n:authority: api.example.test\r\n:scheme: https\r\n:path: /api/items\r\naccept: */*\r\n\r\n",
+            "HTTP/2.0 200 OK\r\n:status: 200\r\ncontent-type: application/json\r\ncontent-length: 2\r\n\r\n[]");
+
+        var store = new SessionStore();
+        var result = await SazReader.ImportAsync(zipStream, store);
+
+        Assert.Empty(result.Skipped);
+        var session = Assert.Single(store.Snapshot());
+        Assert.Equal("api.example.test", session.Host);
+        Assert.Equal("https://api.example.test/api/items", SessionUrl.Of(session));
+        Assert.Equal(HttpVersions.Http2, session.Request.HttpVersion);
+        Assert.DoesNotContain(session.Request.Headers, h => h.Name.Length == 0 || h.Name.StartsWith(':'));
+        Assert.DoesNotContain(session.Response.Headers, h => h.Name.Length == 0 || h.Name.StartsWith(':'));
+        Assert.Equal("accept", session.Request.Headers[^1].Name);
+        Assert.Equal("[]", Encoding.ASCII.GetString(session.Response.Body));
+    }
+
+    [Fact]
+    public async Task ImportAsync_ReadsAnAbsoluteHttpsUrlInTheRequestLine()
+    {
+        using var zipStream = ArchiveWith(
+            "GET https://shop.example.test:8443/cart?id=3 HTTP/1.1\r\nAccept: */*\r\n\r\n",
+            "HTTP/1.1 204 No Content\r\n\r\n");
+
+        var store = new SessionStore();
+        await SazReader.ImportAsync(zipStream, store);
+
+        var session = Assert.Single(store.Snapshot());
+        Assert.Equal("shop.example.test", session.Host);
+        Assert.Equal("/cart?id=3", session.Request.Target);
+        Assert.Equal("https://shop.example.test:8443/cart?id=3", SessionUrl.Of(session));
+    }
+
+    [Fact]
     public async Task ImportAsync_AssignsFreshIdsRatherThanReusingTheArchivesOwnNumbering()
     {
         // The store already has sessions, so imported ones can't reuse ids 1

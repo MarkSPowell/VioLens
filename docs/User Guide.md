@@ -43,7 +43,9 @@ this computer:
    traffic on this machine, the same way Fiddler Classic does. On Windows
    you get the system's "Do you want to install this certificate?"
    prompt. On macOS, VioLens shows its own confirmation before it adds
-   anything to your login keychain. Accept it to continue. Nothing you
+   anything to your login keychain, and on Linux before it adds anything
+   to your browsers' certificate databases (see "Linux" below). Accept
+   it to continue. Nothing you
    capture leaves your device unless you send it somewhere.
 4. Once it's running, the status bar shows the port VioLens is listening
    on and whether it registered itself as the system proxy. If it couldn't
@@ -60,15 +62,68 @@ key from your account, and the next **Start** makes a new one.
 Uninstalling VioLens on Windows does the same. On Windows, the system asks
 you to confirm.
 
-HTTPS interception works on both Windows and macOS, but the Mac build is
-newer and less tested. See the Known limitations section of
-[README.md](../README.md) for details.
+HTTPS interception works on Windows, macOS and Linux, but the Mac and
+Linux builds are newer and less tested. See the Known limitations section
+of [README.md](../README.md) for details.
 
 A macOS build that's signed and notarized opens like any other app. One
 that isn't (one you built yourself, or a test build) makes macOS say it
 can't verify the developer the first time you open it. Open it anyway
 from **System Settings > Privacy & Security > Open Anyway**. You only
 need to do this once.
+
+### Linux
+
+VioLens for Linux comes two ways, both for x86-64:
+
+- **AppImage:** make it executable (`chmod +x VioLens-*.AppImage`) and
+  run it. `VioLens-*.AppImage --exec` runs `violens-exec` (see "Driving
+  VioLens from scripts").
+- **`.tar.gz`:** unpack it anywhere and run `./violens`. Run
+  `./install-desktop-entry.sh` once to add VioLens to your applications
+  menu and `violens-exec` to `~/.local/bin`.
+
+**Before the first Start, install `certutil`**, which VioLens uses to
+trust its certificate:
+
+```bash
+sudo apt install libnss3-tools
+```
+
+That's for Debian and Ubuntu; on Fedora it's `sudo dnf install
+nss-tools`, and on Arch `sudo pacman -S nss`.
+
+Linux has no single list of trusted certificates, so VioLens adds its
+root, for your account only, to:
+
+- the NSS database Chrome, Chromium, Edge, Brave and other NSS apps read
+  (`~/.pki/nssdb`, made if it isn't there), and the Chromium snap's;
+- every Firefox profile, including the snap's and the Flatpak's. Restart
+  Firefox if it was open;
+- .NET's own list, for .NET apps.
+
+It doesn't add it to the system's list, which curl, wget, Python and
+most command-line tools read, because that needs root access. To trust
+it there too, download `ViolensRoot.cer` from `http://violens/` in a
+browser while VioLens is capturing, convert it, and add it. On Debian
+and Ubuntu:
+
+```bash
+openssl x509 -inform der -in ViolensRoot.cer -out violens-root.crt && sudo cp violens-root.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
+```
+
+On Fedora, copy `violens-root.crt` to `/etc/pki/ca-trust/source/anchors/`
+instead and run `sudo update-ca-trust`. When you've finished, delete it
+from that folder and run the same update command again.
+
+**The system proxy** is a desktop setting on Linux. VioLens sets it in
+GNOME's settings (also used by Cinnamon, Budgie and others) and in KDE
+Plasma's, and puts them back when you click **Stop**, or the next time
+VioLens starts after a crash. Chrome, and Firefox when it's set to "Use
+system proxy settings" (its default), follow them. On other desktops, and
+for programs that only read the `http_proxy` environment variable, point
+them at the address VioLens shows. If you started VioLens with
+`http_proxy` or `https_proxy` set, it forwards through that proxy.
 
 ## The session list and inspectors
 
@@ -84,6 +139,41 @@ tabs:
 - **JSON** (only for a JSON body): the body pretty-printed, so an API
   response is easy to read. You get it for JSON content types, and for a
   body with no useful content type that turns out to be JSON.
+- **Tree** (only for JSON, CBOR or MessagePack): the body as a tree. The
+  top level opens expanded; each line shows a name and its value, or how
+  many members (`{3}`) or items (`[5]`) it holds. CBOR and MessagePack are
+  recognized by their content type (`application/cbor`, any `+cbor` type,
+  `application/msgpack`), and a body holding several values one after
+  another (a CBOR sequence, say) shows each one. Binary data is shown as
+  `h'0a1b'`, and a few values get a note in brackets: the date a CBOR
+  epoch time or a MessagePack timestamp stands for, a bignum's value, a
+  UUID. Right-click a node for:
+  - **Copy** (Ctrl+C): its value; a string without its quotes.
+  - **Copy Subtree**: the node and everything under it, as indented JSON.
+    CBOR and MessagePack are written in CBOR's diagnostic notation, which
+    is JSON plus `h'…'` for bytes and `1(…)` for tags.
+  - **Send to TextWizard**: the same text, as TextWizard's input.
+  - **Expand All** and **Collapse All**, below the selected node.
+
+  A very large body shows only its first 10,000 values, and says so; the
+  JSON or Hex tab has the rest.
+- **Markdown** (only for Markdown: `text/markdown`, or a `.md` or
+  `.markdown` file with no useful content type): the text rendered, with
+  headings, lists, quotes, code, tables and emphasis. Links are shown with
+  their address but can't be clicked, and images appear as their
+  description, so viewing a document never fetches anything. The source
+  is on the Raw tab.
+- **WebView** (only for an HTML page): the page's title, how many
+  scripts, style sheets, images, forms and frames it has, and its text as
+  a reader would see it, without the markup. VioLens can't draw web pages
+  itself, so **Preview in Browser** opens a copy in your web browser. The
+  copy can't run scripts, show frames, submit forms or redirect, and by
+  default it loads nothing from the network, so opening it sends nothing
+  anywhere. Check **Load images and styles from the site** to let the
+  browser fetch the page's images, style sheets and fonts; scripts stay
+  blocked. (If your browser is using VioLens as its proxy, those requests
+  appear in the session list.) Copies go in a `VioLens-preview` folder in
+  your temp folder and are deleted after a day.
 - **WebForms** (request side, only when there's something to show): the
   query string and any form fields, one row per name and value, decoded.
   Form uploads (`multipart/form-data`) show each field, and each file's
@@ -96,14 +186,21 @@ tabs:
   comments, text, or data after the end of the image. Removing them makes
   the file smaller with no visible change. (EXIF can hold the photo's
   orientation, which browsers honor, so keep that tag if the image relies
-  on it.)
+  on it.) Double-click the picture, or click **View…**, to open it in a
+  window of its own: zoom with **+** and **−**, **Ctrl+scroll** (Cmd on a
+  Mac) or the buttons, **0** for actual size and **F** to fit. **F11**
+  goes full screen, and **Escape** leaves full screen or closes the window.
+  From 200% up, each pixel is drawn as a sharp square.
 - **Hex**: a hex dump of the raw bytes.
 - **Cookies** (only on a side that has cookies): on the request side,
   each cookie the browser sent; on the response side, each cookie the
   server set, with its attributes (Path, Domain, Expires, Secure, HttpOnly,
   SameSite...). A cookie browsers will refuse, such as `SameSite=None`
   without `Secure`, or a `__Host-`/`__Secure-` cookie that breaks its
-  prefix's rules, gets a warning.
+  prefix's rules, gets a warning. Above the list is the cookies' total
+  size and the largest one, since big cookies are sent with every request
+  to the site. A cookie over 4,096 bytes, the most browsers store, gets a
+  warning too.
 - **Notes** (request side, only when there are any): notes an importer
   or extension attached to the session. For example, a NetLog capture
   recorded without bodies notes the response size the browser reported,
@@ -146,7 +243,20 @@ To choose which columns the list shows, **right-click any column header**
 Every column can be hidden except **#** and **URL**, including the
 Waterfall and Image Bloat columns and columns a script or extension added;
 **Show All Columns** brings them all back. Drag a header to move its
-column, or drag the edge between headers to resize it.
+column, or drag the edge between headers to resize it. **Customize
+Columns…**, in the same menu, does it all in one dialog: check the columns
+to show and move them up or down (**Alt+Up** and **Alt+Down**) into the
+order you want.
+
+The header's right-click menu also has two entries for that column:
+
+- **Find in the … Column** opens the Find bar limited to that column's
+  text, as the list shows it ("in the Method column"). Click **✕** beside
+  it to search whole sessions again.
+- **Highlight Repeated Values** highlights every session whose value in
+  the column is the same as another session's: the same URL fetched twice,
+  say. **F3** steps through them, and closing the Find bar clears the
+  highlighting.
 
 VioLens remembers which columns are shown, their order and their widths
 for next time. A script's or extension's column keeps its place and width
@@ -289,7 +399,8 @@ browsers export), but not in SAZ files yet.
 **Tools > TextWizard…** (**Ctrl+E**) encodes and decodes text. Type or
 paste into the top box, choose a conversion, and the output updates as you
 type. If text is selected in an inspector (or any text box) when you press
-Ctrl+E, it becomes the input.
+Ctrl+E, it becomes the input. The Tree tab's **Send to TextWizard** does
+the same with a node and everything under it.
 
 | Conversion | Does |
 |---|---|
@@ -330,6 +441,7 @@ column chooser:
 | Also Break On | A row of narrower breakpoint conditions (URL contains, method, status code) |
 | AutoResponder | The AutoResponder rules editor |
 | Connections | The upstream proxy setting and "Allow remote computers to connect" (see below) |
+| Accept Commands from violens-exec | Whether scripts can drive VioLens with `violens-exec` (on by default; see "Driving VioLens from scripts") |
 | TextWizard… | Encodes and decodes text (see "TextWizard") |
 | Session List Columns | Which columns the session list shows (see "The session list") |
 
@@ -441,6 +553,11 @@ line. Click it or press **Alt+Q** (**Edit > QuickExec**), type a command and
 press **Enter**. **Up** and **Down** bring back earlier commands, and
 **Escape** clears the box. What a command did shows on the status line.
 
+As you type, the commands you could mean appear above the box with what
+they do, and for `select`, `allbut` and `keep` the usual values. **Tab**
+takes the highlighted one, **Up** and **Down** move between them, a click
+takes one, and **Escape** hides them.
+
 | Command | Does |
 |---|---|
 | `?text` | Selects sessions whose URL contains the text |
@@ -458,6 +575,11 @@ press **Enter**. **Up** and **Down** bring back earlier commands, and
 | `bpm POST` (or `bpv`) | Pauses requests with that method |
 | `go` | Lets every paused session continue |
 | `start`, `stop` | Starts or stops capturing |
+| `dump` | Saves every session to a new `.saz` file on your Desktop, as **File > Save SAZ** does |
+| `save file` | Saves every session to that file: HAR if it ends in `.har`, SAZ otherwise. A relative name is on the Desktop (or, from `violens-exec`, in the folder it was run from) |
+| `open file` | Adds the sessions in a `.saz` or `.har` file, or the plain HTTP in a packet capture (`.pcap`, `.pcapng`, `.cap`) |
+| `filter text` | Sets the session filter, as typed in the filter box (`filter` on its own clears it) |
+| `keep 1000`, `keep all` | How many sessions to keep, as the Keep drop-down sets |
 | `help` | Lists the commands and opens this guide |
 
 Selection commands select among the sessions the filter shows, so you can
@@ -468,6 +590,39 @@ Any other command goes to the loaded FiddlerScript's `OnExecAction`
 function (with the command split into words; "quoted text" stays one word),
 then to extensions that handle commands (`IHandleExecAction`). The first to
 return true has handled it.
+
+### Driving VioLens from scripts
+
+`violens-exec` sends a QuickExec command to the running VioLens, as Fiddler
+Classic's `ExecAction.exe` did, so a test script or a scheduled job can
+drive a capture:
+
+```
+violens-exec start
+(run your tests)
+violens-exec save results.har
+violens-exec stop
+```
+
+- **Where it is:** next to VioLens: `violens-exec.exe` in the install
+  folder on Windows (`%LOCALAPPDATA%\Programs\VioLens` for a per-user
+  install), `VioLens.app/Contents/MacOS/violens-exec` on macOS, and in
+  the unpacked folder on Linux (`install-desktop-entry.sh` links it into
+  `~/.local/bin`; with the AppImage, run `VioLens-*.AppImage --exec`). Add
+  that folder to your `PATH`, or give the full path.
+- **What it does:** everything after `violens-exec` is one command, run as
+  if typed into QuickExec, including FiddlerScript and extension commands.
+  It prints what VioLens's status line said. A file name with spaces needs
+  quotes: `violens-exec save "my capture.saz"`. A relative file name is
+  taken from the folder you ran it in.
+- **Exit codes:** 0 when the command worked, 1 when VioLens reported a
+  failure (an unknown command, a file it couldn't write), 2 for a usage
+  mistake, and 3 when it couldn't reach VioLens (not running, or busy with
+  another command for longer than `--timeout`, 10 seconds by default).
+- **Who can use it:** only programs running as you on this computer.
+  Nothing listens on the network. To stop it accepting commands, uncheck
+  **Tools > Accept Commands from violens-exec**. If two copies of VioLens
+  are running, the first one gets the commands.
 
 ## Connections: upstream proxy and other devices
 
@@ -501,6 +656,13 @@ a domain account. The password is kept only while VioLens is running
 and is never saved. If signing in doesn't work, the 502 page VioLens
 shows says what the proxy offered.
 
+Basic sends the password as plain text, which anyone who can see the
+traffic to that proxy can read. So the first time a proxy asks for it,
+VioLens asks you first, naming the proxy. **Send** sends it to that
+proxy for the rest of the session. **Don't Send** (or no answer within
+2 minutes) passes the proxy's sign-in request on to the browser instead.
+VioLens asks again only if you change the password.
+
 VioLens can't yet use a SOCKS proxy.
 
 **Allow remote computers to connect.** Lets phones, tablets and other
@@ -512,8 +674,11 @@ proxy set, open `http://violens/` to download VioLens's root
 certificate, and follow the instructions on that page to install and trust
 it. Anyone on your network can use the proxy while this is on, so turn it
 off when you've finished, and remove the certificate from the other device.
-Other devices can't reach this computer's own `localhost` services
-through VioLens; they get a "403 Forbidden" page instead.
+Other devices can't reach this computer's own `localhost` services, or
+link-local addresses such as a cloud server's metadata service, through
+VioLens; they get a "403 Forbidden" page instead. Anything else this
+computer can reach, they can too, including networks it's on through a
+VPN, so don't turn this on over a network you don't trust.
 
 **Use HTTP/2 with browsers.** Lets browsers use HTTP/2 with
 VioLens for HTTPS sites, as they would with the site itself. VioLens then
@@ -633,8 +798,8 @@ one, it's used straight away.
 ### Fiddler Classic extensions ported from source
 
 If you have the source of a Fiddler Classic extension, you can usually
-rebuild it for VioLens with very small changes, and it then runs on both
-Windows and macOS. The first one ported this way is Eric Lawrence's
+rebuild it for VioLens with very small changes, and it then runs on
+Windows, macOS and Linux. The first one ported this way is Eric Lawrence's
 [NetLog importer](https://github.com/ericlaw1979/FiddlerImportNetlog),
 which imports Chromium/Edge NetLog captures (`.json`, `.json.gz` or a
 `.zip` containing one). The only change to its source is deleting its
@@ -699,9 +864,16 @@ Classic extension of this kind that you want to keep using.
 ## Saving and loading captured sessions
 
 - **File > Save SAZ…** exports every session captured this run to a
-  `.saz` (Session Archive Zip) file on your Desktop.
+  `.saz` (Session Archive Zip) file on your Desktop. A `.saz` file is a zip:
+  unzip it and open `_index.htm` for a list of the sessions, with links to
+  each one's request and response. Each session's notes (comments,
+  colors, and what the Notes tab shows) are saved with it, as Fiddler
+  Classic saves session flags, and come back when the file is opened.
 - **File > Open SAZ…** imports sessions from a previously saved `.saz` file
   back into the session list, exactly as if they'd just been captured live.
+  It also reads `.saz` files from other tools that save HTTP/2 requests
+  with pseudo-headers such as `:authority`, or HTTPS requests with their
+  full URL.
 - **File > Export HAR…** saves every session as an HTTP Archive (`.har`),
   the format browsers' developer tools and many support teams use. Bodies
   are saved decompressed, as text where they're text, and each session's
@@ -710,6 +882,23 @@ Classic extension of this kind that you want to keep using.
   exported from a browser's developer tools. HAR files keep bodies
   decompressed, so imported sessions don't have Content-Encoding headers.
   The browser's own timings come in too, so the waterfall shows them.
+- **File > Import Packet Capture…** adds the plain HTTP/1.x traffic in a
+  `.pcap` or `.pcapng` file from Wireshark, tcpdump, Windows' `pktmon`
+  (converted with `pktmon etl2pcap`) and similar tools. Useful for devices
+  that can't be pointed at a proxy.
+  - HTTPS in a packet capture is encrypted, so it's skipped, and so are
+    HTTP/2 and HTTP/3. The status line says how many encrypted
+    connections there were; for HTTPS, capture through VioLens instead.
+  - Ethernet, unencrypted Wi-Fi, raw IP and Linux "any interface"
+    captures are read, over IPv4 or IPv6. Each session's Notes tab shows
+    the client's and server's addresses and ports.
+  - Timings come from when the packets were captured.
+  - If the capture missed part of an exchange (it started late, or
+    packets were dropped), the session shows what was captured and its
+    notes say what's missing. A request with no response gets status 0;
+    nothing is made up.
+  - Captures up to 256 MB can be imported. What was skipped, and why, is
+    written to the console.
 
 ## Settings that are remembered
 
@@ -723,6 +912,7 @@ and macOS:
   password), whether remote computers may connect, HTTP/2, the
   skip-decryption hosts, and the client certificate and its hosts
 - Whether to check for updates at start-up
+- Whether to accept commands from `violens-exec`
 - How many sessions to keep
 - The window's size and position, and whether it was maximized
 - The session list's columns: which are shown, their order and widths
@@ -742,13 +932,98 @@ Settings are saved in a `preferences.json` file:
 
 - **Windows:** `%LOCALAPPDATA%\VioLens\preferences.json`
 - **macOS:** `~/Library/Application Support/VioLens/preferences.json`
+- **Linux:** `~/.local/share/VioLens/preferences.json`
 
-The file is the same format on both platforms, so you can copy it from one
+The file is the same format on every platform, so you can copy it from one
 machine to another. You can edit it by hand while VioLens is closed.
 Changes made while it's running are picked up the next time it starts. If
 the file ever becomes unreadable, VioLens renames it to
 `preferences.json.corrupt-<date>` and starts with defaults, so nothing you
 had is lost. To reset every setting, quit VioLens and delete the file.
+
+### Settings set by your organization
+
+An administrator can set VioLens's settings for everyone on a machine,
+for example to forbid **Allow remote computers to connect** or to turn
+off the update check. A **locked** setting can't be changed: its control
+is grayed out, and FiddlerScripts, extensions and QuickExec can't change
+it either. A **default** applies until the user picks something else.
+When anything is locked, the status line says so at start-up, and
+**Help > Copy Diagnostic Info** lists which settings policy sets (names
+only, not their values).
+
+The policy is read at start-up from places only an administrator can
+change:
+
+- **Windows:** the registry key `HKLM\SOFTWARE\Policies\VioLens`, where
+  Group Policy and device management tools put policy. Each value is named
+  after a preference and holds its value: a string, or a DWORD (`1` and
+  `0` mean on and off). Values in a `Defaults` subkey are defaults rather
+  than locked. Then `%ProgramData%\VioLens\policy.json`.
+- **macOS:** `/Library/Application Support/VioLens/policy.json`
+- **Linux:** `/etc/violens/policy.json`
+
+Where the registry and the file both set something, the registry wins.
+`policy.json` looks like this:
+
+```json
+{
+  "locked": {
+    "violens.proxy.allowremote": false,
+    "violens.update.check": false
+  },
+  "defaults": {
+    "violens.proxy.upstream": "proxy.example.com:8080"
+  }
+}
+```
+
+The settings most often set this way:
+
+| Preference | Setting |
+|---|---|
+| `violens.proxy.allowremote` | Allow remote computers to connect (`true` or `false`) |
+| `violens.update.check` | Check for updates at start-up. Locked off, Check for Updates is turned off too |
+| `violens.automation.exec` | Accept commands from `violens-exec` |
+| `violens.proxy.upstream` | The upstream proxy (`host:port`, `none`, or empty for automatic) |
+| `violens.proxy.upstream.username` | The proxy sign-in user name |
+| `violens.proxy.http2.enabled` | HTTP/2 with browsers |
+| `violens.config.https.skipdecryption` | Hosts not to decrypt, separated by semicolons |
+| `violens.proxy.clientcertificate`, `violens.config.https.clientcertificatehosts` | The client certificate's thumbprint, and its hosts |
+| `violens.proxy.port.auto`, `violens.proxy.port` | Automatic port, or the port number |
+| `violens.ui.sessionlist.keep` | How many sessions to keep (`0` keeps all) |
+| `violens.extensions.legacyhost.autolaunch` | Launch the legacy extension host on Start |
+| `violens.fiddlerscript.path` | The FiddlerScript file |
+
+Any other name in `preferences.json` can be set the same way. A policy
+file VioLens can't read is skipped (and the reason written to the
+console), so a mistake in it never stops VioLens starting.
+
+## VioLens Capture: a capture from someone else
+
+When someone else sees a problem (a customer, say), they can record it
+for you with **VioLens Capture**, a separate app with one window and no
+settings to understand. It works like Fiddler's FiddlerCap:
+
+1. They run it. On Windows it's a single `VioLensCapture-<version>-win-x64.exe`
+   from the release page, which runs without installing.
+2. They click **Start Capture**. With **Include secure (HTTPS) websites**
+   checked (the default) it adds VioLens's certificate, so their computer
+   may ask them to confirm. Unchecked, nothing is trusted and HTTPS shows
+   only which sites were visited.
+3. They do whatever shows the problem in their browser, then click
+   **Stop Capture**, which puts their proxy setting back.
+4. **Save Capture…** writes a `.saz` file, which they send to you and you
+   open with **File > Open SAZ**.
+
+Closing the window stops capturing, and (unless they uncheck it) removes
+the certificate it added. The window reminds them that a capture can hold
+passwords and cookies. It records only: no breakpoints, rules, scripts or
+extensions run.
+
+It uses the same certificate, settings folder and proxy crash recovery as
+VioLens, so don't run both at once, and removing the certificate when
+Capture closes means VioLens asks to trust a new one next time.
 
 ## The Help menu
 
@@ -766,15 +1041,15 @@ had is lost. To reset every setting, quit VioLens and delete the file.
   [bug report](https://github.com/MarkSPowell/VioLens/issues/new?template=bug_report.yml).
 - **Checking for updates.** At start-up VioLens asks GitHub whether a
   newer release is out. If one is, a button beside the title says so and
-  opens the release's page. If you're running a preview you're offered
-  newer previews too; otherwise only full releases. **Help > Check for
+  opens the release's page. If you're running a preview or release
+  candidate you're offered newer ones too; otherwise only full releases. **Help > Check for
   Updates** asks straight away. To stop the start-up check, uncheck **Help
   > Check for Updates at Start-up**. The check is one request to GitHub's
   public releases list and sends nothing about you or your traffic.
   VioLens never downloads or installs anything itself.
 - **Help > About VioLens** shows which build you're running. That's
   useful when you report an issue or want to check you're on the latest
-  preview.
+  release.
 
 ## Known limitations
 

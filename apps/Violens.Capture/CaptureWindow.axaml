@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Violens.Capture.CaptureWindow"
+        Title="VioLens Capture"
+        Width="520"
+        Height="520"
+        MinWidth="420"
+        MinHeight="460"
+        CanResize="True"
+        WindowStartupLocation="CenterScreen"
+        Icon="avares://VioLensCapture/Assets/violens-icon.png"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+  <!-- Three steps, one button each. Written for someone who has never heard
+       of a proxy: no ports, no sessions, no settings beyond two ticks. -->
+  <ScrollViewer>
+    <StackPanel Margin="24" Spacing="14">
+      <TextBlock Text="VioLens Capture"
+                 FontSize="22"
+                 FontWeight="Bold"
+                 Foreground="{DynamicResource AppAccentBrush}" />
+      <TextBlock TextWrapping="Wrap"
+                 Text="Records what your web browser sends and receives, so a support team can see what went wrong." />
+
+      <Border Background="{DynamicResource AppPanelBrush}"
+              BorderBrush="{DynamicResource AppBorderBrush}"
+              BorderThickness="1"
+              CornerRadius="8"
+              Padding="16">
+        <StackPanel Spacing="12">
+          <TextBlock FontWeight="SemiBold" Text="1. Start capturing" />
+          <CheckBox x:Name="DecryptBox"
+                    IsChecked="True"
+                    Content="Include secure (HTTPS) websites" />
+          <TextBlock TextWrapping="Wrap"
+                     FontSize="12"
+                     Foreground="{DynamicResource AppMutedTextBrush}"
+                     Text="Most websites are secure. To record them, VioLens Capture adds its own certificate to this computer; your computer may ask you to confirm. Without it, the capture shows only which secure sites were visited." />
+          <Button x:Name="StartStopButton"
+                  Content="Start Capture"
+                  Classes="accent"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center"
+                  Padding="12,10"
+                  FontSize="15"
+                  Click="StartStop_Click" />
+
+          <TextBlock FontWeight="SemiBold" Text="2. Show the problem" Margin="0,6,0,0" />
+          <TextBlock TextWrapping="Wrap"
+                     Text="In your browser, do whatever shows the problem. If the page was already open, reload it. Then come back here and click Stop Capture." />
+
+          <TextBlock FontWeight="SemiBold" Text="3. Save and send" Margin="0,6,0,0" />
+          <Button x:Name="SaveButton"
+                  Content="Save Capture…"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center"
+                  Padding="12,8"
+                  IsEnabled="False"
+                  Click="Save_Click" />
+        </StackPanel>
+      </Border>
+
+      <TextBlock x:Name="StatusText"
+                 TextWrapping="Wrap"
+                 Text="Not capturing." />
+      <TextBlock x:Name="CountText"
+                 TextWrapping="Wrap"
+                 Foreground="{DynamicResource AppMutedTextBrush}"
+                 Text="Nothing captured yet." />
+
+      <TextBlock TextWrapping="Wrap"
+                 FontSize="12"
+                 Foreground="{DynamicResource AppMutedTextBrush}"
+                 Text="A capture can include passwords, cookies and other personal information from the sites you visit while capturing. Close other tabs first, and only send the file to someone you trust." />
+
+      <CheckBox x:Name="RemoveCertificateBox"
+                IsChecked="True"
+                Content="Remove the certificate when I close VioLens Capture" />
+    </StackPanel>
+  </ScrollViewer>
+</Window>

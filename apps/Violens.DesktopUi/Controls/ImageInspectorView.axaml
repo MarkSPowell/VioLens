@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:inspect="using:Violens.Extensibility.Inspection"
+             xmlns:conv="using:Violens.DesktopUi.Converters"
+             x:Class="Violens.DesktopUi.Controls.ImageInspectorView"
+             x:DataType="inspect:ImageContent">
+  <!-- ImageView: the summary line (format, dimensions, size), then the
+       picture at its own size, scrollable. The converter returns null for
+       a format Avalonia can't draw, leaving just the summary. Double-click
+       the picture, or View, for a window of its own with zoom. -->
+  <DockPanel>
+    <DockPanel DockPanel.Dock="Top" Margin="8,4">
+      <Button x:Name="ViewButton"
+              DockPanel.Dock="Right"
+              Content="View…"
+              IsEnabled="False"
+              Click="ViewButton_Click"
+              ToolTip.Tip="Opens the picture in a window of its own, where you can zoom in and out (or double-click the picture)."
+              VerticalAlignment="Top" />
+      <TextBlock Text="{Binding Summary}"
+                 Foreground="{DynamicResource AppMutedTextBrush}"
+                 TextWrapping="Wrap"
+                 VerticalAlignment="Center" />
+    </DockPanel>
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Image x:Name="Picture"
+             Source="{Binding Bytes, Converter={x:Static conv:ImageBytesConverter.Instance}}"
+             Stretch="None"
+             HorizontalAlignment="Left"
+             VerticalAlignment="Top"
+             Margin="8"
+             DoubleTapped="Picture_DoubleTapped" />
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

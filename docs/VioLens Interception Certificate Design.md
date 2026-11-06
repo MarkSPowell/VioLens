@@ -1,316 +1,319 @@
 # VioLens Interception Certificate Design
 
-This document exists because ten source files reference "the Interception
-Certificate Design doc" for design rationale that was never actually
-written down anywhere accessible — only scattered across code comments.
-This reconstructs what's knowable from those comments and from the
-implementation itself (`src/Violens.ProxyCore/Certificates/`), which
-already fully implements the Windows half of what's described below. Where
-a decision was made but the reasoning behind it isn't recoverable from the
-code, that's marked explicitly rather than guessed at.
+How VioLens makes and trusts the certificates it uses to read HTTPS
+traffic, on each platform. The code is in
+`src/Violens.ProxyCore/Certificates/`. Where the reason for a decision
+can't be recovered from the code, this says so instead of guessing.
 
-## Why a certificate authority at all
+## Why a certificate authority
 
-To inspect HTTPS traffic, VioLens sits in the middle of the TLS
-connection: it terminates TLS toward the client with its own certificate,
-decrypts the traffic, and separately terminates TLS toward the real
-server. For the client (a browser) to accept VioLens's certificate
-without a warning, it needs to trust the certificate authority that
-signed it — the same interception model Fiddler Classic itself uses, and
-the reason every such tool has to install a root certificate at all.
+To inspect HTTPS, VioLens sits in the middle of the TLS connection. It
+ends TLS with the client using its own certificate, decrypts the traffic,
+and makes a separate TLS connection to the real server. A browser only
+accepts VioLens's certificate without a warning if it trusts the
+certificate authority that signed it. Fiddler Classic works the same way,
+and it's why every tool like this installs a root certificate.
 
 ## The root certificate authority (`CertificateAuthority`)
 
-One root CA is generated per install, per user:
+Each install makes one root CA for the user:
 
-- **Algorithm**: ECDSA on the P-256 curve, SHA-256 signing.
-- **Validity**: 5 years from one day before generation (a small
-  `notBefore` buffer against clock skew).
+- **Algorithm**: ECDSA on the P-256 curve, signed with SHA-256.
+- **Validity**: 5 years, starting a day before it was made, to allow for
+  clock skew.
 - **Subject**: `DO_NOT_TRUST_ViolensRoot (<machine name>, generated
-  <date>)` — the `DO_NOT_TRUST_` prefix follows Fiddler Classic's own
-  long-standing convention (`DO_NOT_TRUST_FiddlerRoot`), so a stale or
-  foreign copy is recognizable in a trust store at a glance.
-- **Key storage**: the private key is persisted with `PersistKeySet` but
-  deliberately without `Exportable` — the key exists as a real key
-  container on disk, but can't be exported back out through the
-  certificate API once created. It's exported to an in-memory PFX only
-  for that one round trip (immediately re-imported with the flags
-  actually wanted), and the PFX bytes are zeroed afterward.
-- **Store location**: `CurrentUser\My` (personal store) for the
-  certificate-with-key, `CurrentUser\Root` (trusted root store) for trust.
-  A per-user install, not per-machine — no admin elevation required, and
-  no other user account on the same machine is affected.
-- **Reuse across runs**: on startup, an existing, still-valid, still
-  privately-keyed root already in the personal store is reused rather
-  than generating a new one every launch — the same root keeps working
-  across Start/Stop cycles and app restarts, so the client's trust
-  decision doesn't have to happen more than once.
+  <date>)`. The `DO_NOT_TRUST_` prefix follows Fiddler Classic's
+  `DO_NOT_TRUST_FiddlerRoot`, so a stale or foreign copy is easy to spot in
+  a trust store.
+- **Key storage**: the private key is saved with `PersistKeySet` but not
+  `Exportable`. It lives in a real key container on disk and can't be
+  exported again through the certificate API. It's exported to an
+  in-memory PFX once, to re-import it with the right flags, and the PFX
+  bytes are zeroed afterwards.
+- **Where it's kept**: `CurrentUser\My` (the personal store) holds the
+  certificate and key, and `CurrentUser\Root` (trusted roots) holds the
+  trust. It's per user, so it needs no admin rights and doesn't affect
+  other accounts.
+- **Reuse**: at start-up, a root that's already in the personal store,
+  still valid and still has its key is used again, so the user only has
+  to trust it once.
 
 ### Installing trust
 
-Adding the root to `CurrentUser\Root` is what triggers Windows' native
-"Do you want to install this certificate?" prompt the first time — this
-is deliberate and not something VioLens tries to suppress or automate
-around. A silent, unprompted root-CA install would be indistinguishable
-from malware behavior; relying on the OS's own confirmation dialog is the
-honest way to do this, and it's the same prompt experience Fiddler
-Classic's own documented setup walks users through.
+On Windows, adding the root to `CurrentUser\Root` makes Windows ask "Do
+you want to install this certificate?" the first time. VioLens doesn't try
+to avoid that. Installing a root CA silently would look exactly like
+malware, and the OS's own prompt is the same one Fiddler Classic's setup
+walks people through.
 
 ### Removal
 
-`CertificateAuthority.Uninstall()` removes the root from both the
-personal and trusted-root stores, and `CertificateAuthority.RemoveRoots`
-removes every root with VioLens's name, including ones from earlier
-installs, along with their keys. Both are wired up: **Tools > Remove Root
-Certificate** in the app, the Windows uninstaller (through
-`Program.RemoveRootCertificateArgument`), and
+`CertificateAuthority.Uninstall()` removes the root from the personal and
+trusted-root stores. `CertificateAuthority.RemoveRoots` removes every root
+with VioLens's name, including ones from earlier installs, with their
+keys. Both are used by **Tools > Remove Root Certificate**, the Windows
+uninstaller (`Program.RemoveRootCertificateArgument`) and
 `ProxyHostClient.UninstallRootCertificateAsync` for apps using the proxy
 host. On Windows the OS asks before each removal from the trusted-root
-store; a "No" keeps that root's key too, so nothing is left half-removed.
+store; answering No keeps that root's key too, so nothing is left
+half-removed.
 
 ## Leaf certificates (`LeafCertificateProvider`)
 
-A fresh leaf certificate is signed for each host VioLens intercepts,
-signed by the root above:
+VioLens signs a new certificate for each host it intercepts, with the root
+above:
 
-- **Algorithm**: ECDSA P-256 again, for consistency with the root.
-- **Validity**: 7 days, `notBefore` backdated 5 minutes for clock-skew
-  tolerance. Short-lived by design — these are ephemeral, per-run
-  certificates, not something meant to be reused across long stretches of
-  time.
-- **Subject / SAN**: the certificate's Subject Alternative Name carries
-  the actual host — a DNS name, or an IP address when the host being
-  connected to is literally an IP. Modern clients (Chromium in
-  particular) validate against the SAN, not the legacy Subject Common
-  Name, so getting the SAN right is what actually matters for the
-  certificate to be accepted.
-- **Extended Key Usage**: server authentication only (OID
-  `1.3.6.1.5.5.7.3.1`).
-- **Key usage**: `DigitalSignature` only — no `KeyEncipherment`, since
-  that's an RSA-specific usage that doesn't apply to an EC key.
-- **Chain building**: the leaf carries an Authority Key Identifier tying
-  it back to the issuing root's key, which strict validators (and some
-  Chromium checks) expect even for a simple two-level chain.
+- **Algorithm**: ECDSA P-256, like the root.
+- **Validity**: 7 days, starting 5 minutes early for clock skew. They're
+  only meant to last for a run.
+- **Subject Alternative Name**: the host, as a DNS name, or as an IP
+  address when the client connected to an IP. Modern clients (Chromium in
+  particular) check the SAN rather than the Common Name, so that's the part
+  that has to be right.
+- **Extended key usage**: server authentication only
+  (`1.3.6.1.5.5.7.3.1`).
+- **Key usage**: `DigitalSignature` only. `KeyEncipherment` is for RSA
+  keys and doesn't apply to an EC key.
+- **Chain building**: each leaf has an Authority Key Identifier pointing
+  at the root's key, which strict validators (and some Chromium checks)
+  expect even in a two-level chain.
 
 ### Caching and concurrency
 
-Leaves are cached per host and reused until within 5 minutes of
-expiring. The cache is a single-flight design
+Leaves are cached per host and reused until 5 minutes before they expire.
+The cache makes each certificate once
 (`ConcurrentDictionary<string, Lazy<X509Certificate2>>` with
-`ExecutionAndPublication`): when a real browser opens several parallel
-connections to a host it hasn't talked to yet, all of them hit the same
-uncached-host case within milliseconds of each other, and only the first
-caller actually signs a certificate — the rest wait for that one result
-instead of each racing to sign (and persist a key container for) the same
-host redundantly. This was built specifically because that redundant-race
-behavior was reproduced live as intermittent `AuthenticationException` /
-`Win32Exception: An unknown error occurred while processing the
-certificate` failures under concurrent signing.
+`ExecutionAndPublication`). A browser opens several connections to a new
+host within milliseconds of each other; the first one signs a certificate
+and the rest wait for it, instead of all signing (and saving a key for)
+the same host at once. That race used to cause intermittent
+`AuthenticationException` and `Win32Exception: An unknown error occurred
+while processing the certificate` failures.
 
-A failed signing attempt evicts itself from the cache rather than caching
-the failure forever (the default behavior of a faulted
-`Lazy<T>` under `ExecutionAndPublication`), so a transient failure doesn't
-poison every future request for that host until the process restarts.
+A failed signing removes itself from the cache. A faulted `Lazy<T>` would
+otherwise keep returning the failure, and one passing problem would break
+that host until the app restarted.
 
 ### The ephemeral-key problem
 
-`CertificateRequest.Create(...).CopyWithPrivateKey(...)` hands back a
-certificate whose private key exists only in memory. On Windows,
-`SslStream`'s server-side handshake (Schannel) refuses such a certificate
-outright with "the platform does not support ephemeral keys." The fix is
-an export-then-reimport round trip like the root's, but without
-`PersistKeySet` and without adding the leaf to any store. The key then
-lives in a real key container, which Schannel accepts, and Windows
-deletes that container when the certificate is released. Leaf keys don't
-pile up in the user's profile. (An earlier version imported leaves with
-`PersistKeySet` and left one container behind per leaf.) A leaf dropped
-from the cache near expiry isn't disposed straight away, since a
-handshake may still be using it; its container goes when the garbage
-collector releases it.
+`CertificateRequest.Create(...).CopyWithPrivateKey(...)` returns a
+certificate whose key exists only in memory. On Windows, `SslStream`'s
+server side (Schannel) refuses it: "the platform does not support
+ephemeral keys". The fix is to export and re-import it, as with the root,
+but without `PersistKeySet` and without adding the leaf to any store. The
+key then lives in a real key container, which Schannel accepts, and
+Windows deletes the container when the certificate is released, so leaf
+keys don't build up in the user's profile. (An earlier version used
+`PersistKeySet` and left a container behind for every leaf.) A leaf
+dropped from the cache isn't disposed straight away, since a handshake may
+still be using it; its container goes when the garbage collector releases
+it.
 
-A freshly persisted key container also isn't always immediately ready for
-Schannel to use — reproduced live as an occasional, isolated
-`AuthenticationException` failure right in the middle of a real client's
-TLS handshake, independent of the concurrency issue the single-flight
-cache already guards against. `WarmUpPrivateKey` forces one real
-private-key signing operation immediately after import (before the
-certificate is ever handed to `SslStream`), with up to 2 attempts, so
-that failure mode surfaces (and can be retried) right after import — a
-place where it's cheap to reason about — rather than mid-handshake, where
-it silently drops one of the client's connections.
+A newly saved key container also isn't always ready for Schannel
+straight away, which showed up as an occasional `AuthenticationException`
+in the middle of a client's handshake, separate from the race above.
+`WarmUpPrivateKey` signs something with the key right after import,
+before `SslStream` sees the certificate, and tries twice. That way the
+problem shows up, and can be retried, at a point where it's easy to
+handle, not halfway through a handshake where it drops one of the
+client's connections.
 
 ## Platform status
 
-**Windows**: fully implemented — this entire document describes the
-Windows half of the design, and it's what's actually running today.
+**Windows**: everything above describes Windows, and it's what runs
+today.
 
-**macOS**: built this pass, answering the three open questions this
-section used to pose. Mark's own calls, in order:
+**macOS** made three choices:
 
-1. **Shell out to the `security` command-line tool**, not P/Invoke
-   `Security.framework` directly. `SecTrustSettingsSetTrustSettings` and
-   friends have notoriously fiddly `CFType`/`CFDictionary` marshaling in
-   .NET, and with no Mac available to this session to compile or run
-   against, blind P/Invoke declarations carried real risk of shipping
-   something subtly wrong in a way nothing here could catch. Shelling out
-   is also precedented: it's the same approach `dotnet dev-certs
-   https --trust` itself uses on macOS for the identical problem (trust a
-   locally-generated root for local HTTPS).
-2. **Per-user login keychain, not the system keychain** — matching the
-   existing Windows design (`CurrentUser\Root`, no admin elevation)
-   exactly, at the cost of only that one user account being able to see
-   decrypted traffic, same trade-off Windows already made.
-3. **Both cert trust and system proxy registration, together, in this
-   pass** — cert trust alone doesn't produce a usable macOS build; without
-   also pointing the system proxy at VioLens, a Mac user would have to
-   set that by hand in System Settings every session. See "System proxy
-   registration," below.
+1. **Run the `security` command-line tool** rather than calling
+   `Security.framework` directly. `SecTrustSettingsSetTrustSettings` needs
+   awkward `CFType` and `CFDictionary` marshaling in .NET, and with no Mac
+   to test on, hand-written P/Invoke declarations could easily have been
+   wrong in ways nothing would catch. `dotnet dev-certs https --trust`
+   takes the same approach to the same problem on macOS.
+2. **The user's login keychain, not the system keychain**, to match
+   Windows (`CurrentUser\Root`, no admin rights). As on Windows, only that
+   account can see decrypted traffic.
+3. **Trust and the system proxy together**. Trust alone isn't usable:
+   without the system proxy pointing at VioLens, a Mac user would have to
+   set it by hand in System Settings each time. See "System proxy
+   registration" below.
 
-**Only partly tested on a real Mac.** The first real Mac run found the
-Start freeze described below, which is fixed, and CI checks that the
-signed app launches. A full hands-on test is item 3 of the Project Plan's
-Road to 1.0. It still has to confirm that Chrome honors the trust setting
-straight away, how the password prompt behaves, that the 7-day leaf
-certificates satisfy Apple's rules for server certificates, and that
-removal works.
+**macOS has only been partly tested on a real Mac.** The first Mac run
+found the Start freeze described below, which is fixed, and CI checks that
+the signed app launches. A full hands-on test is item 3 of the Project
+Plan's Road to 1.0. It has to confirm that Chrome honors the trust
+straight away, how the password prompt behaves, that 7-day leaf
+certificates meet Apple's rules for server certificates, and that removal
+works.
 
-### Keychain trust, mechanically
+### Keychain trust
 
-`MacOSCertificateTrust` (`src/Violens.ProxyCore/Certificates/`) shells
-out to two commands, called from `CertificateAuthority.EnsureTrusted`/
-`Uninstall` exactly where the Windows `X509Store(StoreName.Root, ...)`
-calls already were — see that class's own remarks for the per-platform
-dispatch, which also closes a latent gap: those two methods had no
-platform guard at all before this pass, so running on Linux (or any
-platform that isn't Windows) would already have hit an unhandled
-`CryptographicException` from the Windows-only `X509Store` call, not a
-clean "unsupported platform" message. Both are fixed now.
+`MacOSCertificateTrust` runs two commands, called from
+`CertificateAuthority.EnsureTrusted` and `Uninstall` in place of the
+Windows `X509Store(StoreName.Root, ...)` calls. (Before macOS support,
+those methods had no platform check, so any platform other than Windows
+got an unhandled `CryptographicException` rather than a clear message.)
 
-- **Install**: exports the root to a temporary DER-encoded (`.cer`) file,
-  then runs `security add-trusted-cert -r trustRoot <path>` — no `-k`
-  (defaults to the user's own default keychain, normally
-  `login.keychain-db`, rather than hardcoding that path, which can
-  legitimately differ) and no `-d` (that flag is specifically what adds
-  the *admin* cert store, i.e. system-wide trust, which needs elevation;
-  omitting it is what keeps this per-user and unelevated). The temp file
-  is deleted in a `finally` whether or not the command succeeds.
-- **Uninstall**: `security delete-certificate -Z <SHA-1 thumbprint>` —
-  matched by hash (`X509Certificate2.Thumbprint` is exactly the uppercase
-  hex `security` expects for `-Z`), not by common name, so there's no
-  ambiguity if more than one VioLens root ever ends up in the same
-  keychain (an old one from a previous install that was never cleanly
-  uninstalled, say). Deleting the certificate item removes its trust
-  settings along with it as far as this session's own reading of
-  `security`'s documented behavior goes; genuinely unconfirmed without a
-  real keychain to test the edge cases against (a cert re-added after a
-  previous partial removal, for instance).
-- **Both invocations** go through `Process.Start`, capture stdout/stderr,
-  and throw a `CertificateTrustException` (carrying the exit code and
-  captured stderr) on a non-zero exit rather than swallowing the failure
-  -- matches this project's own "surfaced, not silently dropped" posture
-  everywhere else.
+- **Install**: writes the root to a temporary DER (`.cer`) file and runs
+  `security add-trusted-cert -r trustRoot <path>`. There's no `-k`, so it
+  goes into the user's default keychain (normally `login.keychain-db`,
+  but that can differ), and no `-d`, which would add it to the admin store
+  for the whole system and need elevation. The temporary file is deleted
+  whether or not the command succeeds.
+- **Uninstall**: `security delete-certificate -Z <SHA-1 thumbprint>`. It
+  matches by hash (`X509Certificate2.Thumbprint` is the uppercase hex
+  `-Z` expects), not by name, so it can't pick the wrong root when an old
+  one from an earlier install is still there. Deleting the certificate
+  should remove its trust settings too, going by `security`'s
+  documentation; that hasn't been checked on a real keychain, including
+  odd cases such as a certificate added again after a partial removal.
+- **Both** run through `Process.Start`, capture the output, and throw a
+  `CertificateTrustException` (with the exit code and error output) if
+  the command fails.
 
-### The silent-install tension, and how it's resolved
+### Asking before trusting
 
-This document's own "Installing trust" section above states the
-principle plainly: "a silent, unprompted root-CA install would be
-indistinguishable from malware behavior." Windows satisfies that for
-free — adding to `CurrentUser\Root` is what *triggers* the OS's own "do
-you want to install this certificate?" dialog. `security
-add-trusted-cert` has no equivalent: run from a process that already has
-an unlocked login keychain (the normal case for a logged-in user's own
-GUI app), it modifies trust settings with no OS-level prompt at all.
+Windows asks the user before trusting a root. `security add-trusted-cert`
+doesn't: from a process with an unlocked login keychain, which is normal
+for an app the user started, it changes trust settings with no prompt.
 
-Shelling out was still the right call (see above), so the fix is
-VioLens's own: before ever invoking `security add-trusted-cert`,
-`MainWindow` shows a small, explicit confirmation dialog naming exactly
-what's about to happen (installing a root CA that can decrypt this
-account's HTTPS traffic) and requires an explicit click before
-`CertificateAuthority`'s constructor is even called on macOS. This keeps
-the "never silent" principle intact by VioLens's own doing, rather than
-depending on the OS to provide it the way Windows' design happened to.
-`Start()` awaits that dialog (`Window.ShowDialog<bool>` returns a `Task`),
-which makes `Start()` an `async void` command handler. An earlier version
-blocked on it instead (`ShowDialog<bool>(owner).GetAwaiter().GetResult()`),
-on the theory that `ShowDialog` keeps the message loop running underneath
-a synchronous wait. It doesn't: the first real Mac test froze the app on
+So VioLens asks itself. Before running `security add-trusted-cert`, the
+app shows a dialog that says what's about to happen (installing a root CA
+that can decrypt this account's HTTPS traffic), and nothing is created
+until the user agrees. Start awaits that dialog
+(`Window.ShowDialog<bool>`), so the Start handler is `async`. An earlier
+version blocked on it instead
+(`ShowDialog<bool>(owner).GetAwaiter().GetResult()`), expecting the dialog
+to keep the message loop running. It didn't: the first Mac test froze on
 the first click of Start, because the dialog needed the UI thread that was
-waiting for it. The certificate install itself (`CertificateAuthority`'s
-constructor, which runs `security add-trusted-cert` and waits while macOS
-asks for the person's password) then runs on a background thread, so the
-window keeps drawing; Start is disabled until it finishes. On Windows,
-`CertificateAuthority` is still created on the UI thread, so Windows' own
-install dialog stays in front of the app.
+waiting for it. The certificate install (`CertificateAuthority`'s
+constructor, which runs `security` and waits while macOS asks for the
+password) then runs on a background thread, so the window keeps drawing,
+and Start is disabled until it's done. On Windows, `CertificateAuthority`
+is still created on the UI thread so Windows' own dialog appears in front
+of the app.
 
 ### System proxy registration
 
-A second, separate gap from the Keychain one above, closed in the same
-pass since cert trust alone isn't a usable macOS build: `WinInetSystemProxy`
-(`src/Violens.ProxyCore/SystemProxy/`) is Windows-only (a single global
-WinINET registry setting); its new sibling, `MacOSSystemProxy`, shells out
-to `networksetup` instead. macOS has no single global proxy setting the
-way Windows does — proxy configuration is per network *service* (Wi-Fi,
-Ethernet, and so on, each configurable independently) — so `Enable`/
-`Disable` iterate every service `networksetup -listallnetworkservices`
-reports (skipping ones prefixed `*`, which denotes disabled) rather than
-trying to guess which one is "the" active one. `-setwebproxy`/
-`-setsecurewebproxy` point HTTP and HTTPS traffic at
-`127.0.0.1:<port>`; `-setwebproxystate`/`-setsecurewebproxystate` toggle
-them back off on `Disable`. The same crash-safety shape
-`WinInetSystemProxy` already established: a JSON backup file (one entry
-per network service this time, not one flat record) written before the
-first `Enable` in a run, restored and deleted by `Disable`, and replayed
-by `RecoverFromCrash` on the next launch if a previous run's own `Disable`
-never got the chance to run. Proxy bypass-domain lists
-(`networksetup -setproxybypassdomains`) are deliberately left untouched
-this pass, unlike `WinInetSystemProxy`'s own `<local>` merge -- a
-narrower scope, not an oversight, since parsing
-`-getproxybypassdomains`' output correctly without a real macOS network
-service list to test against felt like more unverified surface than this
-pass should add. A `SystemProxyController` facade
-(`src/Violens.ProxyCore/SystemProxy/`) dispatches to whichever of the
-two platform implementations applies, so `MainWindowViewModel`'s call
-sites don't carry their own platform branching.
+`WinInetSystemProxy` is Windows-only (one global WinINET registry
+setting). On macOS, `MacOSSystemProxy` runs `networksetup`. macOS has no
+single proxy setting: each network service (Wi-Fi, Ethernet and so on)
+has its own. So `Enable` and `Disable` go through every service
+`networksetup -listallnetworkservices` lists, skipping disabled ones
+(marked `*`), rather than guessing which one is active.
+`-setwebproxy` and `-setsecurewebproxy` point HTTP and HTTPS at
+`127.0.0.1:<port>`, and `-setwebproxystate` and `-setsecurewebproxystate`
+turn them off again in `Disable`.
 
-**A real open risk, not just an unverified detail: whether `networksetup`
-needs admin elevation at all.** Windows' own no-admin-required story
-(`CurrentUser` registry keys, no UAC prompt) was part of why per-user
-Keychain trust was chosen over system-wide above -- but plenty of
-real-world `networksetup` usage in the wild runs it under `sudo`, and
-this session found no way to confirm from here whether `-setwebproxy`/
-`-setsecurewebproxy` genuinely work for a plain logged-in user against
-their own network service, or silently fail (or prompt) without
-elevation. If it turns out elevation is required, that's a real
-follow-up, not a quick fix: either accept the admin-prompt regression
-system proxy registration would then carry (asymmetric with the Keychain
-half of this same pass), or fall back to *not* auto-registering the
-system proxy on macOS and documenting the manual System Settings steps
-instead. Flagged here rather than assumed away.
+Crash safety works as on Windows. Before the first `Enable` in a run, the
+current settings are saved to a JSON file (one entry per network service).
+`Disable` restores and deletes it, and if a run never got to `Disable`,
+`RecoverFromCrash` restores it on the next launch. Proxy bypass lists
+(`networksetup -setproxybypassdomains`) are left alone, unlike Windows'
+`<local>` handling: parsing `-getproxybypassdomains` reliably wasn't
+something that could be tested without a Mac.
+`SystemProxyController` picks the right implementation for the platform,
+so the app's code doesn't branch on it.
 
-**Testing scope, deliberately narrow.** `ci.yml`'s own test matrix
-already runs on `macos-latest` (a real Mac, via GitHub Actions), which
-means unit tests actually could exercise real `security`/`networksetup`
-invocations there in a way nothing else in this project's macOS work can
-be verified. This pass doesn't take that step -- mutating the CI runner's
-own keychain and network-service proxy state as a side effect of `dotnet
-test`, with the elevation question above still open, felt like more risk
-to an otherwise-green CI matrix than this pass should introduce
-unreviewed. `MacOSCertificateTrustTests`/`MacOSSystemProxyTests` stick to
-the same pure-logic-only shape `WinInetSystemProxyTests` already
-established for the Windows side (argument/JSON construction, no real
-process invocation) -- a real macOS integration test, gated to only run
-when `OperatingSystem.IsMacOS()`, is a reasonable next step once the
-elevation question above has an answer.
+**Open risk: whether `networksetup` needs admin rights.** Not needing them
+on Windows (per-user registry keys, no UAC prompt) is part of why the
+per-user keychain was chosen. But a lot of `networksetup` use runs under
+`sudo`, and it hasn't been confirmed whether `-setwebproxy` and
+`-setsecurewebproxy` work for an ordinary user on their own network
+service, or fail or prompt without elevation. If elevation turns out to be
+needed, there are two options: accept an admin prompt for the system
+proxy, or stop setting it automatically on macOS and document the System
+Settings steps instead.
 
-## Open risks summary
+**Testing.** CI runs the tests on `macos-latest`, a real Mac, so tests
+could run `security` and `networksetup` for real there. They don't:
+changing the runner's keychain and proxy settings as a side effect of
+`dotnet test`, with the admin-rights question open, was too risky.
+`MacOSCertificateTrustTests` and `MacOSSystemProxyTests` test the
+arguments and JSON the code builds, like `WinInetSystemProxyTests` on
+Windows. A real integration test, run only on macOS, can follow once the
+admin-rights question is answered.
 
-- macOS Keychain trust, removal and system proxy registration: built,
-  only partly tested on a real Mac (see "Platform status" above). That
-  includes whether `networksetup` needs admin rights, and whether the
-  root's key is non-extractable in the keychain.
-- Leaf key containers: no longer an open risk (see "The ephemeral-key
-  problem").
-- Root removal: wired up (see "Removal").
+### Linux
+
+Linux follows the macOS pattern: run the platform's own tools, for the
+current user only, after VioLens's own confirmation dialog
+(`TrustConfirmationWindow`, shared with macOS), since nothing on Linux
+asks.
+
+**Trust.** Linux has no single trust store that every app reads, so
+`LinuxCertificateTrust` adds the root to the ones browsers use, all per
+user and without elevation:
+
+- the shared NSS database, `~/.pki/nssdb`, which Chrome, Chromium, Edge,
+  Brave and other NSS apps read. It's created (`certutil -N
+  --empty-password`) if it isn't there, which is normal for an account
+  that has never run Chrome. The Chromium snap's copy
+  (`~/snap/chromium/current/.pki/nssdb`) too, if there is one;
+- every Firefox profile with a `cert9.db`, under `~/.mozilla/firefox`, the
+  snap's `~/snap/firefox/common/.mozilla/firefox` and the Flatpak's
+  `~/.var/app/org.mozilla.firefox/.mozilla/firefox`. A running Firefox may
+  not notice until it restarts;
+- .NET's per-user root store (`X509Store(Root, CurrentUser)`, a folder
+  under `~/.dotnet`), for .NET apps, where it can.
+
+Each NSS change is `certutil -A -d sql:<db> -n <nickname> -t C,, -i
+<root.cer>`. The trust flags `C,,` mean "a CA trusted to issue server
+certificates" and nothing else (not email or code signing). The nickname
+is the root's name prefix plus its SHA-1 thumbprint, so removal can find
+this root, or every VioLens root from earlier installs, by listing
+nicknames (`certutil -L`) and deleting the matches (`certutil -D`).
+`certutil` comes from the distribution's NSS tools package
+(`libnss3-tools`, `nss-tools` or `nss`), which isn't always installed;
+without it, Start fails with a message naming the package. A database that
+can't be changed is logged and skipped, and Start fails only if none of
+them took the root.
+
+The system store (`/usr/local/share/ca-certificates` with
+`update-ca-certificates`, or `/etc/pki/ca-trust/source/anchors` with
+`update-ca-trust`) is left alone. It needs root, differs between
+distributions, and would make the root trusted for every account on the
+computer, which the Windows and macOS designs avoid. The User Guide has
+the commands for anyone who wants curl and other command-line tools to
+trust it.
+
+**The key.** The root and its key are kept in .NET's per-user `My` store,
+as on the other platforms. On Linux that's a PKCS#12 file under
+`~/.dotnet/corefx/cryptography/x509stores/my`, readable only by the
+account. There's no OS key store to enforce the non-exportable flag.
+
+**System proxy.** On Linux this is a desktop setting, not an OS one.
+`LinuxSystemProxy` sets GNOME's (`org.gnome.system.proxy`, with
+`gsettings`, which Cinnamon, Budgie, Pantheon and others also use) and KDE
+Plasma's (`kioslaverc`'s Proxy Settings, with `kwriteconfig6` or
+`kwriteconfig5`, then a D-Bus signal so running KDE apps reread it),
+whichever are there. The previous values are saved exactly as the tools
+print them to a JSON file, and written back by `Disable`, or by
+`RecoverFromCrash` on the next launch, as on Windows and macOS. Other
+desktops get a message saying to set the proxy by hand. Upstream proxy
+detection reads the same settings (manual, a PAC script, or discovery),
+then falls back to `https_proxy` and `http_proxy` in VioLens's
+environment.
+
+**Testing.** `ci.yml` runs every test on `ubuntu-latest`, and
+`release-linux.yml` checks the AppImage and tarball, including a launch
+under Xvfb. As on macOS, the tests stop at building arguments and parsing
+output (`LinuxCertificateTrustTests`, `LinuxSystemProxyTests`); nothing
+runs `certutil`, `gsettings` or `kwriteconfig` for real. It has had a
+hands-on test on Ubuntu (GNOME); one on KDE Plasma is still to come.
+
+## Open risks
+
+- Linux trust, removal and the system proxy have been tested by hand on
+  Ubuntu (GNOME), but not on KDE Plasma (see "Linux"), so KDE Plasma 6's
+  `kwriteconfig6` is still unverified.
+- macOS keychain trust, removal and the system proxy have only been
+  partly tested on a real Mac (see "Platform status"), including whether
+  `networksetup` needs admin rights and whether the root's key can be
+  extracted from the keychain.
+- Leaf key containers are no longer a risk (see "The ephemeral-key
+  problem"), and root removal is built (see "Removal").
 
 SECURITY.md summarizes how the root, the listener and the proxy host are
 protected.

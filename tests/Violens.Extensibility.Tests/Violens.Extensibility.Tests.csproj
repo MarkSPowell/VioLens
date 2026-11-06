@@ -18,4 +18,9 @@
     <ProjectReference Include="..\..\src\Violens.Extensibility\Violens.Extensibility.csproj" />
   </ItemGroup>
 
+  <!-- The 1.0 API freeze (see tests/Shared/PublicApi.cs). -->
+  <ItemGroup>
+    <Compile Include="..\Shared\PublicApi.cs" Link="Shared\PublicApi.cs" />
+  </ItemGroup>
+
 </Project>

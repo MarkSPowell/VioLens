@@ -51,8 +51,8 @@ independent: it isn't his project and he hasn't contributed to it.
 ## Platform and technology
 
 - C# on .NET 10.
-- [Avalonia UI](https://avaloniaui.net/) for Windows and macOS from one
-  codebase. Clearinet planned WinForms first; cross-platform from day one
+- [Avalonia UI](https://avaloniaui.net/) for Windows, macOS and Linux
+  from one codebase. Clearinet planned WinForms first; cross-platform from day one
   was the point of choosing differently.
 - FiddlerScript runs through a translation layer rather than JScript.NET,
   which was never ported to .NET Core
@@ -154,7 +154,7 @@ with semicolon-separated values, read through `GetListPref`/`SetListPref`.
 
 Written up on 27 October 2026, after HTTP/2 went into preview
 (0.3.0-preview.1). 1.0 is the point where the app should hold up to
-all-day use on both platforms and ProxyCore's public API stops changing.
+all-day use on every platform and ProxyCore's public API stops changing.
 
 Must have:
 
@@ -163,9 +163,12 @@ Must have:
    no problems. Still to do: browsing on macOS, and settling ProxyCore's
    representation of HTTP/2 requests with the API freeze (the Embedding
    guide still warns it may change).
-2. **ProxyCore's public API frozen.** One review of everything public;
-   anything not ready becomes internal. From 1.0, semantic versioning:
-   breaking changes wait for 2.0.
+2. **ProxyCore's public API frozen.** Done: reviewed, with the app-only
+   helpers made internal and machine policy moved to Violens.AppCore (it
+   names VioLens's own registry key and folders). Tests in
+   ProxyCore.Tests, Extensibility.Tests and ProxyHost.Tests compare each
+   shipped assembly's public API with a recorded list, so any change is
+   deliberate. From 1.0, semantic versioning: breaking changes wait for 2.0.
 3. **A full hands-on macOS test.** Certificate trust and removal, the
    system proxy (and whether `networksetup` needs admin rights), restoring
    proxy settings after a crash, and the notarized install. Then update the
@@ -198,6 +201,70 @@ Should have:
     through the proxy, and the host now refuses a pipe made by another
     account. Left open: the app's pipe uses the default permissions (a
     denial of service only).
+
+Optional (welcome in 1.0, but none holds it up). Most come from
+[Clearinet](https://github.com/ericlaw1979/Clearinet) and its issues;
+"Clearinet #N" below is that repository's issue N.
+
+11. **PCAP import.** Done: File > Import Packet Capture (and QuickExec
+    `open`) reads the plain HTTP in PCAP and PCAPNG files, including Wi-Fi
+    captures (Clearinet #18). Ported from Clearinet's `PcapReader` and
+    `PcapDecoder` with attribution (THIRD-PARTY-NOTICES.md). Decrypting TLS
+    with a key log file could follow.
+12. **A tree data inspector.** Done: a Tree tab shows JSON, CBOR
+    (Clearinet #40) and MessagePack as a tree, with Copy, Copy Subtree and
+    Send to TextWizard. Extensions can return a tree too (`TreeContent`).
+13. **A capture-only app.** Done: VioLens Capture (`apps/Violens.Capture`),
+    like Fiddler's FiddlerCap: Start, Stop and Save a SAZ, HTTPS optional,
+    the certificate removed on close. A single self-contained `.exe` on the
+    Windows release; packages for macOS and Linux could follow.
+14. **Machine-wide policy settings** (Clearinet #9). Done: locked
+    settings and defaults from `HKLM\SOFTWARE\Policies\VioLens` or a
+    `policy.json` that only administrators can write; locked controls are
+    greyed out and nothing can change them (User Guide, "Settings set by
+    your organization").
+15. **An HTML preview and a Markdown inspector** (Clearinet #17, #26).
+    Done: a Markdown tab renders Markdown (VioLens's own parser, no
+    dependency), and a WebView tab shows an HTML page's text and opens a
+    copy in the system browser with scripts, frames, forms and redirects
+    blocked, and nothing loaded from the network unless asked. An
+    in-app rendering of HTML would still need a third-party browser
+    control.
+16. **Smaller touches:**
+    - Done: right-click a column header to find in that column or
+      highlight repeated values
+    - Done: an image viewer with zoom and full screen
+    - Done: cookie sizes in the Cookies inspector
+    - Done: QuickExec autocomplete as you type (Clearinet #43)
+    - Done: a column customization dialog (Clearinet #32)
+    - Done: faster HAR import (Clearinet #33). The reader already handles
+      20,000 entries (165 MB) in under a second; HAR, SAZ and packet
+      capture imports now run off the UI thread, so the window stays
+      responsive while they do.
+    - Microsoft Store distribution (Clearinet #3), alongside WinGet. Needs
+      a Partner Center account, so it waits for the maintainer.
+
+Added since this list was written: **Linux** (October 2026). Built:
+certificate trust in the NSS databases Chrome and Firefox read
+(`certutil`), the system proxy in GNOME's and KDE Plasma's settings, an
+AppImage and a `.tar.gz` from `release-linux.yml`, and Linux in CI
+(passing). Still to do: a hands-on test on GNOME and KDE, like the macOS
+one (item 3), and a first run of `release-linux.yml`. The new classes are
+internal, so the API freeze isn't affected.
+
+The optional items' public API went through the review in item 2:
+machine policy moved to Violens.AppCore, and Violens.Extensibility's new
+inspector content cases (`TreeContent`, `MarkdownContent`, `HtmlContent`)
+and `KeyValueContent.Summary` are part of the frozen surface.
+
+Released as 0.5.0-preview.1: everything since 0.4.0-preview.1, which is
+SAZ compatibility, `violens-exec`, Linux and items 11 to 16.
+
+Then 1.0.0-rc.1: the API freeze (item 2) and the docs rewritten in plain
+language. Then 1.0.0-rc.2, the first release on NuGet, after a fix to the
+publish step. 1.0 itself waits for the hands-on macOS test (item 3, which
+also covers HTTP/2 browsing on macOS for item 1) and the Linux test on
+KDE Plasma (Ubuntu's GNOME is done).
 
 Fine after 1.0: an about:config editor, SOCKS and Digest proxy sign-in,
 DHCP proxy discovery on macOS, built-in NetLog import, `CustomRules.cs`,

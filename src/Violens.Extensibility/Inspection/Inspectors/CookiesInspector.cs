@@ -13,6 +13,12 @@ namespace Violens.Extensibility.Inspection.Inspectors;
 /// browsers reject are called out after the attributes.</item>
 /// </list>
 ///
+/// Above the rows, a summary gives the cookies' total size and the largest
+/// one, since big cookies slow every request to the site; a cookie whose
+/// name and value are over <see cref="MaxCookieBytes"/>, the most browsers
+/// store, gets a warning. Sizes are UTF-8 bytes of the name and value,
+/// which is what browsers count.
+///
 /// Appears only on a side that has cookies. VioLens's own feature, built
 /// from the RFCs, not from any extension's code (see "Port or build in?" in
 /// the Extension Test Targets doc). P3P, which the old Fiddler cookie
@@ -21,6 +27,9 @@ namespace Violens.Extensibility.Inspection.Inspectors;
 /// </summary>
 public sealed class CookiesInspector : IInspector
 {
+    /// <summary>RFC 6265's minimum, and what Chrome, Firefox and Safari actually allow, for one cookie's name and value.</summary>
+    public const int MaxCookieBytes = 4096;
+
     public string Id => "violens.cookies";
 
     public string DisplayName => "Cookies";
@@ -32,6 +41,8 @@ public sealed class CookiesInspector : IInspector
     public InspectorContent Inspect(InspectorContext context)
     {
         var rows = new List<HeaderRow>();
+        var sizes = new List<(string Name, int Bytes)>();
+        var headerBytes = 0;
         foreach (var (name, value) in context.Headers)
         {
             if (!IsCookieHeader(context.Side, name))
@@ -39,17 +50,60 @@ public sealed class CookiesInspector : IInspector
                 continue;
             }
 
+            headerBytes += Utf8Length(value);
             if (context.Side == InspectorSide.Request)
             {
-                rows.AddRange(ParseCookieHeader(value));
+                foreach (var cookie in ParseCookieHeader(value))
+                {
+                    var bytes = CookieBytes(cookie.Name, cookie.Value);
+                    sizes.Add((cookie.Name, bytes));
+                    rows.Add(bytes > MaxCookieBytes ? cookie with { Value = cookie.Value + OverLimitWarning(bytes) } : cookie);
+                }
             }
             else
             {
-                rows.Add(ParseSetCookie(value));
+                var (cookieName, cookieValue) = SplitPair(value.Split(';')[0]);
+                var bytes = CookieBytes(cookieName, cookieValue);
+                sizes.Add((cookieName.Length == 0 ? "(no name)" : cookieName, bytes));
+                var row = ParseSetCookie(value);
+                rows.Add(bytes > MaxCookieBytes ? row with { Value = row.Value + OverLimitWarning(bytes) } : row);
             }
         }
 
-        return new KeyValueContent(rows);
+        return new KeyValueContent(rows, Summarize(context.Side, sizes, headerBytes));
+    }
+
+    /// <summary>"3 cookies, 1,234 bytes (the Cookie header is 1,250 bytes). Largest: session, 1,100 bytes."</summary>
+    internal static string Summarize(InspectorSide side, IReadOnlyList<(string Name, int Bytes)> sizes, int headerBytes)
+    {
+        var total = sizes.Sum(s => s.Bytes);
+        var count = sizes.Count == 1 ? "1 cookie" : $"{sizes.Count:N0} cookies";
+        var header = side == InspectorSide.Request
+            ? $"the Cookie header is {headerBytes:N0} bytes"
+            : $"the Set-Cookie headers are {headerBytes:N0} bytes";
+        var summary = $"{count}, {total:N0} bytes of names and values ({header}).";
+        if (sizes.Count > 1)
+        {
+            var largest = sizes.MaxBy(s => s.Bytes);
+            summary += $" Largest: {largest.Name}, {largest.Bytes:N0} bytes.";
+        }
+
+        return summary;
+    }
+
+    private static int CookieBytes(string name, string value) =>
+        Utf8Length(name == "(no name)" ? string.Empty : name) + Utf8Length(value);
+
+    private static int Utf8Length(string text) => System.Text.Encoding.UTF8.GetByteCount(text);
+
+    private static string OverLimitWarning(int bytes) =>
+        $"   Warning: {bytes:N0} bytes, over the {MaxCookieBytes:N0} browsers store; they drop this cookie.";
+
+    private static (string Name, string Value) SplitPair(string pair)
+    {
+        pair = pair.Trim();
+        var equals = pair.IndexOf('=');
+        return equals < 0 ? (string.Empty, pair) : (pair[..equals].Trim(), pair[(equals + 1)..].Trim());
     }
 
     private static bool IsCookieHeader(InspectorSide side, string headerName) =>

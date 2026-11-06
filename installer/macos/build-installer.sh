@@ -130,13 +130,22 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 cp "$EXECUTABLE_PATH" "$MACOS_DIR/$EXECUTABLE_NAME"
 chmod +x "$MACOS_DIR/$EXECUTABLE_NAME"
 
+# violens-exec, the command-line tool scripts use to drive the app, is code
+# too, so it goes beside the app's executable. Optional: a build without it
+# (a local test) still packages.
+EXEC_TOOL_NAME="violens-exec"
+if [[ -f "$PUBLISH_DIR/$EXEC_TOOL_NAME" ]]; then
+  cp "$PUBLISH_DIR/$EXEC_TOOL_NAME" "$MACOS_DIR/$EXEC_TOOL_NAME"
+  chmod +x "$MACOS_DIR/$EXEC_TOOL_NAME"
+fi
+
 # Everything else PublishSingleFile left beside the executable (the
 # Documentation folder) goes in Resources. Contents/MacOS may hold only
 # code, or codesign fails with "code object is not signed at all". .pdb
 # files aren't shipped.
 for entry in "$PUBLISH_DIR"/*; do
   name="$(basename "$entry")"
-  if [[ "$name" == "$EXECUTABLE_NAME" || "$name" == *.pdb ]]; then
+  if [[ "$name" == "$EXECUTABLE_NAME" || "$name" == "$EXEC_TOOL_NAME" || "$name" == *.pdb || "$name" == *.dSYM ]]; then
     continue
   fi
   cp -R "$entry" "$RESOURCES_DIR/$name"
@@ -229,9 +238,9 @@ if [[ -n "$SIGNING_IDENTITY" ]]; then
   # Each Mach-O on its own, inside out, then the bundle, which signs the
   # main executable with the entitlements and seals everything else.
   # codesign --deep would sign nested code without the hardened runtime or
-  # a timestamp, which notarization rejects. Today the executable is the
-  # only Mach-O (the native libraries are packed inside it), but anything
-  # native that's left beside it in future is covered too.
+  # a timestamp, which notarization rejects. Besides the executable, that's
+  # violens-exec (the native libraries are packed inside the executable),
+  # and anything native that's left beside them in future.
   developer_id_sign() {
     codesign --force --sign "$SIGNING_IDENTITY" --timestamp --options runtime "$@"
   }
@@ -242,8 +251,14 @@ if [[ -n "$SIGNING_IDENTITY" ]]; then
   done < <(find "$APP_BUNDLE" -depth -type f -print0)
   developer_id_sign --entitlements "$ENTITLEMENTS" "$APP_BUNDLE"
 else
-  # Ad-hoc ("-" means no identity: free, no account), over the whole bundle
-  # so its signature covers Info.plist and every file in it.
+  # Ad-hoc ("-" means no identity: free, no account): other executables
+  # (violens-exec) first, since signing the bundle doesn't sign them, then
+  # the whole bundle, so its signature covers Info.plist and every file in it.
+  while IFS= read -r -d '' file; do
+    if [[ "$file" != "$MACOS_DIR/$EXECUTABLE_NAME" ]] && [[ "$(file -b "$file")" == *Mach-O* ]]; then
+      codesign --force --sign - "$file"
+    fi
+  done < <(find "$APP_BUNDLE" -depth -type f -print0)
   codesign --force --sign - "$APP_BUNDLE"
 fi
 # Verify straight away, so a bad bundle fails the build rather than

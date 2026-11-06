@@ -21,7 +21,7 @@ namespace Violens.ProxyCore.Sessions;
 /// callbacks and <see cref="Flush"/> all run on one thread, which is what
 /// they're for.
 /// </summary>
-public sealed class CoalescingQueue<T>
+internal sealed class CoalescingQueue<T>
 {
     private readonly object _gate = new();
     private readonly Action<Action> _schedule;

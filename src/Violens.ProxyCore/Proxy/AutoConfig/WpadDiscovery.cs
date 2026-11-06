@@ -11,8 +11,10 @@ namespace Violens.ProxyCore.Proxy.AutoConfig;
 /// the system is set to "Automatically detect settings". On Windows this
 /// asks WinHTTP, which tries DHCP and then DNS, as Windows itself does.
 /// Elsewhere it tries DNS: <c>http://wpad.&lt;domain&gt;/wpad.dat</c> for this
-/// machine's domain and each parent domain (stopping before the top two
-/// labels, so it never asks a public domain such as <c>wpad.co.uk</c>).
+/// machine's domain and each parent domain, stopping at the registrable
+/// domain (the last two labels, or three under a country domain's public
+/// names such as <c>co.uk</c>), so it never asks a public domain such as
+/// <c>wpad.co.uk</c>.
 /// </summary>
 internal static class WpadDiscovery
 {
@@ -56,14 +58,33 @@ internal static class WpadDiscovery
     {
         var labels = (domain ?? string.Empty).Trim().TrimEnd('.')
             .Split('.', StringSplitOptions.RemoveEmptyEntries);
+
+        // Never past the registrable domain: under a country domain with
+        // public second-level names ("co.uk", "com.au"), that's the last
+        // three labels, not two -- wpad.co.uk belongs to whoever registers
+        // it, not to this network.
+        var keep = labels.Length >= 3 && IsPublicSecondLevel(labels[^2], labels[^1]) ? 3 : 2;
         var hosts = new List<string>();
-        for (var start = 0; labels.Length - start >= 2; start++)
+        for (var start = 0; labels.Length - start >= keep; start++)
         {
             hosts.Add("wpad." + string.Join('.', labels[start..]));
         }
 
         return hosts;
     }
+
+    // The second-level names country domains commonly hand out publicly.
+    // Not the whole Public Suffix List, but the shapes it's mostly made of
+    // ("co.uk", "com.au", "ac.jp", "gov.br"); a miss only means a lookup in
+    // the network's own parent domain, as before.
+    private static readonly HashSet<string> PublicSecondLevelNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ac", "co", "com", "edu", "gen", "go", "gob", "gov", "govt", "gv", "or", "org", "ne", "net",
+        "mil", "nic", "ltd", "plc", "sch", "nhs", "police", "biz", "info", "firm", "ind", "nom", "lg", "ad", "ed", "gr",
+    };
+
+    private static bool IsPublicSecondLevel(string secondLevel, string topLevel) =>
+        topLevel.Length == 2 && PublicSecondLevelNames.Contains(secondLevel);
 
     private static string? DomainName()
     {

@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:inspect="using:Violens.Extensibility.Inspection"
+             x:Class="Violens.DesktopUi.Controls.HtmlPreviewView"
+             x:DataType="inspect:HtmlContent">
+  <!-- The WebView tab: what the page holds, its readable text, and a
+       locked-down preview in the browser (see HtmlPreview). -->
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="8,4,8,8">
+      <TextBlock Text="{Binding Summary}"
+                 Foreground="{DynamicResource AppMutedTextBrush}"
+                 TextWrapping="Wrap" />
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Button Content="Preview in Browser"
+                Click="Preview_Click"
+                ToolTip.Tip="Opens a copy of this page in your web browser. Its scripts, frames and forms are blocked, and it can't redirect." />
+        <CheckBox x:Name="LoadResourcesBox"
+                  Content="Load images and styles from the site"
+                  ToolTip.Tip="Off: nothing is loaded from the network, so the preview sends nothing anywhere. On: the browser fetches the page's images, style sheets and fonts from its site. Scripts stay blocked either way."
+                  VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock x:Name="StatusText"
+                 Foreground="{DynamicResource AppMutedTextBrush}"
+                 TextWrapping="Wrap"
+                 IsVisible="False" />
+      <TextBlock Text="The page's text:" FontWeight="SemiBold" Margin="0,4,0,0" />
+    </StackPanel>
+    <TextBox Text="{Binding Text}"
+             IsReadOnly="True"
+             AcceptsReturn="True"
+             TextWrapping="Wrap"
+             VerticalAlignment="Stretch"
+             BorderThickness="0" />
+  </DockPanel>
+</UserControl>

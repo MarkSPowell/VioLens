@@ -149,6 +149,18 @@ public class PacScriptTests
     }
 
     [Fact]
+    public void AScriptThatEatsMemoryIsStopped()
+    {
+        var script = new PacScript(
+            "function FindProxyForURL(url, host) { var all = []; while (true) { all.push(new Array(10000).join('x')); } }",
+            new StubPacHost(),
+            TimeSpan.FromSeconds(60));
+
+        var thrown = Assert.Throws<PacScriptException>(() => script.FindProxyForUrl("http://a/", "a"));
+        Assert.IsType<Jint.Runtime.MemoryLimitExceededException>(thrown.InnerException);
+    }
+
+    [Fact]
     public void ReadsTheRoutesInOrder()
     {
         var routes = PacResult.Parse("PROXY a.proxy:8080; HTTP b.proxy:3128;DIRECT; PROXY a.proxy:8080", out var unsupported);
@@ -182,6 +194,11 @@ public class PacScriptTests
     [InlineData("corp.example.", new[] { "wpad.corp.example" })]
     [InlineData("corp", new string[0])]
     [InlineData(null, new string[0])]
+    [InlineData("corp.example.co.uk", new[] { "wpad.corp.example.co.uk", "wpad.example.co.uk" })]
+    [InlineData("branch.example.com.au", new[] { "wpad.branch.example.com.au", "wpad.example.com.au" })]
+    [InlineData("office.example.ac.jp", new[] { "wpad.office.example.ac.jp", "wpad.example.ac.jp" })]
+    [InlineData("example.co.uk", new[] { "wpad.example.co.uk" })]
+    [InlineData("a.example.io", new[] { "wpad.a.example.io", "wpad.example.io" })]
     public void WpadLooksInEachParentDomainButNotPastTheLastTwo(string? domain, string[] expected)
     {
         Assert.Equal(expected, WpadDiscovery.CandidateHosts(domain));

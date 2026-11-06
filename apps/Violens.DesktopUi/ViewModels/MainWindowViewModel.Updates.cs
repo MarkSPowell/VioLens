@@ -22,6 +22,11 @@ public sealed partial class MainWindowViewModel
         get => _checkForUpdatesAtStartup;
         set
         {
+            if (!CanChange.CheckForUpdates)
+            {
+                return;
+            }
+
             if (SetField(ref _checkForUpdatesAtStartup, value))
             {
                 _preferences.SetBoolPref(PreferenceKeys.CheckForUpdates, value);
@@ -45,7 +50,7 @@ public sealed partial class MainWindowViewModel
     {
         _checkForUpdatesAtStartup = _preferences.GetBoolPref(PreferenceKeys.CheckForUpdates, true);
         OpenUpdatePageCommand = new RelayCommand(OpenUpdatePage, () => HasUpdate);
-        CheckForUpdatesNowCommand = new RelayCommand(() => _ = CheckForUpdatesAsync(reportResult: true));
+        CheckForUpdatesNowCommand = new RelayCommand(() => _ = CheckForUpdatesAsync(reportResult: true), () => CanChange.CheckForUpdatesNow);
         if (_checkForUpdatesAtStartup)
         {
             _ = CheckForUpdatesAsync(reportResult: false);

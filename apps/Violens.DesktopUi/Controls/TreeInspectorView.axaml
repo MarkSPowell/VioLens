@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:inspect="using:Violens.Extensibility.Inspection"
+             x:Class="Violens.DesktopUi.Controls.TreeInspectorView"
+             x:DataType="inspect:TreeContent">
+  <!-- The Tree tab: the summary line, then the tree. Right-click (or the
+       Menu key) for Copy, Copy Subtree, Send to TextWizard, and expanding
+       or collapsing everything below a node. -->
+  <DockPanel>
+    <TextBlock DockPanel.Dock="Top"
+               Text="{Binding Summary}"
+               Foreground="{DynamicResource AppMutedTextBrush}"
+               TextWrapping="Wrap"
+               Margin="8,4" />
+    <TreeView x:Name="Tree"
+              ItemsSource="{Binding Roots}"
+              ContainerPrepared="Tree_ContainerPrepared"
+              KeyDown="Tree_KeyDown">
+      <TreeView.ItemTemplate>
+        <TreeDataTemplate DataType="inspect:TreeNode" ItemsSource="{Binding Children}">
+          <TextBlock Text="{Binding Label}" FontFamily="Cascadia Mono,Consolas,monospace" />
+        </TreeDataTemplate>
+      </TreeView.ItemTemplate>
+      <TreeView.ContextMenu>
+        <ContextMenu Opening="ContextMenu_Opening">
+          <MenuItem x:Name="CopyMenuItem" Header="_Copy" InputGesture="Ctrl+C" Click="Copy_Click" />
+          <MenuItem x:Name="CopySubtreeMenuItem" Header="Copy _Subtree" Click="CopySubtree_Click" />
+          <MenuItem x:Name="TextWizardMenuItem" Header="Send to _TextWizard" Click="SendToTextWizard_Click" />
+          <Separator />
+          <MenuItem Header="_Expand All" Click="ExpandAll_Click" />
+          <MenuItem Header="C_ollapse All" Click="CollapseAll_Click" />
+        </ContextMenu>
+      </TreeView.ContextMenu>
+    </TreeView>
+  </DockPanel>
+</UserControl>

@@ -4,6 +4,7 @@ using System.Reflection;
 using Avalonia.Threading;
 using Violens.AppCore.Diagnostics;
 using Violens.AppCore.Migration;
+using Violens.AppCore.Preferences;
 using Violens.Compatibility.Extensions;
 using Violens.Compatibility.FiddlerScript;
 using Violens.DesktopUi.Models;
@@ -53,7 +54,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// <c>security</c> command has no confirmation of its own. Must be awaited,
     /// not blocked on: it needs the UI thread. Null means always decline.
     /// </summary>
-    private readonly Func<Task<bool>>? _confirmMacOSCertificateTrust;
+    private readonly Func<Task<bool>>? _confirmCertificateTrust;
+
+    /// <summary>
+    /// Asks the user before the proxy password goes to a proxy (named by the
+    /// first argument) in plain text; see
+    /// <see cref="InterceptingProxyListener.ConfirmPlaintextSignIn"/>. Null
+    /// means send it without asking.
+    /// </summary>
+    private readonly Func<string, CancellationToken, Task<bool>>? _confirmPlaintextPassword;
 
     /// <summary>Stops a second Start/Stop from beginning while one is still in progress.</summary>
     private bool _starting;
@@ -62,7 +71,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// Writes are batched on a background timer, so setters can save on every
     /// change without waiting on disk.
     /// </summary>
-    private readonly PreferenceStore _preferences;
+    private readonly PolicyPreferenceStore _preferences;
 
     /// <summary>
     /// Shows the format picker: (heading, choices, choice to highlight) to the
@@ -326,6 +335,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         get => _fiddlerScriptPath;
         set
         {
+            if (!CanChange.FiddlerScriptPath)
+            {
+                return;
+            }
+
             if (SetField(ref _fiddlerScriptPath, value))
             {
                 LoadFiddlerScriptCommand.RaiseCanExecuteChanged();
@@ -359,6 +373,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         get => _autoLaunchLegacyHost;
         set
         {
+            if (!CanChange.AutoLaunchLegacyHost)
+            {
+                return;
+            }
+
             if (SetField(ref _autoLaunchLegacyHost, value))
             {
                 _preferences.SetBoolPref(PreferenceKeys.AutoLaunchLegacyHost, value);
@@ -455,8 +474,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    /// <summary>Interception needs a trust store and system proxy, which only Windows and macOS have here.</summary>
-    public bool IsSupported { get; } = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS();
+    /// <summary>Interception needs a trust store and system proxy, which VioLens handles on Windows, macOS and Linux.</summary>
+    public bool IsSupported { get; } = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
 
     public string StatusText
     {
@@ -473,6 +492,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         get => _preferredPort;
         set
         {
+            if (!CanChange.Port)
+            {
+                return;
+            }
+
             if (SetField(ref _preferredPort, value))
             {
                 StartCommand.RaiseCanExecuteChanged();
@@ -495,6 +519,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         get => _useAutomaticPort;
         set
         {
+            if (!CanChange.Port)
+            {
+                return;
+            }
+
             if (SetField(ref _useAutomaticPort, value))
             {
                 RaisePropertyChanged(nameof(UseSpecificPort));
@@ -564,20 +593,32 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public RelayCommand RemoveAllSessionsCommand { get; }
 
-    /// <param name="confirmMacOSCertificateTrust">Null means always decline on macOS.</param>
+    /// <summary>Which settings the user may change; machine policy can lock some (see SettingLocks).</summary>
+    public SettingLocks CanChange { get; }
+
+    /// <param name="confirmCertificateTrust">Asks before trusting the root on macOS and Linux; null means always decline.</param>
     /// <param name="preferences">Null means the per-user file. Disposed with this view model.</param>
     /// <param name="chooseFormat">Null means no format picker.</param>
+    /// <param name="policy">Null means this machine's policy (see PolicySettings.LoadMachine).</param>
+    /// <param name="confirmPlaintextPassword">Asks before the proxy password goes to a proxy in plain text; null means send it.</param>
     public MainWindowViewModel(
-        Func<Task<bool>>? confirmMacOSCertificateTrust = null,
+        Func<Task<bool>>? confirmCertificateTrust = null,
         PreferenceStore? preferences = null,
-        Func<string, IReadOnlyList<FormatChoice>, string?, Task<FormatChoice?>>? chooseFormat = null)
+        Func<string, IReadOnlyList<FormatChoice>, string?, Task<FormatChoice?>>? chooseFormat = null,
+        PolicySettings? policy = null,
+        Func<string, CancellationToken, Task<bool>>? confirmPlaintextPassword = null)
     {
-        _confirmMacOSCertificateTrust = confirmMacOSCertificateTrust;
+        _confirmCertificateTrust = confirmCertificateTrust;
+        _confirmPlaintextPassword = confirmPlaintextPassword;
         _chooseFormat = chooseFormat;
 
         // Loaded into the backing fields, not the setters, so loading doesn't
         // write straight back out.
-        _preferences = preferences ?? CreateDefaultPreferences();
+        _preferences = new PolicyPreferenceStore(
+            preferences ?? CreateDefaultPreferences(),
+            policy ?? PolicySettings.LoadMachine(message => Console.WriteLine($"[Policy] {message}")),
+            message => Console.WriteLine($"[Policy] {message}"));
+        CanChange = new SettingLocks(_preferences);
         LoadPreferences();
         InitializeTimingViews();
 
@@ -721,10 +762,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         _statusText = IsSupported
             ? "Not started. Pick a port and click Start."
-            : "This build only implements the certificate trust-store path for Windows and macOS so far " +
-              "-- see the Interception Certificate Design doc's open risks.";
+            : "Capturing isn't supported on this operating system: VioLens can trust its certificate and set the " +
+              "system proxy on Windows, macOS and Linux only.";
+        if (CanChange.Any)
+        {
+            _statusText += " Some settings are set by your organization, so they can't be changed here.";
+        }
 
         InitializeUpdates();
+        InitializeAutomation();
     }
 
     /// <summary>
@@ -791,7 +837,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private async void Start()
+    private async void Start() => await StartAsync();
+
+    /// <summary>Start, awaitable (for QuickExec's start through violens-exec).</summary>
+    private async Task StartAsync()
     {
         if (_starting)
         {
@@ -817,15 +866,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
-    /// On macOS, system proxy changes run <c>networksetup</c> many times and
-    /// may wait on a password prompt, so they run off the UI thread. On Windows
-    /// they're quick registry calls.
+    /// On macOS and Linux, certificate and system proxy changes run commands
+    /// (<c>networksetup</c>, which may wait on a password prompt;
+    /// <c>certutil</c>, <c>gsettings</c>), so they run off the UI thread. On
+    /// Windows they're quick registry calls, and the certificate prompt needs
+    /// the UI thread.
     /// </summary>
-    private static Task<T> RunOffUiThreadOnMacAsync<T>(Func<T> work) =>
-        OperatingSystem.IsMacOS() ? Task.Run(work) : Task.FromResult(work());
+    private static Task<T> RunOffUiThreadUnlessWindowsAsync<T>(Func<T> work) =>
+        OperatingSystem.IsWindows() ? Task.FromResult(work()) : Task.Run(work);
 
-    private static Task RunOffUiThreadOnMacAsync(Action work) =>
-        RunOffUiThreadOnMacAsync(() =>
+    private static Task RunOffUiThreadUnlessWindowsAsync(Action work) =>
+        RunOffUiThreadUnlessWindowsAsync(() =>
         {
             work();
             return true;
@@ -836,14 +887,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         try
         {
             // Created once per run and reused across Start/Stop; each Start gets a
-            // fresh leaf provider. Stays null if the macOS trust prompt is declined,
-            // so the next Start asks again.
+            // fresh leaf provider. Stays null if the macOS or Linux trust prompt is
+            // declined, so the next Start asks again.
             if (_authority is null)
             {
-                if (OperatingSystem.IsMacOS())
+                if (!OperatingSystem.IsWindows())
                 {
-                    var confirmed = _confirmMacOSCertificateTrust is not null
-                        && await _confirmMacOSCertificateTrust();
+                    var confirmed = _confirmCertificateTrust is not null
+                        && await _confirmCertificateTrust();
                     if (!confirmed)
                     {
                         StatusText =
@@ -852,12 +903,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                         return;
                     }
 
-                    StatusText = "Installing the root certificate -- macOS may ask for your password...";
+                    StatusText = OperatingSystem.IsMacOS()
+                        ? "Installing the root certificate -- macOS may ask for your password..."
+                        : "Installing the root certificate in your browsers' certificate databases...";
                 }
 
                 // On Windows this stays on the UI thread so the OS's own "install this
                 // certificate?" dialog appears in front of the app.
-                _authority = await RunOffUiThreadOnMacAsync(CreateAuthority);
+                _authority = await RunOffUiThreadUnlessWindowsAsync(CreateAuthority);
             }
 
             var leafProvider = new LeafCertificateProvider(_authority.RootCertificate);
@@ -889,6 +942,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 allowRemoteClients: AllowRemoteClients);
             _proxy.Http2Enabled = Http2Enabled;
             _proxy.SkipDecryptionHosts = SkipDecryptionHosts;
+            if (_confirmPlaintextPassword is { } confirmPlaintextPassword)
+            {
+                _proxy.ConfirmPlaintextSignIn = (route, cancellationToken) => confirmPlaintextPassword(route.ToString(), cancellationToken);
+            }
+
             ApplyClientCertificate();
             IsRunning = true;
             ShowBoundPort(_proxy.Port);
@@ -901,7 +959,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             }
 
             var proxy = _proxy;
-            var detected = await RunOffUiThreadOnMacAsync(() => SystemProxyController.DetectUpstream(proxy.Port));
+            var detected = await RunOffUiThreadUnlessWindowsAsync(() => SystemProxyController.DetectUpstream(proxy.Port));
             var gatewayNote = StartGateway(proxy, detected);
             var listeningOn = proxy.AllowsRemoteClients
                 ? $"all network interfaces, port {proxy.Port}"
@@ -916,7 +974,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             // browser can still be pointed at it by hand.
             try
             {
-                await RunOffUiThreadOnMacAsync(() => SystemProxyController.Enable(proxy.Port));
+                await RunOffUiThreadUnlessWindowsAsync(() => SystemProxyController.Enable(proxy.Port));
                 _registeredAsSystemProxy = true;
                 StatusText =
                     $"Listening on {listeningOn}{portNote} and registered as the system proxy -- " +
@@ -971,7 +1029,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
                 StatusText = "Stopping -- putting the system proxy settings back...";
             }
 
-            await RunOffUiThreadOnMacAsync(SystemProxyController.Disable);
+            await RunOffUiThreadUnlessWindowsAsync(SystemProxyController.Disable);
         }
         catch (Exception ex)
         {
@@ -1015,9 +1073,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
         var name = Violens.ProxyCore.ProxyEngine.Identity.RootCertificateName;
         void Log(string message) => Console.WriteLine($"[certificates] {message}");
-        var removed = OperatingSystem.IsMacOS()
-            ? await Task.Run(() => CertificateAuthority.RemoveRoots(name, Log))
-            : CertificateAuthority.RemoveRoots(name, Log);
+        var removed = await RunOffUiThreadUnlessWindowsAsync(() => CertificateAuthority.RemoveRoots(name, Log));
 
         StatusText = removed > 0
             ? $"Removed {removed} root certificate(s). Start again to create and trust a new one."
@@ -1301,20 +1357,26 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         MoveAutoResponderRuleDownCommand.RaiseCanExecuteChanged();
     }
 
-    private void SaveSaz()
+    private void SaveSaz() => SaveSazTo(DefaultSazPath());
+
+    /// <summary>Where Save SAZ (and QuickExec's dump) writes: a new, dated file on the Desktop.</summary>
+    private static string DefaultSazPath() =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"violens-capture-{DateTime.Now:yyyyMMdd-HHmmss}.saz");
+
+    /// <summary>Saves every session as SAZ; false (with the reason on the status line) if it couldn't be written.</summary>
+    private bool SaveSazTo(string path)
     {
         var sessions = _sessionStore.Snapshot();
         try
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                $"violens-capture-{DateTime.Now:yyyyMMdd-HHmmss}.saz");
             SazWriter.Write(path, sessions);
             StatusText = $"Saved {sessions.Count} session(s) to {path}";
+            return true;
         }
         catch (Exception ex)
         {
             StatusText = $"Failed to save SAZ: {ex.Message}";
+            return false;
         }
     }
 
@@ -1323,11 +1385,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     /// so they arrive like live captures. Awaited rather than blocked on, since
     /// <see cref="SazReader"/> doesn't use <c>ConfigureAwait(false)</c>.
     /// </summary>
-    public async Task ImportSazAsync(string path)
+    public async Task<bool> ImportSazAsync(string path)
     {
         try
         {
-            var result = await SazReader.ImportAsync(path, _sessionStore);
+            // Off the UI thread: sessions reach the list in batches either way.
+            var result = await Task.Run(() => SazReader.ImportAsync(path, _sessionStore));
             StatusText = result.Skipped.Count == 0
                 ? $"Imported {result.Imported} session(s) from {Path.GetFileName(path)}."
                 : $"Imported {result.Imported} session(s) from {Path.GetFileName(path)} " +
@@ -1337,10 +1400,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
             {
                 Console.WriteLine($"[import] Skipped {reason}");
             }
+
+            return true;
         }
         catch (Exception ex)
         {
             StatusText = $"Failed to import {Path.GetFileName(path)}: {ex.Message}";
+            return false;
         }
     }
 
@@ -1418,6 +1484,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        StopAutomation();
+
         // OnBeforeUnload is owed even if the proxy never started.
         _extensionHost.Unload();
         ExtensionUi.SetTabHost(null);
@@ -1559,6 +1627,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         SessionCount = Sessions.Count,
         ExtensionCount = LoadedExtensionCount,
         FiddlerScriptLoaded = _fiddlerScriptRunner.IsLoaded,
+        LockedSettings = [.. _preferences.Policy.Locked.Keys.Order(StringComparer.OrdinalIgnoreCase)],
+        PolicyDefaults = [.. _preferences.Policy.Defaults.Keys.Order(StringComparer.OrdinalIgnoreCase)],
         LastStatus = StatusText,
     });
 

@@ -8,7 +8,7 @@ namespace Violens.ProxyCore.WebSockets;
 /// "No context takeover" means each message in that direction is
 /// compressed on its own; otherwise each builds on the ones before it.
 /// </summary>
-public sealed record WebSocketCompression(bool ClientNoContextTakeover, bool ServerNoContextTakeover)
+internal sealed record WebSocketCompression(bool ClientNoContextTakeover, bool ServerNoContextTakeover)
 {
     /// <summary>The compression agreed in <paramref name="extensionsHeader"/>, or null if none.</summary>
     public static WebSocketCompression? FromHeader(string? extensionsHeader)

@@ -43,12 +43,21 @@ public partial class App : Application
 
         var viewModel = new MainWindowViewModel(
             // Awaited, never blocked on: the dialog needs the UI thread.
-            confirmMacOSCertificateTrust: () =>
-                new MacTrustConfirmationWindow().ShowDialog<bool>(mainWindow!),
+            confirmCertificateTrust: () =>
+                new TrustConfirmationWindow().ShowDialog<bool>(mainWindow!),
             // Import/Export via Extension's format picker.
             chooseFormat: (heading, choices, rememberedKey) =>
                 new FormatPickerWindow(heading, choices, rememberedKey)
-                    .ShowDialog<Violens.Compatibility.Extensions.FormatChoice?>(mainWindow!));
+                    .ShowDialog<Violens.Compatibility.Extensions.FormatChoice?>(mainWindow!),
+            // Asked from a proxy connection's thread, so it hops to the UI
+            // thread. Closed unanswered when VioLens stops waiting (that
+            // counts as Don't Send).
+            confirmPlaintextPassword: (proxy, cancellationToken) => Dispatcher.UIThread.InvokeAsync(async () =>
+            {
+                var window = new PlaintextPasswordWindow(proxy);
+                using var _ = cancellationToken.Register(() => Dispatcher.UIThread.Post(() => window.Close(false)));
+                return await window.ShowDialog<bool>(mainWindow!);
+            }));
 
         mainWindow = new MainWindow { DataContext = viewModel };
 

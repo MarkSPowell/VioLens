@@ -4,7 +4,7 @@ The HTTP(S) debugging proxy engine behind [VioLens](https://violens.dev), for
 building your own debugger, capture tool or test harness in .NET.
 
 - Decrypts HTTPS with a root certificate it creates and trusts for the
-  current user (Windows and macOS).
+  current user (Windows, macOS, and Linux browsers through `certutil`).
 - Records every request and response, WebSocket messages included, with
   DevTools-style timings.
 - Per-request hooks in the shape of Fiddler's (`OnBeforeRequest`,

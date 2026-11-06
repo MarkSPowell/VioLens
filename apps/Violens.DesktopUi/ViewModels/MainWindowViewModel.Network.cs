@@ -52,6 +52,11 @@ public sealed partial class MainWindowViewModel
         get => _upstreamProxySetting;
         set
         {
+            if (!CanChange.UpstreamProxy)
+            {
+                return;
+            }
+
             if (SetField(ref _upstreamProxySetting, value ?? string.Empty))
             {
                 _preferences.SetStringPref(PreferenceKeys.UpstreamProxy, _upstreamProxySetting);
@@ -74,6 +79,11 @@ public sealed partial class MainWindowViewModel
         get => _proxyUserName;
         set
         {
+            if (!CanChange.UpstreamProxyUserName)
+            {
+                return;
+            }
+
             if (SetField(ref _proxyUserName, value ?? string.Empty))
             {
                 _preferences.SetStringPref(PreferenceKeys.UpstreamProxyUserName, _proxyUserName);
@@ -117,6 +127,11 @@ public sealed partial class MainWindowViewModel
         get => _allowRemoteClients;
         set
         {
+            if (!CanChange.AllowRemoteClients)
+            {
+                return;
+            }
+
             if (SetField(ref _allowRemoteClients, value))
             {
                 _preferences.SetBoolPref(PreferenceKeys.AllowRemoteClients, value);
@@ -135,6 +150,11 @@ public sealed partial class MainWindowViewModel
         get => _http2Enabled;
         set
         {
+            if (!CanChange.Http2)
+            {
+                return;
+            }
+
             if (SetField(ref _http2Enabled, value))
             {
                 _preferences.SetBoolPref(PreferenceKeys.Http2, value);
@@ -157,6 +177,11 @@ public sealed partial class MainWindowViewModel
         get => _skipDecryptionHostsText;
         set
         {
+            if (!CanChange.SkipDecryptionHosts)
+            {
+                return;
+            }
+
             if (SetField(ref _skipDecryptionHostsText, value ?? string.Empty))
             {
                 var hosts = SkipDecryptionHosts;
@@ -188,6 +213,11 @@ public sealed partial class MainWindowViewModel
         get => _clientCertificateChoices.FindIndex(c => c.Thumbprint == _clientCertificateThumbprint) + 1;
         set
         {
+            if (!CanChange.ClientCertificate)
+            {
+                return;
+            }
+
             var thumbprint = value >= 1 && value <= _clientCertificateChoices.Count ? _clientCertificateChoices[value - 1].Thumbprint : string.Empty;
             if (thumbprint != _clientCertificateThumbprint)
             {
@@ -208,6 +238,11 @@ public sealed partial class MainWindowViewModel
         get => _clientCertificateHostsText;
         set
         {
+            if (!CanChange.ClientCertificate)
+            {
+                return;
+            }
+
             if (SetField(ref _clientCertificateHostsText, value ?? string.Empty))
             {
                 _preferences.SetListPref(PreferenceKeys.ClientCertificateHosts, SplitHostList(_clientCertificateHostsText));

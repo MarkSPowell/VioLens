@@ -159,7 +159,9 @@ public sealed class LegacyExtensionHostBridgeClient : IExtensionAutoTamperHost
         NamedPipeClientStream? pipe = null;
         try
         {
-            pipe = new NamedPipeClientStream(".", SessionBridgeProtocol.PipeName, PipeDirection.InOut, PipeOptions.None);
+            // CurrentUserOnly: refuse a pipe of this name made by another
+            // account, which would otherwise receive every decrypted session.
+            pipe = new NamedPipeClientStream(".", SessionBridgeProtocol.PipeName, PipeDirection.InOut, PipeOptions.CurrentUserOnly);
             pipe.Connect(SessionBridgeProtocol.ConnectTimeoutMilliseconds);
 
             var localPipe = pipe;

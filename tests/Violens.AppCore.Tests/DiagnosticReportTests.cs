@@ -35,6 +35,23 @@ public class DiagnosticReportTests
     }
 
     [Fact]
+    public void NamesMachinePolicySettingsButNotTheirValues()
+    {
+        var text = DiagnosticReport.Format(
+            new DiagnosticSnapshot
+            {
+                Version = "1.0.0",
+                LockedSettings = ["violens.proxy.allowremote", "violens.proxy.upstream"],
+                PolicyDefaults = [],
+            },
+            [],
+            "none set");
+
+        Assert.Contains("Machine policy: locks violens.proxy.allowremote, violens.proxy.upstream; defaults for none", text);
+        Assert.DoesNotContain("Machine policy", DiagnosticReport.Format(new DiagnosticSnapshot { Version = "1.0.0" }, [], "none set"));
+    }
+
+    [Fact]
     public void LeavesOutTheMachineName()
     {
         // The root's subject carries the machine name; only its thumbprint is reported.

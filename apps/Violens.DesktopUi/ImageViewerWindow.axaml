@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Violens.DesktopUi.ImageViewerWindow"
+        Title="Image"
+        Width="900"
+        Height="700"
+        MinWidth="320"
+        MinHeight="240"
+        WindowStartupLocation="CenterOwner"
+        Icon="avares://Violens.DesktopUi/Assets/violens-icon.png"
+        Background="{DynamicResource AppBackgroundBrush}">
+
+  <!-- The ImageView tab's picture in a window of its own (see
+       ImageViewerWindow.axaml.cs for the keys). Opens fitted to the window
+       when the picture is bigger than it, otherwise at actual size. -->
+  <DockPanel>
+    <Border DockPanel.Dock="Top"
+            Background="{DynamicResource AppPanelBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="10,6">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="6">
+          <Button Content="−" Click="ZoomOut_Click" ToolTip.Tip="Zoom out (−, or Ctrl+scroll)" MinWidth="32" />
+          <TextBlock x:Name="ZoomText" Text="100%" VerticalAlignment="Center" MinWidth="52" TextAlignment="Center" />
+          <Button Content="+" Click="ZoomIn_Click" ToolTip.Tip="Zoom in (+, or Ctrl+scroll)" MinWidth="32" />
+          <Button Content="Actual Size" Click="ActualSize_Click" ToolTip.Tip="One image pixel per screen pixel (0)" />
+          <Button Content="Fit" Click="Fit_Click" ToolTip.Tip="The whole picture in the window (F)" />
+          <Button x:Name="FullScreenButton" Content="Full Screen" Click="FullScreen_Click" ToolTip.Tip="Full screen (F11); Esc leaves it" />
+        </StackPanel>
+        <TextBlock x:Name="SummaryText"
+                   Foreground="{DynamicResource AppMutedTextBrush}"
+                   TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Center"
+                   Margin="16,0,0,0" />
+      </DockPanel>
+    </Border>
+    <ScrollViewer x:Name="Scroller"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+      <LayoutTransformControl x:Name="Zoomer" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Image x:Name="Picture" Stretch="None" />
+      </LayoutTransformControl>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

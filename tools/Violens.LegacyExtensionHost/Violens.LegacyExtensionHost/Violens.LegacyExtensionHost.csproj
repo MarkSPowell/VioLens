@@ -2,7 +2,7 @@
 
   <!--
     A separate, optional legacy-runtime process: see the design doc's
-    "Sizing option 1" section. Deliberately NOT referenced by the main
+    "The legacy extension host" section. Deliberately NOT referenced by the main
     VioLens.sln/apps/Violens.DesktopUi. This stays an independently
     built, independently shipped component so it can never affect the main
     app's build or release.

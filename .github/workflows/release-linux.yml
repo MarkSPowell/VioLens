@@ -1,0 +1,141 @@
+name: Release Linux Packages
+
+# The Linux counterpart of release-windows.yml and release-macos.yml:
+# publishes a self-contained linux-x64 build, packages it as an AppImage and
+# a .tar.gz with installer/linux/build-packages.sh, smoke-tests both, and
+# attaches them to the GitHub Release for the pushed tag. ci.yml already
+# tests on Linux.
+#
+#   - x86-64 only.
+#   - Not signed: Linux has no platform signing for an AppImage or a
+#     tarball. SHA256SUMS-linux.txt, attached beside them, lets people check a
+#     download.
+#
+# Can also be run by hand (workflow_dispatch) for a test build.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          Version to stamp a manual test build with (e.g. 0.1.0). Ignored
+          on a real tag push, which derives this from the tag itself
+          instead.
+        required: false
+        default: "0.0.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Determine version
+        id: version
+        run: |
+          # A tag push wins over the manual input.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF#refs/tags/v}"
+          else
+            version="${{ inputs.version }}"
+            if [[ -z "$version" ]]; then
+              version="0.0.0"
+            fi
+          fi
+
+          # Drop a leading "v", in case one was typed into the manual input.
+          version="${version#v}"
+          version="${version#V}"
+
+          echo "Building packages version $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # clang and zlib for violens-exec's Native AOT build; Xvfb and
+      # desktop-file-utils for the smoke test.
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev xvfb desktop-file-utils
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore VioLens.sln
+
+      # Self-contained, single-file, x64. Only the desktop app is published.
+      # The legacy extension host is Windows-only, so it isn't built here.
+      - name: Publish self-contained linux-x64 build
+        run: >-
+          dotnet publish apps/Violens.DesktopUi/Violens.DesktopUi.csproj
+          --configuration Release
+          --runtime linux-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:InformationalVersion=${{ steps.version.outputs.version }}
+          --output publish/linux-x64
+
+      # violens-exec (see tools/Violens.Exec): Native AOT, a small native
+      # executable shipped beside VioLens.
+      - name: Publish violens-exec
+        run: >-
+          dotnet publish tools/Violens.Exec/Violens.Exec.csproj
+          --configuration Release
+          --runtime linux-x64
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:DebugType=none
+          --output publish/linux-x64
+
+      - name: Build optional extensions
+        shell: pwsh
+        run: ./installer/build-extensions.ps1 -OutputDir publish/extensions
+
+      - name: Build AppImage and tarball
+        run: >-
+          bash installer/linux/build-packages.sh
+          "${{ steps.version.outputs.version }}"
+          "${{ github.workspace }}/publish/linux-x64"
+          "${{ github.workspace }}/installer/Output"
+          "${{ github.workspace }}/publish/extensions"
+
+      - name: Smoke-test the packages
+        run: >-
+          bash installer/linux/smoke-test.sh
+          "${{ github.workspace }}/installer/Output/VioLens-${{ steps.version.outputs.version }}-x86_64.AppImage"
+          "${{ github.workspace }}/installer/Output/VioLens-${{ steps.version.outputs.version }}-linux-x64.tar.gz"
+
+      - name: Write checksums
+        working-directory: installer/Output
+        run: sha256sum VioLens-*-x86_64.AppImage VioLens-*-linux-x64.tar.gz > SHA256SUMS-linux.txt
+
+      - name: Upload packages as a build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: VioLens-Linux-${{ steps.version.outputs.version }}
+          path: |
+            installer/Output/VioLens-*-x86_64.AppImage
+            installer/Output/VioLens-*-linux-x64.tar.gz
+            installer/Output/SHA256SUMS-linux.txt
+          if-no-files-found: error
+
+      # Only for a tag push.
+      - name: Attach packages to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            installer/Output/VioLens-*-x86_64.AppImage
+            installer/Output/VioLens-*-linux-x64.tar.gz
+            installer/Output/SHA256SUMS-linux.txt
+          fail_on_unmatched_files: true

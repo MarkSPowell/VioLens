@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Threading;
 using Violens.CompatShim;
 using Violens.LegacyExtensionHost.Bridge;
@@ -36,6 +38,26 @@ internal static class SessionBridgeServer
         log($"[SessionBridge] Listening on pipe \"{SessionBridgeProtocol.PipeName}\" ({InstanceCount} concurrent instances, {tampers.Count} AutoTamper extension(s) loaded).");
     }
 
+    /// <summary>
+    /// Only this account may open the pipe, and never from another computer.
+    /// The default would let other accounts read it and administrators on
+    /// other computers connect over the network. The app checks the other
+    /// way, that the pipe is this account's (PipeOptions.CurrentUserOnly).
+    /// </summary>
+    private static PipeSecurity CurrentUserOnly()
+    {
+        var security = new PipeSecurity();
+        using (var identity = WindowsIdentity.GetCurrent())
+        {
+            security.SetOwner(identity.User);
+            security.AddAccessRule(new PipeAccessRule(identity.User, PipeAccessRights.FullControl, AccessControlType.Allow));
+        }
+
+        security.AddAccessRule(new PipeAccessRule(
+            new SecurityIdentifier(WellKnownSidType.NetworkSid, null), PipeAccessRights.FullControl, AccessControlType.Deny));
+        return security;
+    }
+
     /// <summary>One instance's loop: accept a connection, handle one call, disconnect, repeat.</summary>
     private static void ListenLoop(SessionBridgeRunner runner, int instanceNumber, Action<string> log)
     {
@@ -56,7 +78,8 @@ internal static class SessionBridgeServer
                     PipeTransmissionMode.Byte,
                     PipeOptions.None,
                     SessionBridgeProtocol.PipeBufferSize,
-                    SessionBridgeProtocol.PipeBufferSize);
+                    SessionBridgeProtocol.PipeBufferSize,
+                    CurrentUserOnly());
 
                 server.WaitForConnection();
 
