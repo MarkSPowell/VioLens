@@ -99,7 +99,8 @@ testing on macOS and on KDE Plasma (see
   HTTP in packet captures (`.pcap`, `.pcapng`).
 - Remembers its settings in a `preferences.json` that's the same on every
   platform. Administrators can lock settings or set defaults for everyone
-  on a machine (Group Policy on Windows, or a `policy.json` file).
+  on a machine: with Group Policy or Intune on Windows, using the ADMX
+  template each release includes, or with a `policy.json` file.
 - **VioLens Capture**, a separate one-window app like Fiddler's
   FiddlerCap: someone who isn't technical clicks Start, shows the problem,
   clicks Stop and saves a `.saz` for you. On Windows it's a single `.exe`

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>VioLens</displayName>
+  <description>Group Policy settings for VioLens, the HTTP and HTTPS debugging proxy.</description>
+  <resources>
+    <stringTable>
+      <string id="Cat_VioLens">VioLens</string>
+      <string id="Cat_Locked">Locked settings</string>
+      <string id="Cat_Defaults">Default settings (users can change them)</string>
+      <string id="SUPPORTED_VioLens_1_0">VioLens 1.0 and later</string>
+      <string id="AllowRemoteClients">Allow remote computers to connect</string>
+      <string id="AllowRemoteClients_Explain">Whether other computers and phones can use VioLens as their proxy. While it's on, anyone on the network can use the proxy, and through it reach anything this computer can reach.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: Other computers can connect.
+Disabled: VioLens listens on this computer only (127.0.0.1).
+Not configured: users choose.</string>
+      <string id="CheckForUpdates">Check for updates at start-up</string>
+      <string id="CheckForUpdates_Explain">Whether VioLens asks GitHub's public releases list for a newer version when it starts. When this is locked off, Help &gt; Check for Updates is turned off too.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: VioLens checks for updates.
+Disabled: VioLens doesn't check for updates.
+Not configured: users choose.</string>
+      <string id="AcceptExecCommands">Accept commands from violens-exec</string>
+      <string id="AcceptExecCommands_Explain">Whether scripts can drive VioLens with violens-exec, over a named pipe only the user's own account can open.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: violens-exec commands are accepted.
+Disabled: violens-exec commands are refused.
+Not configured: users choose.</string>
+      <string id="Http2">Use HTTP/2 with browsers</string>
+      <string id="Http2_Explain">Whether browsers may use HTTP/2 with VioLens for HTTPS sites. When it's off, they use HTTP/1.1.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: HTTP/2 is used.
+Disabled: Only HTTP/1.1 is used.
+Not configured: users choose.</string>
+      <string id="AutoLaunchLegacyHost">Start the legacy extension host automatically</string>
+      <string id="AutoLaunchLegacyHost_Explain">Whether VioLens starts the optional legacy extension host, which runs extensions that need parts of WinForms .NET no longer has, when VioLens starts.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: The legacy extension host starts with VioLens.
+Disabled: It doesn't start automatically.
+Not configured: users choose.</string>
+      <string id="ListenPort">Port VioLens listens on</string>
+      <string id="ListenPort_Explain">The port VioLens's proxy listens on.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: VioLens listens on the port given here.
+Disabled: VioLens picks a free port automatically.
+Not configured: users choose.</string>
+      <string id="SessionsToKeep">Sessions to keep</string>
+      <string id="SessionsToKeep_Explain">How many sessions VioLens keeps, removing the oldest first. 0 keeps every session.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: users choose.</string>
+      <string id="UpstreamProxy">Upstream proxy</string>
+      <string id="UpstreamProxy_Explain">The proxy VioLens sends traffic on to: host:port, none to connect directly, or empty to detect it automatically (the system's proxy settings, PAC scripts and WPAD).
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: users choose.</string>
+      <string id="UpstreamProxyUserName">Upstream proxy user name</string>
+      <string id="UpstreamProxyUserName_Explain">The user name VioLens signs in to the upstream proxy with when it asks for a user name and password. The password is never saved, so users still type it.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: users choose.</string>
+      <string id="SkipDecryptionHosts">Hosts not to decrypt</string>
+      <string id="SkipDecryptionHosts_Explain">Hosts whose HTTPS traffic VioLens passes through without decrypting it, for apps that pin their certificates. One host per line; * is a wildcard (*.example.com).
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: users choose.</string>
+      <string id="ClientCertificate">Client certificate</string>
+      <string id="ClientCertificate_Explain">The client certificate (mutual TLS) VioLens sends, by its thumbprint in the user's personal certificate store, and the hosts it's sent to. With no hosts listed it goes to every server that asks for one, which tells any site who the user is, so list the hosts.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: VioLens sends the certificate given here.
+Disabled or Not configured: users choose.</string>
+      <string id="FiddlerScriptPath">FiddlerScript file</string>
+      <string id="FiddlerScriptPath_Explain">The FiddlerScript (CustomRules.js) VioLens loads at start-up. Empty loads none.
+
+Locks this setting for everyone on the computer. Users can't change it, and neither can scripts, extensions or QuickExec.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: users choose.</string>
+      <string id="AllowRemoteClients_Default">Allow remote computers to connect</string>
+      <string id="AllowRemoteClients_Default_Explain">Whether other computers and phones can use VioLens as their proxy. While it's on, anyone on the network can use the proxy, and through it reach anything this computer can reach.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: Other computers can connect.
+Disabled: VioLens listens on this computer only (127.0.0.1).
+Not configured: VioLens's own default applies.</string>
+      <string id="CheckForUpdates_Default">Check for updates at start-up</string>
+      <string id="CheckForUpdates_Default_Explain">Whether VioLens asks GitHub's public releases list for a newer version when it starts. When this is locked off, Help &gt; Check for Updates is turned off too.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: VioLens checks for updates.
+Disabled: VioLens doesn't check for updates.
+Not configured: VioLens's own default applies.</string>
+      <string id="AcceptExecCommands_Default">Accept commands from violens-exec</string>
+      <string id="AcceptExecCommands_Default_Explain">Whether scripts can drive VioLens with violens-exec, over a named pipe only the user's own account can open.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: violens-exec commands are accepted.
+Disabled: violens-exec commands are refused.
+Not configured: VioLens's own default applies.</string>
+      <string id="Http2_Default">Use HTTP/2 with browsers</string>
+      <string id="Http2_Default_Explain">Whether browsers may use HTTP/2 with VioLens for HTTPS sites. When it's off, they use HTTP/1.1.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: HTTP/2 is used.
+Disabled: Only HTTP/1.1 is used.
+Not configured: VioLens's own default applies.</string>
+      <string id="AutoLaunchLegacyHost_Default">Start the legacy extension host automatically</string>
+      <string id="AutoLaunchLegacyHost_Default_Explain">Whether VioLens starts the optional legacy extension host, which runs extensions that need parts of WinForms .NET no longer has, when VioLens starts.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: The legacy extension host starts with VioLens.
+Disabled: It doesn't start automatically.
+Not configured: VioLens's own default applies.</string>
+      <string id="ListenPort_Default">Port VioLens listens on</string>
+      <string id="ListenPort_Default_Explain">The port VioLens's proxy listens on.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: VioLens listens on the port given here.
+Disabled: VioLens picks a free port automatically.
+Not configured: VioLens's own default applies.</string>
+      <string id="SessionsToKeep_Default">Sessions to keep</string>
+      <string id="SessionsToKeep_Default_Explain">How many sessions VioLens keeps, removing the oldest first. 0 keeps every session.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: VioLens's own default applies.</string>
+      <string id="UpstreamProxy_Default">Upstream proxy</string>
+      <string id="UpstreamProxy_Default_Explain">The proxy VioLens sends traffic on to: host:port, none to connect directly, or empty to detect it automatically (the system's proxy settings, PAC scripts and WPAD).
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: VioLens's own default applies.</string>
+      <string id="UpstreamProxyUserName_Default">Upstream proxy user name</string>
+      <string id="UpstreamProxyUserName_Default_Explain">The user name VioLens signs in to the upstream proxy with when it asks for a user name and password. The password is never saved, so users still type it.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: VioLens's own default applies.</string>
+      <string id="SkipDecryptionHosts_Default">Hosts not to decrypt</string>
+      <string id="SkipDecryptionHosts_Default_Explain">Hosts whose HTTPS traffic VioLens passes through without decrypting it, for apps that pin their certificates. One host per line; * is a wildcard (*.example.com).
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: VioLens's own default applies.</string>
+      <string id="ClientCertificate_Default">Client certificate</string>
+      <string id="ClientCertificate_Default_Explain">The client certificate (mutual TLS) VioLens sends, by its thumbprint in the user's personal certificate store, and the hosts it's sent to. With no hosts listed it goes to every server that asks for one, which tells any site who the user is, so list the hosts.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: VioLens sends the certificate given here.
+Disabled or Not configured: VioLens's own default applies.</string>
+      <string id="FiddlerScriptPath_Default">FiddlerScript file</string>
+      <string id="FiddlerScriptPath_Default_Explain">The FiddlerScript (CustomRules.js) VioLens loads at start-up. Empty loads none.
+
+Sets the starting value of this setting for everyone on the computer. Users can change it in VioLens. A locked setting wins over this.
+
+Enabled: VioLens uses the value given here.
+Disabled or Not configured: VioLens's own default applies.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="ListenPort">
+        <decimalTextBox refId="Port" defaultValue="8888">Port:</decimalTextBox>
+      </presentation>
+      <presentation id="SessionsToKeep">
+        <decimalTextBox refId="Value" defaultValue="0">Sessions to keep (0 keeps every session):</decimalTextBox>
+      </presentation>
+      <presentation id="UpstreamProxy">
+        <textBox refId="Value"><label>Upstream proxy (host:port, none, or empty for automatic):</label></textBox>
+      </presentation>
+      <presentation id="UpstreamProxyUserName">
+        <textBox refId="Value"><label>User name:</label></textBox>
+      </presentation>
+      <presentation id="SkipDecryptionHosts">
+        <multiTextBox refId="Value">Hosts, one per line:</multiTextBox>
+      </presentation>
+      <presentation id="ClientCertificate">
+        <textBox refId="Thumbprint"><label>Certificate thumbprint:</label></textBox>
+        <multiTextBox refId="Hosts">Hosts to send it to, one per line (* is a wildcard):</multiTextBox>
+      </presentation>
+      <presentation id="FiddlerScriptPath">
+        <textBox refId="Value"><label>Path to CustomRules.js:</label></textBox>
+      </presentation>
+      <presentation id="ListenPort_Default">
+        <decimalTextBox refId="Port" defaultValue="8888">Port:</decimalTextBox>
+      </presentation>
+      <presentation id="SessionsToKeep_Default">
+        <decimalTextBox refId="Value" defaultValue="0">Sessions to keep (0 keeps every session):</decimalTextBox>
+      </presentation>
+      <presentation id="UpstreamProxy_Default">
+        <textBox refId="Value"><label>Upstream proxy (host:port, none, or empty for automatic):</label></textBox>
+      </presentation>
+      <presentation id="UpstreamProxyUserName_Default">
+        <textBox refId="Value"><label>User name:</label></textBox>
+      </presentation>
+      <presentation id="SkipDecryptionHosts_Default">
+        <multiTextBox refId="Value">Hosts, one per line:</multiTextBox>
+      </presentation>
+      <presentation id="ClientCertificate_Default">
+        <textBox refId="Thumbprint"><label>Certificate thumbprint:</label></textBox>
+        <multiTextBox refId="Hosts">Hosts to send it to, one per line (* is a wildcard):</multiTextBox>
+      </presentation>
+      <presentation id="FiddlerScriptPath_Default">
+        <textBox refId="Value"><label>Path to CustomRules.js:</label></textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

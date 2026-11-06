@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Group Policy template for VioLens. Policies are written to
+     HKLM\Software\Policies\VioLens (locked) and HKLM\Software\Policies\VioLens\Defaults (defaults), which VioLens reads at
+     start-up; see the User Guide's "Settings set by your organization". Self-
+     contained (no reference to Windows.admx) so Intune can import it. -->
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="violens" namespace="VioLens.Policies.VioLens" />
+  </policyNamespaces>
+  <resources minRequiredRevision="1.0" />
+  <supportedOn>
+    <definitions>
+      <definition name="SUPPORTED_VioLens_1_0" displayName="$(string.SUPPORTED_VioLens_1_0)" />
+    </definitions>
+  </supportedOn>
+  <categories>
+    <category name="VioLens" displayName="$(string.Cat_VioLens)" />
+    <category name="VioLens_Locked" displayName="$(string.Cat_Locked)">
+      <parentCategory ref="VioLens" />
+    </category>
+    <category name="VioLens_Defaults" displayName="$(string.Cat_Defaults)">
+      <parentCategory ref="VioLens" />
+    </category>
+  </categories>
+  <policies>
+    <policy name="AllowRemoteClients" class="Machine" displayName="$(string.AllowRemoteClients)" explainText="$(string.AllowRemoteClients_Explain)" key="Software\Policies\VioLens" valueName="violens.proxy.allowremote">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="CheckForUpdates" class="Machine" displayName="$(string.CheckForUpdates)" explainText="$(string.CheckForUpdates_Explain)" key="Software\Policies\VioLens" valueName="violens.update.check">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="AcceptExecCommands" class="Machine" displayName="$(string.AcceptExecCommands)" explainText="$(string.AcceptExecCommands_Explain)" key="Software\Policies\VioLens" valueName="violens.automation.exec">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="Http2" class="Machine" displayName="$(string.Http2)" explainText="$(string.Http2_Explain)" key="Software\Policies\VioLens" valueName="violens.proxy.http2.enabled">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="AutoLaunchLegacyHost" class="Machine" displayName="$(string.AutoLaunchLegacyHost)" explainText="$(string.AutoLaunchLegacyHost_Explain)" key="Software\Policies\VioLens" valueName="violens.extensions.legacyhost.autolaunch">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="ListenPort" class="Machine" displayName="$(string.ListenPort)" explainText="$(string.ListenPort_Explain)" key="Software\Policies\VioLens" presentation="$(presentation.ListenPort)">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledList><item key="Software\Policies\VioLens" valueName="violens.proxy.port.auto"><value><decimal value="0" /></value></item></enabledList>
+      <disabledList><item key="Software\Policies\VioLens" valueName="violens.proxy.port.auto"><value><decimal value="1" /></value></item></disabledList>
+      <elements>
+        <decimal id="Port" valueName="violens.proxy.port" minValue="1" maxValue="65535" required="true" />
+      </elements>
+    </policy>
+    <policy name="SessionsToKeep" class="Machine" displayName="$(string.SessionsToKeep)" explainText="$(string.SessionsToKeep_Explain)" key="Software\Policies\VioLens" presentation="$(presentation.SessionsToKeep)">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <decimal id="Value" valueName="violens.ui.sessionlist.keep" minValue="0" maxValue="10000000" required="true" />
+      </elements>
+    </policy>
+    <policy name="UpstreamProxy" class="Machine" displayName="$(string.UpstreamProxy)" explainText="$(string.UpstreamProxy_Explain)" key="Software\Policies\VioLens" presentation="$(presentation.UpstreamProxy)">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <text id="Value" valueName="violens.proxy.upstream" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="UpstreamProxyUserName" class="Machine" displayName="$(string.UpstreamProxyUserName)" explainText="$(string.UpstreamProxyUserName_Explain)" key="Software\Policies\VioLens" presentation="$(presentation.UpstreamProxyUserName)">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <text id="Value" valueName="violens.proxy.upstream.username" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="SkipDecryptionHosts" class="Machine" displayName="$(string.SkipDecryptionHosts)" explainText="$(string.SkipDecryptionHosts_Explain)" key="Software\Policies\VioLens" presentation="$(presentation.SkipDecryptionHosts)">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <multiText id="Value" valueName="violens.config.https.skipdecryption" />
+      </elements>
+    </policy>
+    <policy name="ClientCertificate" class="Machine" displayName="$(string.ClientCertificate)" explainText="$(string.ClientCertificate_Explain)" key="Software\Policies\VioLens" presentation="$(presentation.ClientCertificate)">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <text id="Thumbprint" valueName="violens.proxy.clientcertificate" maxLength="128" required="true" />
+        <multiText id="Hosts" valueName="violens.config.https.clientcertificatehosts" />
+      </elements>
+    </policy>
+    <policy name="FiddlerScriptPath" class="Machine" displayName="$(string.FiddlerScriptPath)" explainText="$(string.FiddlerScriptPath_Explain)" key="Software\Policies\VioLens" presentation="$(presentation.FiddlerScriptPath)">
+      <parentCategory ref="VioLens_Locked" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <text id="Value" valueName="violens.fiddlerscript.path" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="AllowRemoteClients_Default" class="Machine" displayName="$(string.AllowRemoteClients_Default)" explainText="$(string.AllowRemoteClients_Default_Explain)" key="Software\Policies\VioLens\Defaults" valueName="violens.proxy.allowremote">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="CheckForUpdates_Default" class="Machine" displayName="$(string.CheckForUpdates_Default)" explainText="$(string.CheckForUpdates_Default_Explain)" key="Software\Policies\VioLens\Defaults" valueName="violens.update.check">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="AcceptExecCommands_Default" class="Machine" displayName="$(string.AcceptExecCommands_Default)" explainText="$(string.AcceptExecCommands_Default_Explain)" key="Software\Policies\VioLens\Defaults" valueName="violens.automation.exec">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="Http2_Default" class="Machine" displayName="$(string.Http2_Default)" explainText="$(string.Http2_Default_Explain)" key="Software\Policies\VioLens\Defaults" valueName="violens.proxy.http2.enabled">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="AutoLaunchLegacyHost_Default" class="Machine" displayName="$(string.AutoLaunchLegacyHost_Default)" explainText="$(string.AutoLaunchLegacyHost_Default_Explain)" key="Software\Policies\VioLens\Defaults" valueName="violens.extensions.legacyhost.autolaunch">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="ListenPort_Default" class="Machine" displayName="$(string.ListenPort_Default)" explainText="$(string.ListenPort_Default_Explain)" key="Software\Policies\VioLens\Defaults" presentation="$(presentation.ListenPort_Default)">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <enabledList><item key="Software\Policies\VioLens\Defaults" valueName="violens.proxy.port.auto"><value><decimal value="0" /></value></item></enabledList>
+      <disabledList><item key="Software\Policies\VioLens\Defaults" valueName="violens.proxy.port.auto"><value><decimal value="1" /></value></item></disabledList>
+      <elements>
+        <decimal id="Port" valueName="violens.proxy.port" minValue="1" maxValue="65535" required="true" />
+      </elements>
+    </policy>
+    <policy name="SessionsToKeep_Default" class="Machine" displayName="$(string.SessionsToKeep_Default)" explainText="$(string.SessionsToKeep_Default_Explain)" key="Software\Policies\VioLens\Defaults" presentation="$(presentation.SessionsToKeep_Default)">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <decimal id="Value" valueName="violens.ui.sessionlist.keep" minValue="0" maxValue="10000000" required="true" />
+      </elements>
+    </policy>
+    <policy name="UpstreamProxy_Default" class="Machine" displayName="$(string.UpstreamProxy_Default)" explainText="$(string.UpstreamProxy_Default_Explain)" key="Software\Policies\VioLens\Defaults" presentation="$(presentation.UpstreamProxy_Default)">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <text id="Value" valueName="violens.proxy.upstream" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="UpstreamProxyUserName_Default" class="Machine" displayName="$(string.UpstreamProxyUserName_Default)" explainText="$(string.UpstreamProxyUserName_Default_Explain)" key="Software\Policies\VioLens\Defaults" presentation="$(presentation.UpstreamProxyUserName_Default)">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <text id="Value" valueName="violens.proxy.upstream.username" maxLength="2048" />
+      </elements>
+    </policy>
+    <policy name="SkipDecryptionHosts_Default" class="Machine" displayName="$(string.SkipDecryptionHosts_Default)" explainText="$(string.SkipDecryptionHosts_Default_Explain)" key="Software\Policies\VioLens\Defaults" presentation="$(presentation.SkipDecryptionHosts_Default)">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <multiText id="Value" valueName="violens.config.https.skipdecryption" />
+      </elements>
+    </policy>
+    <policy name="ClientCertificate_Default" class="Machine" displayName="$(string.ClientCertificate_Default)" explainText="$(string.ClientCertificate_Default_Explain)" key="Software\Policies\VioLens\Defaults" presentation="$(presentation.ClientCertificate_Default)">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <text id="Thumbprint" valueName="violens.proxy.clientcertificate" maxLength="128" required="true" />
+        <multiText id="Hosts" valueName="violens.config.https.clientcertificatehosts" />
+      </elements>
+    </policy>
+    <policy name="FiddlerScriptPath_Default" class="Machine" displayName="$(string.FiddlerScriptPath_Default)" explainText="$(string.FiddlerScriptPath_Default_Explain)" key="Software\Policies\VioLens\Defaults" presentation="$(presentation.FiddlerScriptPath_Default)">
+      <parentCategory ref="VioLens_Defaults" />
+      <supportedOn ref="SUPPORTED_VioLens_1_0" />
+      <elements>
+        <text id="Value" valueName="violens.fiddlerscript.path" maxLength="2048" />
+      </elements>
+    </policy>
+  </policies>
+</policyDefinitions>

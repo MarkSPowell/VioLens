@@ -1007,6 +1007,63 @@ Any other name in `preferences.json` can be set the same way. A policy
 file VioLens can't read is skipped (and the reason written to the
 console), so a mistake in it never stops VioLens starting.
 
+VioLens reads policy when it starts, so restart it after a change. To
+check what reached a machine, **Help > Copy Diagnostic Info** lists the
+settings policy sets, and the registry key shows their values.
+
+#### The Group Policy template
+
+Each release includes `VioLens-PolicyTemplates-<version>.zip`, with
+`VioLens.admx` and `en-US\VioLens.adml`. It puts the settings in the
+table above under **Computer Configuration > Administrative Templates >
+VioLens**, in two folders:
+
+- **Locked settings** write to `HKLM\SOFTWARE\Policies\VioLens`. Users
+  can't change them.
+- **Default settings (users can change them)** write to the `Defaults`
+  subkey.
+
+For each setting, **Enabled** sets it as described in the setting's help
+text, and **Not configured** leaves it to the user. A switch such as
+**Allow remote computers to connect** is locked on when Enabled and off
+when Disabled.
+
+To use it with Group Policy in a domain, copy `VioLens.admx` to the
+Central Store (`\\<domain>\SYSVOL\<domain>\Policies\PolicyDefinitions`)
+and `VioLens.adml` to its `en-US` folder, then edit a Group Policy Object
+as usual. On a single computer, copy them to
+`C:\Windows\PolicyDefinitions` and its `en-US` folder instead, and use
+the Local Group Policy Editor (`gpedit.msc`, in Pro and Enterprise
+editions).
+
+#### Intune
+
+Intune can import the same template. Its custom template import is in
+preview, so the menus may move:
+
+1. In the Intune admin center, go to **Devices > Manage devices >
+   Configuration**, open the **Import ADMX** tab, and select **Import**.
+2. Upload `VioLens.admx`, and `en-US\VioLens.adml` as the ADML file for
+   the default language. Select **Next**, then **Create**. Select
+   **Refresh** until its status is **Available**. The template doesn't
+   depend on any other template, so nothing else needs importing first.
+3. Go back to **Configuration** and select **Create > New policy**. For
+   **Platform** choose **Windows 10 and later**, and for **Profile type**
+   choose **Templates > Imported Administrative templates (Preview)**,
+   then **Create**.
+4. Give the profile a name. Under **Configuration settings**, open
+   **VioLens**, then **Locked settings** or **Default settings**, and set
+   the ones you want.
+5. Assign the profile to **device** groups, since these are computer
+   settings, then **Review + create**.
+
+Devices pick the settings up at their next Intune check-in, and VioLens
+at its next start. To move to a newer template, Intune refuses to import
+one with the same namespace over the old one: delete the profiles that
+use it and the imported template, then import the new one and recreate
+the profiles. Other device management tools can set the same registry
+values directly.
+
 ## VioLens Capture: a capture from someone else
 
 When someone else sees a problem (a customer, say), they can record it
