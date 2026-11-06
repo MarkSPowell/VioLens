@@ -79,7 +79,9 @@ deleted when its certificate is released.
 **Real servers.** VioLens checks each server's certificate the normal way
 and doesn't hide a failure. It doesn't turn certificate checks off. VioLens
 sends no client certificate unless you choose one. Once you do, it goes to
-every server that asks for one, unless you list the hosts it's for.
+every server that asks for one, unless you list the hosts it's for; Tools >
+Connections shows a warning until you do, since a certificate can tell any
+site that asks who you are.
 
 **violens-exec.** Scripts drive VioLens through a named pipe that only
 your own account can open; nothing listens on the network. A program

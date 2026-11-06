@@ -316,8 +316,10 @@ certificate, it asks VioLens, and the browser never sees the request (or
 shows its certificate prompt). VioLens records it instead: the Timing tab
 says the server asked, and which certificate authorities it accepts, and the
 session gets a **Notes** tab with the `x-client-certificate-requested` note.
-VioLens doesn't send a client certificate yet, so a server that requires
-one refuses the connection; the 502 page then says that's the likely reason.
+VioLens sends a client certificate only once you choose one (see **Client
+certificate** under Tools > Connections); without one, a server that
+requires one refuses the connection, and the 502 page then says that's the
+likely reason.
 
 ### Finding sessions
 
@@ -711,9 +713,11 @@ request reaches VioLens, not the browser, so VioLens answers it.
   servers; on Windows that's the Personal store, on macOS your login
   keychain.
 - With the box after **for** left empty, the certificate goes to every
-  server that asks for one, as a browser would offer it. To keep it from
-  other servers, list the hosts it's for there, in the same format as
-  above.
+  server that asks for one, as a browser would offer it. A certificate
+  usually names who it belongs to, so any site could ask for it to learn
+  who you are; VioLens shows a warning under the row while the box is
+  empty. To keep it from other servers, list the hosts it's for there, in
+  the same format as above.
 - The Timing tab and Notes say whether the server asked, and which
   certificate VioLens sent.
 - VioLens sends one certificate. Fiddler Classic's `ClientCertificate.cer`
