@@ -240,4 +240,40 @@ public class AutoResponderRulesTests
 
     private static AutoResponderRule Rule(string matchPattern, string action, bool isEnabled = true) =>
         new() { MatchPattern = matchPattern, Action = action, IsEnabled = isEnabled };
+
+    [Fact]
+    public void ARegexRuleThatTakesTooLongDoesntMatch()
+    {
+        // Catastrophic backtracking: without a timeout this runs for ages.
+        var match = AutoResponderMatch.Parse("regex:^(a+)+$");
+        var url = "https://example.test/" + new string('a', 40) + "!";
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+
+        Assert.False(match.Matches("GET", url));
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(10), $"took {timer.Elapsed}");
+    }
+
+    [Fact]
+    public void AWildcardRuleWithManyStarsStaysFast()
+    {
+        var match = AutoResponderMatch.Parse("*a*a*a*a*a*a*a*a*a*a*a*a*a*a*b");
+        var url = "https://example.test/" + new string('a', 20_000);
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+
+        Assert.False(match.Matches("GET", url));
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), $"took {timer.Elapsed}");
+    }
+
+    [Theory]
+    [InlineData("*/widgets/*", true)]
+    [InlineData("API.EXAMPLE.com/*/42", true)]
+    [InlineData("*/gadgets/*", false)]
+    [InlineData("widgets*verbose", true)]
+    [InlineData("verbose*widgets", false)]
+    public void WildcardRulesStillMatchAnywhereInTheUrl(string pattern, bool matches) =>
+        Assert.Equal(matches, AutoResponderMatch.Parse(pattern).Matches("GET", Url));
+
+    [Fact]
+    public void ParseCachedGivesTheSameMatchForTheSamePattern() =>
+        Assert.Same(AutoResponderMatch.ParseCached("regex:widgets/\\d+"), AutoResponderMatch.ParseCached("regex:widgets/\\d+"));
 }

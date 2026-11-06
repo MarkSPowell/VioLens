@@ -53,11 +53,11 @@ internal static class ExchangeCodec
 
     private static byte[] ReadAllFrom(Stream decompressor)
     {
+        // Capped like VioLens's own decoding; past the cap this throws
+        // an IOException, as corrupt data does.
         using (decompressor)
         {
-            using var destination = new MemoryStream();
-            decompressor.CopyTo(destination);
-            return destination.ToArray();
+            return Violens.ProxyCore.Http.ReadLimit.ReadAll(decompressor, Violens.ProxyCore.Http.ContentDecoder.MaxDecodedBytes);
         }
     }
 }

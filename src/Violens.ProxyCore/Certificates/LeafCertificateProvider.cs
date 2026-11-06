@@ -22,8 +22,27 @@ public sealed class LeafCertificateProvider
     private readonly ConcurrentDictionary<string, Lazy<X509Certificate2>> _cache =
         new(StringComparer.OrdinalIgnoreCase);
 
+    // Hosts in the order their leaves were made, oldest first, so the cache
+    // can drop the oldest once it's full.
+    private readonly ConcurrentQueue<string> _order = new();
+    private readonly int _maxCached;
+
+    /// <summary>
+    /// The most leaves kept. Each holds a key, so a client naming a new host
+    /// on every connection (any SNI it likes) mustn't grow the cache
+    /// without end. Far more hosts than a browsing session visits.
+    /// </summary>
+    internal const int MaxCachedLeaves = 2000;
+
     public LeafCertificateProvider(X509Certificate2 issuer)
+        : this(issuer, MaxCachedLeaves)
     {
+    }
+
+    /// <summary>With a smaller cache. Internal for tests.</summary>
+    internal LeafCertificateProvider(X509Certificate2 issuer, int maxCached)
+    {
+        _maxCached = maxCached;
         if (!issuer.HasPrivateKey)
         {
             throw new ArgumentException(
@@ -48,6 +67,7 @@ public sealed class LeafCertificateProvider
         while (true)
         {
             var lazyLeaf = _cache.GetOrAdd(host, CreateLazyLeaf);
+            Trim();
 
             try
             {
@@ -70,7 +90,26 @@ public sealed class LeafCertificateProvider
         }
     }
 
-    private Lazy<X509Certificate2> CreateLazyLeaf(string host) => new(
+    /// <summary>How many leaves are cached. Internal for tests.</summary>
+    internal int CachedCount => _cache.Count;
+
+    // Evicted leaves aren't disposed: a handshake may still be using one.
+    // Once nothing refers to it, its key is released with it.
+    private void Trim()
+    {
+        while (_cache.Count > _maxCached && _order.TryDequeue(out var oldest))
+        {
+            _cache.TryRemove(oldest, out _);
+        }
+    }
+
+    private Lazy<X509Certificate2> CreateLazyLeaf(string host)
+    {
+        _order.Enqueue(host);
+        return NewLazyLeaf(host);
+    }
+
+    private Lazy<X509Certificate2> NewLazyLeaf(string host) => new(
         () =>
         {
             var notBefore = DateTimeOffset.UtcNow.AddMinutes(-5);

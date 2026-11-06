@@ -120,4 +120,23 @@ public class HttpMessageWriterTests
 
         Assert.DoesNotContain("Content-Length", text);
     }
+
+    [Fact]
+    public void RefusesARequestLineWithALineBreakInIt()
+    {
+        var request = new CapturedRequest("GET", "/a HTTP/1.1\r\nHost: evil.test\r\n\r\nGET /b", "HTTP/1.1", [("Host", "example.test")], []);
+
+        Assert.Throws<InvalidDataException>(() => HttpMessageWriter.BuildRequestBytes(request));
+    }
+
+    [Fact]
+    public void ReplacesLineBreaksInHeadersWithSpaces()
+    {
+        var request = new CapturedRequest("GET", "/", "HTTP/1.1", [("Host", "example.test"), ("X-Note", "a\r\nInjected: yes")], []);
+
+        var text = System.Text.Encoding.ASCII.GetString(HttpMessageWriter.BuildRequestBytes(request));
+
+        Assert.Contains("X-Note: a  Injected: yes\r\n", text);
+        Assert.DoesNotContain("\r\nInjected", text);
+    }
 }

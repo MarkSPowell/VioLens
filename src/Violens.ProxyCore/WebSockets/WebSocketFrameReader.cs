@@ -54,6 +54,13 @@ internal sealed class WebSocketFrameReader : IDisposable
     /// <summary>The largest compressed message that's decompressed.</summary>
     public const int MaxCompressedMessageBytes = 16 * 1024 * 1024;
 
+    /// <summary>
+    /// The most one compressed message is decompressed to. Only its start
+    /// is kept anyway; this stops a small message of zeros from costing
+    /// gigabytes of decompression work.
+    /// </summary>
+    internal const int MaxInflatedMessageBytes = 64 * 1024 * 1024;
+
     private static readonly byte[] DeflateTail = [0x00, 0x00, 0xFF, 0xFF];
 
     private readonly WebSocketDirection _direction;
@@ -342,7 +349,16 @@ internal sealed class WebSocketFrameReader : IDisposable
                         _inflater = new Inflater();
                     }
 
-                    payload = _inflater.Inflate(payload, DeflateTail, MaxStoredMessageBytes, out truncated);
+                    payload = _inflater.Inflate(payload, DeflateTail, MaxStoredMessageBytes, MaxInflatedMessageBytes, out truncated, out var gaveUp);
+                    if (gaveUp)
+                    {
+                        // The deflate state is now part-way through this
+                        // message, so it can't be used for the next one.
+                        note = $"Decompresses to more than {MaxInflatedMessageBytes / (1024 * 1024)} MB, so only its start is shown.";
+                        _inflater.Dispose();
+                        _inflater = null;
+                        _inflaterBroken = !_noContextTakeover;
+                    }
                 }
                 catch (Exception ex) when (ex is InvalidDataException or IOException)
                 {
@@ -388,7 +404,13 @@ internal sealed class WebSocketFrameReader : IDisposable
 
         public Inflater() => _deflate = new DeflateStream(_input, CompressionMode.Decompress);
 
-        public byte[] Inflate(byte[] compressed, byte[] tail, int maxKeep, out bool truncated)
+        /// <summary>
+        /// Decompresses one message, keeping at most <paramref name="maxKeep"/>
+        /// bytes. Stops after <paramref name="maxInflate"/> bytes
+        /// (<paramref name="gaveUp"/>), after which this inflater can't be
+        /// used again.
+        /// </summary>
+        public byte[] Inflate(byte[] compressed, byte[] tail, int maxKeep, long maxInflate, out bool truncated, out bool gaveUp)
         {
             _input.Append(compressed);
             _input.Append(tail);
@@ -396,6 +418,8 @@ internal sealed class WebSocketFrameReader : IDisposable
             using var output = new MemoryStream();
             var buffer = new byte[64 * 1024];
             truncated = false;
+            gaveUp = false;
+            long inflated = 0;
             int read;
             while ((read = _deflate.Read(buffer, 0, buffer.Length)) > 0)
             {
@@ -404,6 +428,13 @@ internal sealed class WebSocketFrameReader : IDisposable
                 var keep = (int)Math.Max(0, Math.Min(read, maxKeep - output.Length));
                 output.Write(buffer, 0, keep);
                 truncated |= keep < read;
+                inflated += read;
+                if (inflated > maxInflate)
+                {
+                    truncated = true;
+                    gaveUp = true;
+                    break;
+                }
             }
 
             return output.ToArray();

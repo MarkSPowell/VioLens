@@ -137,4 +137,28 @@ public class LeafCertificateProviderTests
             ?? throw new InvalidOperationException("Enhanced Key Usage extension is missing.");
         return new X509EnhancedKeyUsageExtension(raw, raw.Critical);
     }
+
+    [Fact]
+    public void TheCacheDropsTheOldestLeavesOnceItsFull()
+    {
+        var rootNotBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+        using var root = CertificateAuthority.GenerateRoot(rootNotBefore, rootNotBefore.AddYears(5));
+        var provider = new LeafCertificateProvider(root, maxCached: 5);
+
+        // A client naming a new host on every connection.
+        var first = provider.GetCertificateFor("host0.test");
+        for (var i = 1; i < 12; i++)
+        {
+            provider.GetCertificateFor($"host{i}.test");
+        }
+
+        Assert.Equal(5, provider.CachedCount);
+        var latest = provider.GetCertificateFor("host11.test");
+        Assert.Same(latest, provider.GetCertificateFor("host11.test"));
+        Assert.NotSame(first, provider.GetCertificateFor("host0.test"));
+    }
+
+    [Fact]
+    public void TheDefaultCacheIsLargeEnoughForBrowsing() =>
+        Assert.InRange(LeafCertificateProvider.MaxCachedLeaves, 500, 10_000);
 }

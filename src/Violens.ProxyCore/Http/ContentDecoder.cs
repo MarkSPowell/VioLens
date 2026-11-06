@@ -144,8 +144,10 @@ public static class ContentDecoder
             {
                 return Encoding.GetEncoding(charset);
             }
-            catch (ArgumentException)
+            catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
             {
+                // Unknown, or known but not supported (utf-7): UTF-8, as
+                // browsers do.
                 return Encoding.UTF8;
             }
         }

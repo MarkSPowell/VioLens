@@ -21,6 +21,16 @@ namespace Violens.CompatShim;
 /// </summary>
 internal static class SazArchive
 {
+    /// <summary>
+    /// The most one entry is read to (a message, or its metadata), as VioLens
+    /// itself limits a buffered body, but lower: this is a 32-bit process.
+    /// A few KB of ZIP can expand to gigabytes.
+    /// </summary>
+    internal const long MaxEntryBytes = 128L * 1024 * 1024;
+
+    /// <summary>The most one archive is read to, all entries together.</summary>
+    internal const long MaxArchiveBytes = 1024L * 1024 * 1024;
+
     private static readonly Encoding HeaderEncoding = Encoding.GetEncoding("ISO-8859-1");
     private static readonly byte[] HeaderBodySeparatorCrLf = { (byte)'\r', (byte)'\n', (byte)'\r', (byte)'\n' };
     private static readonly byte[] HeaderBodySeparatorLfOnly = { (byte)'\n', (byte)'\n' };
@@ -61,26 +71,40 @@ internal static class SazArchive
             }
 
             var result = new List<Session>();
+            var budget = new long[] { MaxArchiveBytes };
             foreach (var id in byId.Keys.OrderBy(x => x))
             {
                 var set = byId[id];
                 var session = new Session { id = id };
 
-                // Metadata first -- ParseRawRequest below uses any "https"-ish
-                // session flag as a hint when guessing the request's scheme.
-                if (set.Metadata != null)
+                try
                 {
-                    ParseMetadata(session, ReadEntryText(set.Metadata));
-                }
+                    // Metadata first -- ParseRawRequest below uses any "https"-ish
+                    // session flag as a hint when guessing the request's scheme.
+                    if (set.Metadata != null)
+                    {
+                        ParseMetadata(session, ReadEntryText(set.Metadata, budget));
+                    }
 
-                if (set.Client != null)
-                {
-                    ParseRawRequest(session, ReadEntryBytes(set.Client));
-                }
+                    if (set.Client != null)
+                    {
+                        ParseRawRequest(session, ReadEntryBytes(set.Client, budget));
+                    }
 
-                if (set.Server != null)
+                    if (set.Server != null)
+                    {
+                        ParseRawResponse(session, ReadEntryBytes(set.Server, budget));
+                    }
+                }
+                catch (EntryTooLargeException ex)
                 {
-                    ParseRawResponse(session, ReadEntryBytes(set.Server));
+                    FiddlerApplication.Log.LogFormat("ReadSessionArchive: session {0} skipped -- {1}", new object[] { id, ex.Message });
+                    if (budget[0] < 0)
+                    {
+                        break;
+                    }
+
+                    continue;
                 }
 
                 result.Add(session);
@@ -195,12 +219,49 @@ internal static class SazArchive
         return true;
     }
 
-    private static byte[] ReadEntryBytes(ZipArchiveEntry entry)
+    /// <summary>
+    /// The entry's bytes, up to <see cref="MaxEntryBytes"/>, taken from what's
+    /// left of <paramref name="budget"/> (one element, shared by the archive's
+    /// entries). Counts what actually comes out, not the size the archive
+    /// claims. Internal for tests.
+    /// </summary>
+    internal static byte[] ReadEntryBytes(ZipArchiveEntry entry, long[] budget)
     {
+        if (entry.Length > MaxEntryBytes)
+        {
+            throw new EntryTooLargeException($"{entry.FullName} is larger than {MaxEntryBytes / (1024 * 1024)} MB.");
+        }
+
         using var stream = entry.Open();
         using var memory = new MemoryStream();
-        stream.CopyTo(memory);
+        var buffer = new byte[81920];
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            budget[0] -= read;
+            if (budget[0] < 0)
+            {
+                throw new EntryTooLargeException($"the archive expands to more than {MaxArchiveBytes / (1024 * 1024)} MB, so the rest isn't read.");
+            }
+
+            if (memory.Length + read > MaxEntryBytes)
+            {
+                throw new EntryTooLargeException($"{entry.FullName} is larger than {MaxEntryBytes / (1024 * 1024)} MB.");
+            }
+
+            memory.Write(buffer, 0, read);
+        }
+
         return memory.ToArray();
+    }
+
+    /// <summary>An entry, or the archive as a whole, expands past its limit.</summary>
+    internal sealed class EntryTooLargeException : Exception
+    {
+        public EntryTooLargeException(string message)
+            : base(message)
+        {
+        }
     }
 
     /// <summary>
@@ -208,9 +269,9 @@ internal static class SazArchive
     /// <c>GetString</c> would otherwise keep and <c>XDocument.Parse</c> rejects.
     /// Fiddler's own archives may have one.
     /// </summary>
-    private static string ReadEntryText(ZipArchiveEntry entry)
+    private static string ReadEntryText(ZipArchiveEntry entry, long[] budget)
     {
-        var text = Encoding.UTF8.GetString(ReadEntryBytes(entry));
+        var text = Encoding.UTF8.GetString(ReadEntryBytes(entry, budget));
         return text.Length > 0 && text[0] == '﻿' ? text.Substring(1) : text;
     }
 

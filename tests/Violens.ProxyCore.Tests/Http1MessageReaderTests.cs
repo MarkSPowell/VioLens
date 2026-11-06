@@ -329,6 +329,59 @@ public class Http1MessageReaderTests
         Assert.Equal(body, read);
     }
 
+    [Fact]
+    public async Task ReadBodyAsync_RefusesAChunkedBodyLargerThanTheLimit()
+    {
+        // Many small chunks: each is fine, the total isn't.
+        var raw = new StringBuilder();
+        for (var i = 0; i < 20; i++)
+        {
+            raw.Append("400\r\n").Append('a', 0x400).Append("\r\n");
+        }
+
+        var headers = new List<(string Name, string Value)> { ("Transfer-Encoding", "chunked") };
+        using var source = StreamOf(raw.Append("0\r\n\r\n").ToString());
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            Http1MessageReader.ReadBodyAsync(source, headers, CancellationToken.None, maxBytes: 16 * 1024));
+    }
+
+    [Fact]
+    public async Task ReadBodyAsync_ReadsAChunkedBodyWithinTheLimit()
+    {
+        var headers = new List<(string Name, string Value)> { ("Transfer-Encoding", "chunked") };
+        using var source = StreamOf("5\r\nhello\r\n0\r\n\r\n");
+
+        var body = await Http1MessageReader.ReadBodyAsync(source, headers, CancellationToken.None, maxBytes: 5);
+
+        Assert.Equal("hello", Encoding.ASCII.GetString(body));
+    }
+
+    [Fact]
+    public async Task ReadBodyAsync_RefusesAContentLengthLargerThanTheLimitBeforeReading()
+    {
+        var headers = new List<(string Name, string Value)> { ("Content-Length", "20000") };
+        using var source = StreamOf(new string('a', 20000));
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            Http1MessageReader.ReadBodyAsync(source, headers, CancellationToken.None, maxBytes: 16 * 1024));
+        Assert.Equal(0, source.Position);
+    }
+
+    [Fact]
+    public async Task ReadResponseBodyAsync_RefusesACloseDelimitedBodyLargerThanTheLimit()
+    {
+        var headers = new List<(string Name, string Value)>();
+        using var source = StreamOf(new string('a', 200_000));
+
+        await Assert.ThrowsAsync<InvalidDataException>(() =>
+            Http1MessageReader.ReadResponseBodyAsync(source, headers, CancellationToken.None, maxBytes: 100_000));
+    }
+
+    [Fact]
+    public void TheDefaultBufferedBodyLimitIsWellUnderTheArrayLimit() =>
+        Assert.InRange(Http1MessageReader.MaxBufferedBodyBytes, 64L * 1024 * 1024, Array.MaxLength / 2);
+
     private static MemoryStream StreamOf(string text) => new(Encoding.ASCII.GetBytes(text));
 
     /// <summary>Returns at most <c>piece</c> bytes per read, like a socket.</summary>

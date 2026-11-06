@@ -175,8 +175,9 @@ tabs:
   anywhere. Check **Load images and styles from the site** to let the
   browser fetch the page's images, style sheets and fonts; scripts stay
   blocked. (If your browser is using VioLens as its proxy, those requests
-  appear in the session list.) Copies go in a `VioLens-preview` folder in
-  your temp folder and are deleted after a day.
+  appear in the session list.) Copies go in a `VioLens-preview-` folder in
+  your temp folder, a new one each time VioLens starts, that only your
+  account can open, and are deleted after a day.
 - **WebForms** (request side, only when there's something to show): the
   query string and any form fields, one row per name and value, decoded.
   Form uploads (`multipart/form-data`) show each field, and each file's

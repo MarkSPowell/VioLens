@@ -98,7 +98,8 @@ downloads or runs anything.
 - The Markdown tab shows links and images without following or fetching
   them.
 - The WebView tab's **Preview in Browser** writes a copy of the page to
-  the temp folder with a Content-Security-Policy that blocks scripts,
+  a folder of its own in the temp folder, with a random name and, on
+  Linux and macOS, open only to your account, with a Content-Security-Policy that blocks scripts,
   frames, plug-ins and form submission, and with the page's own
   `http-equiv` settings, including any automatic redirect, removed. Nothing loads from the network unless you check **Load images
   and styles from the site**. Copies are deleted after a day.
@@ -108,6 +109,15 @@ downloads or runs anything.
   limited, and the Markdown reader limits how far it searches so crafted
   text can't stall the window. A compressed body is decoded only up to
   256 MB, so a small one that would expand without end is shown raw.
+  The same limit applies to extensions' `GzipExpand` and FiddlerScript's
+  decoding, and an image declaring more than 64 megapixels isn't drawn.
+  A SAZ import reads at most 4 GB in all.
+- Bodies held in memory whole, for a breakpoint or a rule, are limited to
+  256 MB however they're sent; relayed bodies aren't limited, only how
+  much of each is kept. A WebSocket connection keeps its first 100,000
+  messages, and a compressed message is decompressed to 64 MB at most.
+- Log messages have their control characters written out (`\x0d`), so
+  text from the network can't fake a log line.
 
 **Machine policy.** Locked settings come from places only an
 administrator can write (`HKLM\SOFTWARE\Policies\VioLens`, or
@@ -142,10 +152,13 @@ again unless you uncheck that. It shares VioLens's certificate.
   which proxies are your network's own: one named by an automatic
   configuration script could belong to anyone on the network.
 - Other devices can't use VioLens to reach this computer's own localhost
-  services, or link-local addresses such as a cloud server's metadata
-  service (`169.254.169.254`): they get a 403 instead. A name that
-  resolves to one of those one moment and another address the next (DNS
-  rebinding) is a narrow gap that remains.
+  services, or a cloud server's metadata service (link-local addresses
+  such as `169.254.169.254`, and `fd00:ec2::254` and `100.100.100.200`):
+  they get a 403 instead. A direct connection checks again on the
+  addresses it connects to, so a name that resolves to an allowed address
+  one moment and one of those the next (DNS rebinding) is still refused.
+  Through an upstream proxy, the proxy looks the name up, and its own
+  rules apply.
 - Everything else this computer can reach, they can reach too. That
   includes sites served from this computer's own network address (which
   is how a phone tests them), and any network it's on through a VPN, such
@@ -154,7 +167,19 @@ again unless you uncheck that. It shares VioLens's certificate.
 - A connection that doesn't send its request within 2 minutes is closed.
 - Proxy auto-config scripts, which can come from the network through
   automatic detection, run in a JavaScript interpreter with no access to
-  .NET and limits on time, recursion and memory.
+  .NET and limits on time, recursion and memory. A script is at most
+  4 MB. One found on the network must be on an http or https URL, so the
+  network can't point VioLens at a local file or a file share. A route
+  the script gives back to VioLens itself is skipped.
+- AutoResponder `regex:` rules get 250 ms per URL; wildcards in rules and
+  host lists are matched without a regex, so no pattern can stall
+  traffic.
+- An HTTP/2 client that resets more than 200 of its streams in 10
+  seconds is disconnected (the "Rapid Reset" attack), and no more requests
+  run at once on a connection than it may open streams. Line breaks in
+  HTTP/2 request fields, and a method or path that isn't one, are
+  refused, so a request can't split into two on its way out over
+  HTTP/1.1.
 
 **The proxy host (`Violens.ProxyHost`).**
 - The app makes a pipe with a random name that takes one connection, and
@@ -172,7 +197,15 @@ again unless you uncheck that. It shares VioLens's certificate.
 session to it over a named pipe that only your account can open, and
 never from another computer. The app refuses a pipe of that name made by
 another account, so another user on a shared computer can't stand in for
-the host and read your decrypted traffic.
+the host and read your decrypted traffic. The pipe's name ends in a random
+value kept in your account's app data, so another account can't take the
+name first either.
+
+**Helper programs.** On Linux and macOS, VioLens runs `certutil`,
+`gsettings`, `security` and the like by their full path, found in PATH's
+absolute folders (or, for macOS's own tools, where macOS keeps them), never
+by bare name, which would also look in VioLens's folder and the current
+one.
 
 ## Supported versions
 

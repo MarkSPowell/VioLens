@@ -403,10 +403,7 @@ internal static class LinuxSystemProxy
         return null;
     }
 
-    private static bool OnPath(string program) =>
-        (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
-        .Split(':', StringSplitOptions.RemoveEmptyEntries)
-        .Any(folder => File.Exists(Path.Combine(folder, program)));
+    private static bool OnPath(string program) => ExecutablePath.Find(program) is not null;
 
     [SupportedOSPlatform("linux")]
     private static string KdeRead(string tool, string key) => Run(tool, BuildKdeReadArguments(key)).TrimEnd('\n', '\r');
@@ -432,7 +429,10 @@ internal static class LinuxSystemProxy
     [SupportedOSPlatform("linux")]
     private static string Run(string program, string[] arguments)
     {
-        var startInfo = new ProcessStartInfo(program)
+        // By full path; a bare name would also be looked for in the app's
+        // folder and the current one.
+        var fullPath = ExecutablePath.Find(program);
+        var startInfo = new ProcessStartInfo(fullPath ?? program)
         {
             UseShellExecute = false,
             RedirectStandardOutput = true,
@@ -447,7 +447,7 @@ internal static class LinuxSystemProxy
         Process? process;
         try
         {
-            process = Process.Start(startInfo);
+            process = fullPath is null ? null : Process.Start(startInfo);
         }
         catch (System.ComponentModel.Win32Exception)
         {

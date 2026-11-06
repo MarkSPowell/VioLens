@@ -34,9 +34,10 @@ public static class Utilities
         {
             using var input = new MemoryStream(compressedData);
             using var gzip = new GZipStream(input, CompressionMode.Decompress);
-            using var output = new MemoryStream();
-            gzip.CopyTo(output);
-            return output.ToArray();
+
+            // Capped like VioLens's own decoding: a few KB of gzip can
+            // expand to gigabytes.
+            return Violens.ProxyCore.Http.ReadLimit.ReadAll(gzip, Violens.ProxyCore.Http.ContentDecoder.MaxDecodedBytes);
         }
         catch (Exception ex) when (!bThrowErrors && ex is InvalidDataException or IOException)
         {

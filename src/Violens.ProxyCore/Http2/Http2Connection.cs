@@ -20,6 +20,16 @@ internal sealed record Http2Settings
 
     /// <summary>The connection's receive window, shared by all streams.</summary>
     public int ConnectionWindowSize { get; init; } = 16 << 20;
+
+    /// <summary>
+    /// How many of its own streams the peer may reset in
+    /// <see cref="Http2Connection.ResetWindow"/> before the connection is
+    /// closed with ENHANCE_YOUR_CALM. A reset stream no longer counts
+    /// against <see cref="MaxConcurrentStreams"/>, so without this a peer
+    /// can open and reset streams without end while the work they started
+    /// carries on ("Rapid Reset", CVE-2023-44487). Not sent to the peer.
+    /// </summary>
+    public int MaxPeerResetsPerWindow { get; init; } = 200;
 }
 
 internal enum Http2Role
@@ -65,6 +75,8 @@ internal sealed class Http2Connection : IAsyncDisposable
     private TaskCompletionSource _windowChanged = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Task _readLoop = Task.CompletedTask;
     private int _lastPeerStreamId;
+    private long _resetWindowStart = Environment.TickCount64;
+    private int _peerResetsInWindow;
     private int _nextLocalStreamId;
     private int _activePeerStreams;
     private int _activeLocalStreams;
@@ -927,6 +939,12 @@ internal sealed class Http2Connection : IAsyncDisposable
                 throw new Http2ConnectionException(Http2ErrorCode.ProtocolError, $"RST_STREAM on idle stream {frame.StreamId}.");
             }
 
+            if (IsPeerInitiated(frame.StreamId) && TooManyPeerResets())
+            {
+                throw new Http2ConnectionException(
+                    Http2ErrorCode.EnhanceYourCalm, $"More than {_local.MaxPeerResetsPerWindow} streams were reset in {ResetWindow.TotalSeconds:0} seconds.");
+            }
+
             if (_streams.TryGetValue(frame.StreamId, out var stream))
             {
                 stream.IsReset = true;
@@ -935,6 +953,22 @@ internal sealed class Http2Connection : IAsyncDisposable
                 SignalWindows();
             }
         }
+    }
+
+    /// <summary>The span <see cref="Http2Settings.MaxPeerResetsPerWindow"/> counts over.</summary>
+    internal static readonly TimeSpan ResetWindow = TimeSpan.FromSeconds(10);
+
+    // Called under _sync.
+    private bool TooManyPeerResets()
+    {
+        var now = Environment.TickCount64;
+        if (now - _resetWindowStart > (long)ResetWindow.TotalMilliseconds)
+        {
+            _resetWindowStart = now;
+            _peerResetsInWindow = 0;
+        }
+
+        return ++_peerResetsInWindow > _local.MaxPeerResetsPerWindow;
     }
 
     private async Task HandleSettingsAsync(Http2Frame frame)

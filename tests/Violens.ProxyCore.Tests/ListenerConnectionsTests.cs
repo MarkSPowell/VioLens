@@ -330,11 +330,65 @@ public class ListenerConnectionsTests
     [InlineData("169.254.169.254", true)]
     [InlineData("fe80::1", true)]
     [InlineData("::ffff:169.254.169.254", true)]
+    [InlineData("fd00:ec2::254", true)]
+    [InlineData("100.100.100.200", true)]
+    [InlineData("::127.0.0.1", true)]
+    [InlineData("64:ff9b::a9fe:a9fe", true)]
+    [InlineData("64:ff9b::7f00:1", true)]
     [InlineData("192.0.2.10", false)]
     [InlineData("10.0.0.5", false)]
+    [InlineData("100.64.0.1", false)]
+    [InlineData("64:ff9b::c000:20a", false)]
     [InlineData("does-not-exist.invalid", false)]
     public async Task RemoteClientsCantReachLoopbackOrLinkLocal(string host, bool offLimits) =>
         Assert.Equal(offLimits, await InterceptingProxyListener.IsOffLimitsToRemoteClientsAsync(host, CancellationToken.None));
+
+    [Theory]
+    [InlineData("localhost")]
+    [InlineData("127.0.0.1")]
+    [InlineData("does-not-exist.invalid")]
+    public async Task ARemoteClientsDirectConnectionChecksTheAddressesItConnectsTo(string host)
+    {
+        // The early check can pass and the name resolve elsewhere later (DNS
+        // rebinding); the connection itself refuses, or can't resolve it.
+        using var upstream = new Http1Upstream(
+            isTls: false, host, 80, (_, _, _, _, _) => Task.FromResult<IReadOnlyList<UpstreamProxy?>>([null]), proxyCredential: null,
+            forRemoteClient: true);
+
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() => upstream.ConnectAsync("/", CancellationToken.None));
+        Assert.True(ex is InterceptingProxyListener.OffLimitsException or SocketException, ex.ToString());
+    }
+
+    [Fact]
+    public async Task ALocalClientsDirectConnectionCanStillReachThisComputer()
+    {
+        await using var server = UpstreamProxyTests.FakeProxy.Start("HTTP/1.1 204 No Content\r\n\r\n");
+        using var upstream = new Http1Upstream(
+            isTls: false, "127.0.0.1", server.Port, (_, _, _, _, _) => Task.FromResult<IReadOnlyList<UpstreamProxy?>>([null]), proxyCredential: null);
+
+        await upstream.ConnectAsync("/", CancellationToken.None);
+    }
+
+    [Fact]
+    public void APacRouteBackToVioLensItselfIsDropped()
+    {
+        using var root = NewRoot();
+        var listener = InterceptingProxyListener.StartOnAvailablePort(0, new LeafCertificateProvider(root), new SessionStore());
+        try
+        {
+            var self = new UpstreamProxy("127.0.0.1", listener.Port);
+            var other = new UpstreamProxy("proxy.example.test", 8080);
+            var sameHostOtherPort = new UpstreamProxy("127.0.0.1", listener.Port + 1);
+
+            Assert.Equal([other, null], listener.WithoutSelf([self, other, null]));
+            Assert.Equal([null], listener.WithoutSelf([self]));
+            Assert.Equal([sameHostOtherPort], listener.WithoutSelf([sameHostOtherPort]));
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
 
     [Fact]
     public void CanListenForRemoteComputers()
@@ -435,6 +489,31 @@ public class ListenerConnectionsTests
     [InlineData("other.test", false)]
     public void SkipDecryptionHostsUseTheBypassListFormat(string host, bool matches) =>
         Assert.Equal(matches, UpstreamProxy.MatchesHostList(host, ["*.example.com", " pinned.test "]));
+
+    [Theory]
+    [InlineData("a.b.example.com", "*.example.com", true)]
+    [InlineData("example.com", "*.example.com", false)]
+    [InlineData("host1.corp", "host?.corp", true)]
+    [InlineData("host12.corp", "host?.corp", false)]
+    [InlineData("10.1.2.3", "10.*", true)]
+    [InlineData("a*b.test", "a*b.test", true)]
+    [InlineData("anything", "*", true)]
+    [InlineData("", "*", true)]
+    [InlineData("abc", "a**c", true)]
+    [InlineData("abc", "ab", false)]
+    public void HostListWildcardsMatchTheWholeName(string host, string entry, bool matches) =>
+        Assert.Equal(matches, UpstreamProxy.MatchesHostList(host, [entry]));
+
+    [Fact]
+    public void AHostListEntryWithManyWildcardsStaysFast()
+    {
+        // This took a backtracking regex minutes on a long name.
+        var host = new string('a', 20_000);
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+
+        Assert.False(UpstreamProxy.MatchesHostList(host, ["*a*a*a*a*a*a*a*a*a*a*a*a*a*a*b"]));
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), $"took {timer.Elapsed}");
+    }
 
     [Fact]
     public async Task KeepsAcceptingAfterClientsResetTheirConnectionsBeforeTheyreAccepted()

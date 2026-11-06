@@ -95,6 +95,62 @@ public class ProxyAutoConfigTests
     }
 
     [Fact]
+    public async Task RefusesADownloadedScriptLargerThanTheLimit()
+    {
+        // No Content-Length, so the limit has to apply as the bytes arrive.
+        var script = "//" + new string('a', ProxyAutoConfig.MaxScriptBytes);
+        await using var server = UpstreamProxyTests.FakeProxy.Start($"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n{script}");
+
+        var ex = await Assert.ThrowsAsync<PacScriptException>(() =>
+            ProxyAutoConfig.DownloadAsync($"http://127.0.0.1:{server.Port}/proxy.pac", discovered: false, CancellationToken.None)
+                .WaitAsync(TestTimeout));
+        Assert.Contains("larger than", ex.Message);
+    }
+
+    [Fact]
+    public async Task RefusesAScriptFileLargerThanTheLimit()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"violens-{Guid.NewGuid():N}.pac");
+        await File.WriteAllTextAsync(path, "//" + new string('a', ProxyAutoConfig.MaxScriptBytes));
+        try
+        {
+            await Assert.ThrowsAsync<PacScriptException>(() =>
+                ProxyAutoConfig.DownloadAsync(new Uri(path).AbsoluteUri, discovered: false, CancellationToken.None));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData("file:///etc/passwd")]
+    [InlineData("file://attacker.example/share/wpad.dat")]
+    [InlineData(@"\\attacker.example\share\wpad.dat")]
+    [InlineData("ftp://attacker.example/wpad.dat")]
+    public async Task UsesOnlyWebUrlsTheNetworkOffers(string url)
+    {
+        var ex = await Assert.ThrowsAsync<PacScriptException>(() =>
+            ProxyAutoConfig.DownloadAsync(url, discovered: true, CancellationToken.None));
+        Assert.Contains("only http and https", ex.Message);
+    }
+
+    [Fact]
+    public async Task StillReadsAScriptFileTheUserConfigured()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"violens-{Guid.NewGuid():N}.pac");
+        await File.WriteAllTextAsync(path, "function FindProxyForURL(url, host) { return 'DIRECT'; }");
+        try
+        {
+            Assert.Contains("FindProxyForURL", await ProxyAutoConfig.DownloadAsync(new Uri(path).AbsoluteUri, discovered: false, CancellationToken.None));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task TheListenerTriesTheNextProxyWhenOneCantBeReached()
     {
         using var root = NewRoot();
