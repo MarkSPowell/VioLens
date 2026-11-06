@@ -163,6 +163,9 @@ public sealed class CertificateAuthority
         {
             // security add-trusted-cert is idempotent, so no "already trusted" check.
             MacOSCertificateTrust.Install(rootCert);
+
+            // Firefox doesn't use the keychain unless told to.
+            FirefoxEnterpriseRoots.Enable(HomeFolder(), message => ProxyEngine.Log("certificates", message));
         }
         else if (OperatingSystem.IsLinux())
         {
@@ -233,6 +236,7 @@ public sealed class CertificateAuthority
                     }
                 }
 
+                FirefoxEnterpriseRoots.Disable(HomeFolder(), log);
                 return removed;
             }
 
@@ -320,6 +324,8 @@ public sealed class CertificateAuthority
         return removed;
     }
 
+    private static string HomeFolder() => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
     private static List<X509Certificate2> FindRoots(X509Store store, string subjectPrefix) =>
         store.Certificates
             .Find(X509FindType.FindBySubjectName, subjectPrefix, validOnly: false)
@@ -341,6 +347,7 @@ public sealed class CertificateAuthority
         else if (OperatingSystem.IsMacOS())
         {
             MacOSCertificateTrust.Uninstall(RootCertificate);
+            FirefoxEnterpriseRoots.Disable(HomeFolder(), message => ProxyEngine.Log("certificates", message));
         }
         else if (OperatingSystem.IsLinux())
         {

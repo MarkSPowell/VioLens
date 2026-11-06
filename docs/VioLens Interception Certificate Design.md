@@ -141,11 +141,14 @@ today.
 
 **macOS has only been partly tested on a real Mac.** The first Mac run
 found the Start freeze described below, which is fixed, and CI checks that
-the signed app launches. A full hands-on test is item 3 of the Project
-Plan's Road to 1.0. It has to confirm that Chrome honors the trust
-straight away, how the password prompt behaves, that 7-day leaf
-certificates meet Apple's rules for server certificates, and that removal
-works.
+the signed app launches. A later run confirmed that Safari trusts the
+keychain root and accepts the 7-day leaf certificates, and found that
+Firefox didn't: it keeps its own certificate store, and trusted VioLens
+only once `security.enterprise_roots.enabled` was turned on by hand,
+which VioLens now does itself (see "Firefox" below). A full hands-on test
+is item 3 of the Project Plan's Road to 1.0. It still has to confirm that
+Chrome honors the trust straight away, how the password prompt behaves,
+that VioLens's own Firefox change works, and that removal works.
 
 ### Keychain trust
 
@@ -171,6 +174,25 @@ got an unhandled `CryptographicException` rather than a clear message.)
 - **Both** run through `Process.Start`, capture the output, and throw a
   `CertificateTrustException` (with the exit code and error output) if
   the command fails.
+
+### Firefox
+
+Firefox keeps its own certificate store, not the keychain, so the
+keychain trust alone leaves every HTTPS site in Firefox showing a
+warning (and HSTS sites with no way past it). Its
+`security.enterprise_roots.enabled` setting makes it trust what macOS
+trusts as well; recent versions turn it on by default, but not every
+profile has it. `FirefoxEnterpriseRoots` adds
+`user_pref("security.enterprise_roots.enabled", true);` to each profile's
+`user.js` (under `~/Library/Application Support/Firefox/Profiles`), after
+a marker comment, when the root is trusted. Firefox applies `user.js` at
+every start, over the profile's own `prefs.js`, so it takes effect once
+Firefox restarts. Removing the root takes out only the marked lines. A
+`user.js` that already sets the setting, either way, is left alone, as
+is a profile kept elsewhere through `profiles.ini`.
+
+Adding the root to each profile's own store, as on Linux, would have
+needed Mozilla's `certutil`, which macOS doesn't ship.
 
 ### Asking before trusting
 
