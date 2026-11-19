@@ -2,10 +2,10 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
   <metadata>
     <id>violens</id>
-    <version>1.0.0-rc.3</version>
+    <version>1.0.0-rc3</version>
     <title>VioLens</title>
     <authors>Mark Powell</authors>
-    <owners>Mark Powell</owners>
+    <owners>MSPLogic</owners>
     <projectUrl>https://violens.dev/</projectUrl>
     <packageSourceUrl>https://github.com/MarkSPowell/VioLens/tree/main/installer/chocolatey</packageSourceUrl>
     <projectSourceUrl>https://github.com/MarkSPowell/VioLens</projectSourceUrl>

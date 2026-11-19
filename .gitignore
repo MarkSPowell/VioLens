@@ -56,3 +56,6 @@ tools/Violens.LegacyExtensionHost/Retarget-LegacyExtension.ps1
 # ports built from it. Third-party code is fetched at a pinned commit on
 # demand, never committed here.
 tests/ExtensionPorts/.work/
+
+# Chocolatey packages built from installer/chocolatey
+*.nupkg
