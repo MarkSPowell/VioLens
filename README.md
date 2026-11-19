@@ -3,8 +3,10 @@
 VioLens is an open source tool for inspecting HTTP and HTTPS traffic,
 built as a successor to Fiddler Web Debugger (Fiddler Classic). Progress
 Software changed Fiddler Classic's license in 2026 to allow only
-non-commercial use. VioLens is free for any use, under the MIT license.
-It's an independent project, not affiliated with Progress or Telerik (see
+non-commercial use. VioLens is free for any use, under the MIT license,
+and runs on Windows, macOS and Linux. It's built with .NET 10 and
+[Avalonia](https://avaloniaui.net). It's an independent project, not
+affiliated with Progress or Telerik (see
 [Relationship to Fiddler](#relationship-to-fiddler)).
 
 VioLens was called CLeARINET until version 0.2. It isn't Eric Lawrence's
