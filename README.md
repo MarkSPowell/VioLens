@@ -109,18 +109,21 @@ testing on macOS and on KDE Plasma (see
 **Help > Documentation** opens the [User Guide](docs/User%20Guide.md), which
 covers all of this.
 
-## Getting started
+## Install
 
-You need the .NET 10 SDK.
+Download VioLens from the
+[releases page](https://github.com/MarkSPowell/VioLens/releases/latest):
 
-```
-dotnet restore VioLens.sln
-dotnet build VioLens.sln
-dotnet test VioLens.sln
-dotnet run --project apps/Violens.DesktopUi
-```
-
-`dotnet run --project apps/Violens.Capture` runs VioLens Capture.
+- **Windows (x64):** `VioLens-Setup-<version>.exe`, a signed installer.
+  SmartScreen may warn while the publisher is new: choose **More info >
+  Run anyway**. `VioLensCapture-<version>-win-x64.exe` is VioLens Capture,
+  which runs without installing.
+- **macOS (Apple silicon, macOS 11 or later):**
+  `VioLens-<version>-macos-arm64.dmg`, signed and notarized, or
+  `brew install markspowell/violens/violens`.
+- **Linux (x86-64):** `VioLens-<version>-x86_64.AppImage` (`chmod +x` it
+  and run it) or `VioLens-<version>-linux-x64.tar.gz`. Trusting the
+  certificate needs `certutil`, from `libnss3-tools` or `nss-tools`.
 
 The first time you click Start, VioLens asks to trust a new root
 certificate, named `DO_NOT_TRUST_ViolensRoot...` after Fiddler Classic's
@@ -136,6 +139,19 @@ convention. That's what lets it read HTTPS traffic on this computer.
   `nss-tools`, which you may need to install).
 
 Nothing you capture leaves your computer unless you send it somewhere.
+
+## Building from source
+
+You need the .NET 10 SDK.
+
+```
+dotnet restore VioLens.sln
+dotnet build VioLens.sln
+dotnet test VioLens.sln
+dotnet run --project apps/Violens.DesktopUi
+```
+
+`dotnet run --project apps/Violens.Capture` runs VioLens Capture.
 
 ## Documentation
 
