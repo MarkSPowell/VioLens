@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>violens</id>
+    <version>1.0.0-rc.3</version>
+    <title>VioLens</title>
+    <authors>Mark Powell</authors>
+    <owners>Mark Powell</owners>
+    <projectUrl>https://violens.dev/</projectUrl>
+    <packageSourceUrl>https://github.com/MarkSPowell/VioLens/tree/main/installer/chocolatey</packageSourceUrl>
+    <projectSourceUrl>https://github.com/MarkSPowell/VioLens</projectSourceUrl>
+    <docsUrl>https://violens.dev/guide/</docsUrl>
+    <bugTrackerUrl>https://github.com/MarkSPowell/VioLens/issues</bugTrackerUrl>
+    <iconUrl>https://violens.dev/assets/favicon.png</iconUrl>
+    <licenseUrl>https://github.com/MarkSPowell/VioLens/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <copyright>Copyright (c) VioLens contributors</copyright>
+    <releaseNotes>https://github.com/MarkSPowell/VioLens/releases/tag/v1.0.0-rc.3</releaseNotes>
+    <tags>violens http https proxy debugging debugger web-debugger fiddler saz har mitm websocket http2 foss cross-platform</tags>
+    <summary>Free, open source HTTP and HTTPS debugging proxy, and an alternative to Fiddler Classic.</summary>
+    <description><![CDATA[VioLens shows every HTTP and HTTPS request your browsers and apps make, decrypted, and lets you pause, change and replay them. It works the way Fiddler Classic does and is free for any use, including at work, under the MIT license.
+
+## Features
+
+- Captures HTTP and HTTPS through a local proxy, including HTTP/2, WebSockets and gRPC trailers
+- Forwards through your network's proxy, with PAC scripts, WPAD and Negotiate or NTLM sign-in
+- Inspectors for headers, raw, JSON, CBOR, MessagePack, Markdown, forms, images, hex and cookies, plus a timing waterfall and statistics
+- Breakpoints, AutoResponder rules, the Composer and Replay
+- QuickExec, `violens-exec`, FiddlerScript (`CustomRules.js`) and compiled extensions
+- Opens and saves SAZ files, imports and exports HAR, and imports HTTP from `.pcap` and `.pcapng` files
+- A Group Policy (ADMX) template for locking settings at work
+
+## Notes
+
+- This package installs VioLens for all users. The installer's optional NetLog importer and CSP Rule Collector extensions are included; the Privacy Scanner and the legacy extension host are not.
+- To read HTTPS, VioLens asks to trust a root certificate of its own the first time you click Start. Installing the package doesn't add it. Remove it with **Tools > Remove Root Certificate** before uninstalling.
+- VioLens is an independent project, not affiliated with Progress Software or Telerik. Fiddler is a trademark of Progress Software Corporation, used here only to describe compatibility.
+]]></description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
